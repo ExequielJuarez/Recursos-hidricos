@@ -1,0 +1,164 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Cargar Herramienta - Gestión Industrial</title>
+  <link rel="stylesheet" href="/css/ListadoVehiculos.css" />
+  <link rel="stylesheet" href="/css/CargaFichaVehiculo.css" />
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500;600;700&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet" />
+  <style>
+    /* ── ADAPTACIÓN MÓVIL Y BOTÓN VOLVER ── */
+    #mobile-back-btn {
+      background-color: #f8fafc;
+      color: #475569;
+      border: 1px solid #cbd5e1;
+      padding: 8px 14px;
+      font-size: 13px;
+      font-weight: 700;
+      border-radius: 8px;
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      transition: 0.2s;
+      margin-bottom: 20px;
+      text-decoration: none;
+    }
+    #mobile-back-btn:hover { background-color: #e2e8f0; color: #0f172a; }
+    #mobile-back-btn svg { width: 16px; height: 16px; }
+
+    @media (min-width: 900px) {
+      #mobile-back-btn { display: none !important; }
+    }
+
+    @media (max-width: 900px) {
+      .form-row { flex-direction: column !important; gap: 0 !important; }
+      .acciones { flex-direction: column-reverse !important; width: 100% !important; gap: 12px !important; }
+      .acciones button, .acciones a { width: 100% !important; text-align: center; padding: 14px !important; font-size: 14px !important; }
+      .page-header { margin-bottom: 16px !important; }
+    }
+  </style>
+</head>
+<body>
+  <%- include('./partials/sidebar') %>
+
+  <div class="app-wrapper" id="app-wrapper">
+    <%- include('./partials/topbar') %>
+
+    <main class="main-content">
+      
+      <a href="/Tools" id="mobile-back-btn">
+        <svg viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M9.707 16.707a1 1 0 01-1.414 0l-6-6a1 1 0 010-1.414l6-6a1 1 0 011.414 1.414L5.414 9H17a1 1 0 110 2H5.414l4.293 4.293a1 1 0 010 1.414z" clip-rule="evenodd"/></svg>
+        Volver a Inventario
+      </a>
+
+      <div class="page-header">
+        <h2 class="page-title">Cargar Herramienta</h2>
+        <p class="page-subtitle">Registrá un nuevo activo físico en el inventario.</p>
+      </div>
+
+      <form class="form" action="/Tools/Carga" method="post">
+        
+        <section class="form-section">
+          <h3>Información Básica</h3>
+          <div class="form-group">
+            <label>Código de Activo / ID <span class="req">*</span></label>
+            <input name="codigo_activo" type="text" placeholder="Ej: HTI-001" required>
+          </div>
+
+          <div class="form-row">
+            <div class="form-group">
+              <label>Nombre de Herramienta / Modelo <span class="req">*</span></label>
+              <input name="nombre" type="text" placeholder="Ej: Taladro Percutor Bosch" required>
+            </div>
+            
+            <div class="form-group">
+              <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px;">
+                <label style="margin: 0;">Sector Destino <span class="req">*</span></label>
+                <a href="/Tools/Ajustes" style="font-size: 11px; color: #2563eb; text-decoration: none; font-weight: 700; display: flex; align-items: center; gap: 4px;">
+                  <svg viewBox="0 0 20 20" fill="currentColor" style="width: 14px; height: 14px;"><path fill-rule="evenodd" d="M11.49 3.17c-.38-1.56-2.6-1.56-2.98 0a1.532 1.532 0 01-2.286.948c-1.372-.836-2.942.734-2.106 2.106.54.886.061 2.042-.947 2.287-1.561.379-1.561 2.6 0 2.978a1.532 1.532 0 01.947 2.287c-.836 1.372.734 2.942 2.106 2.106a1.532 1.532 0 012.287.947c.379 1.561 2.6 1.561 2.978 0a1.533 1.533 0 012.287-.947c1.372.836 2.942-.734 2.106-2.106a1.533 1.533 0 01.947-2.287c1.561-.379 1.561-2.6 0-2.978a1.532 1.532 0 01-.947-2.287c.836-1.372-.734-2.942-2.106-2.106a1.532 1.532 0 01-2.287-.947zM10 13a3 3 0 100-6 3 3 0 000 6z" clip-rule="evenodd"/></svg>
+                  Gestionar
+                </a>
+              </div>
+              <select name="sector" required>
+                <option value="">Seleccione sector</option>
+                <% if (typeof sectores !== 'undefined' && sectores.length > 0) { %>
+                  <% sectores.forEach(s => { %>
+                    <option value="<%= s.nombre %>"><%= s.nombre %></option>
+                  <% }) %>
+                <% } else { %>
+                  <option value="Taller Mecánico">Taller Mecánico</option>
+                  <option value="Construcción A">Construcción A</option>
+                  <option value="Espacios Verdes">Espacios Verdes</option>
+                  <option value="Mantenimiento General">Mantenimiento General</option>
+                  <option value="Depósito Central">Depósito Central</option>
+                <% } %>
+              </select>
+            </div>
+          </div>
+
+          <div class="form-row">
+            <div class="form-group">
+              <label>Cantidad (Stock Físico) <span class="req">*</span></label>
+              <input name="stock" type="number" placeholder="Ej: 5" required min="0">
+            </div>
+            <div class="form-group">
+              <label>Fecha de Ingreso</label>
+              <input name="fecha_alta" type="date">
+            </div>
+          </div>
+        </section>
+
+        <section class="form-section">
+          <h3>Estado y Observaciones</h3>
+          <div class="form-row">
+            <div class="form-group">
+              <label>Estado Inicial</label>
+              <select name="estado">
+                <option value="Disponible">Disponible</option>
+                <option value="En Reparación">En Reparación</option>
+                <option value="Baja">Baja</option>
+              </select>
+            </div>
+            <div class="form-group">
+              <label>Combustible / Energía (Opcional)</label>
+              <input name="combustible_energia" type="text" placeholder="Ej: Batería 80% o Nafta">
+            </div>
+          </div>
+
+          <div class="form-group">
+            <label>Observaciones Adicionales</label>
+            <textarea name="observaciones" placeholder="Detalle cualquier particularidad del ingreso..."></textarea>
+          </div>
+        </section>
+
+        <div class="acciones">
+          <a href="/Tools" class="boton-secundario">Cancelar</a>
+          <button type="submit" class="boton-primario">Guardar Herramienta</button>
+        </div>
+      </form>
+    </main>
+  </div>
+  
+  <script src="/js/sidebar.js"></script>
+  <script>
+    /* ── FIX BOTÓN HAMBURGUESA BLINDADO ── */
+    document.addEventListener('DOMContentLoaded', () => {
+      const topbar = document.querySelector('.topbar') || document.querySelector('.app-header');
+      if (!topbar) return;
+      const btnHamburguesa = topbar.querySelector('button') || document.getElementById('menu-toggle');
+      const sidebar = document.getElementById('mi-sidebar-blindado');
+      const overlay = document.getElementById('sb-overlay-blindado');
+      if (btnHamburguesa && sidebar && overlay) {
+        const nuevoBtn = btnHamburguesa.cloneNode(true);
+        btnHamburguesa.parentNode.replaceChild(nuevoBtn, btnHamburguesa);
+        nuevoBtn.addEventListener('click', (e) => {
+          e.preventDefault(); e.stopPropagation();
+          sidebar.classList.toggle('abierto'); overlay.classList.toggle('activo');
+        });
+      }
+    });
+  </script>
+</body>
+</html>

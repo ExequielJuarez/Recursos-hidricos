@@ -1,0 +1,461 @@
+<style>
+  :root {
+    /* Normalizamos la altura real del topbar para que el offset sticky calcule bien */
+    --topbar-height: 70px;
+  }
+
+  .topbar {
+    background-color: #ffffff;
+    border-bottom: 1px solid #e2e8f0;
+    height: var(--topbar-height);
+    padding: 0 24px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    font-family: 'DM Sans', sans-serif;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.02);
+    position: sticky;
+    top: 0;
+    z-index: 50;
+  }
+
+  /* ============================================================
+     TÍTULOS FIJOS (STICKY) - GLOBAL PARA TODAS LAS VISTAS
+     El título de cada página queda fijo en una barra blanca con
+     divisor inferior; solo el contenido de abajo hace scroll.
+
+     NOTA TÉCNICA: para que position:sticky funcione, el scroll debe
+     ocurrir en el <body>. ListadoVehiculos.css fuerza .app-wrapper y
+     .main-content con overflow:hidden (modelo master-detalle), lo que
+     bloquea el sticky en las vistas de una sola columna. Por eso
+     anulamos ese overflow SOLO en las vistas que NO son master-detalle
+     (las master-detalle tienen .vehicle-list-panel y su título lateral
+     ya queda fijo por diseño).
+     ============================================================ */
+
+  /* Vistas de UNA COLUMNA: dejamos que el body scrollee */
+  body:not(:has(.vehicle-list-panel)) .app-wrapper {
+    height: auto !important;
+    overflow: visible !important;
+    min-height: 100vh !important;
+  }
+  body:not(:has(.vehicle-list-panel)) .main-content {
+    overflow: visible !important;
+    height: auto !important;
+    flex: 1 1 auto !important;
+  }
+
+  /* Título fijo debajo del topbar */
+  .page-header {
+    position: sticky;
+    top: var(--topbar-height);
+    z-index: 40;
+    background-color: #ffffff;
+    padding: 16px 0 14px 0;
+    border-bottom: 1px solid #e2e8f0;
+    margin-bottom: 20px;
+  }
+
+  /* Vistas legacy que usan .Main-content con h2 + .descripcion */
+  .Main-content > h2 {
+    position: sticky;
+    top: var(--topbar-height);
+    z-index: 40;
+    background-color: #ffffff;
+    padding: 16px 0 14px 0;
+    border-bottom: 1px solid #e2e8f0;
+    margin-bottom: 0;
+  }
+  .Main-content > .descripcion {
+    position: sticky;
+    top: calc(var(--topbar-height) + 52px);
+    z-index: 39;
+    background-color: #ffffff;
+    padding-bottom: 8px;
+  }
+  .topbar__actions {
+    display: flex;
+    align-items: center;
+    gap: 20px;
+  }
+  .topbar__notification-btn {
+    background: transparent;
+    border: none;
+    color: #64748b;
+    cursor: pointer;
+    position: relative;
+    padding: 8px;
+    border-radius: 8px;
+    transition: all 0.2s ease;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+  .topbar__notification-btn:hover {
+    background-color: #f1f5f9;
+    color: #0f172a;
+  }
+  .topbar__notification-btn svg {
+    width: 22px;
+    height: 22px;
+  }
+  .topbar__notification-dot {
+    position: absolute;
+    top: 2px;
+    right: 2px;
+    background-color: #ef4444;
+    color: white;
+    font-size: 10px;
+    font-weight: 700;
+    min-width: 16px;
+    height: 16px;
+    border-radius: 10px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border: 2px solid white;
+    padding: 0 4px;
+  }
+  .topbar__user {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    padding-left: 20px;
+    border-left: 1px solid #e2e8f0;
+  }
+  .btn-salir {
+    background-color: #ef4444;
+    color: white;
+    padding: 8px 16px;
+    border-radius: 8px;
+    font-size: 13px;
+    font-weight: 700;
+    text-decoration: none;
+    transition: all 0.2s ease;
+    box-shadow: 0 2px 4px rgba(239, 68, 68, 0.2);
+  }
+  .btn-salir:hover {
+    background-color: #dc2626;
+    box-shadow: 0 4px 6px rgba(239, 68, 68, 0.3);
+    transform: translateY(-1px);
+  }
+
+  .notif-wrapper{
+    position: relative;
+}
+
+.notif-panel{
+    position: absolute;
+    top: calc(100% + 10px);
+    right: 0;
+    width: 380px;
+    background: #fff;
+    border: 1px solid #e2e8f0;
+    border-radius: 12px;
+    box-shadow: 0 12px 30px rgba(0,0,0,.12);
+    display: none;
+    overflow: hidden;
+    z-index: 9999;
+}
+
+.notif-panel--open{
+    display: block;
+}
+
+.notif-panel__header{
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 14px 16px;
+    border-bottom: 1px solid #e2e8f0;
+}
+
+.notif-panel__title{
+    font-weight: 700;
+    color: #0f172a;
+}
+
+.notif-panel__marcar-todas{
+    border: none;
+    background: none;
+    color: #2563eb;
+    cursor: pointer;
+    font-size: 12px;
+    font-weight: 600;
+}
+
+.notif-panel__list{
+    max-height: 350px;
+    overflow-y: auto;
+}
+
+.notif-item{
+    display: flex;
+    gap: 10px;
+    align-items: flex-start;
+    padding: 12px 16px;
+    border-bottom: 1px solid #f1f5f9;
+}
+
+.notif-item:hover{
+    background: #f8fafc;
+}
+
+.notif-item__dot{
+    width: 10px;
+    height: 10px;
+    min-width: 10px;
+    border-radius: 50%;
+    background: #ef4444;
+    margin-top: 6px;
+}
+
+.notif-item__body{
+    flex: 1;
+}
+
+.notif-item__tipo{
+    display: block;
+    font-size: 12px;
+    font-weight: 700;
+    color: #0f172a;
+}
+
+.notif-item__msg{
+    margin: 4px 0;
+    font-size: 13px;
+    color: #475569;
+}
+
+.notif-item__fecha{
+    font-size: 11px;
+    color: #94a3b8;
+}
+
+.notif-item__marcar{
+    border: none;
+    background: #eff6ff;
+    color: #2563eb;
+    border-radius: 6px;
+    cursor: pointer;
+    padding: 6px;
+}
+
+.notif-panel__footer{
+    padding: 12px;
+    border-top: 1px solid #e2e8f0;
+    text-align: center;
+}
+
+.notif-panel__ver-todas{
+    text-decoration: none;
+    font-weight: 600;
+    color: #2563eb;
+}
+
+.notif-panel__empty,
+.notif-panel__loading{
+    padding: 20px;
+    text-align: center;
+    color: #64748b;
+}
+</style>
+
+<header class="topbar">
+  <button class="topbar__menu-toggle" id="menu-toggle" aria-label="Abrir menú" aria-expanded="false" aria-controls="sidebar" style="background:none; border:none; color:#0f172a; cursor:pointer;">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="24" height="24">
+      <line x1="3" y1="6"  x2="21" y2="6"/>
+      <line x1="3" y1="12" x2="21" y2="12"/>
+      <line x1="3" y1="18" x2="21" y2="18"/>
+    </svg>
+  </button>
+
+  <div class="topbar__actions">
+    <div class="notif-wrapper" id="notif-wrapper">
+        <button class="topbar__notification-btn" id="notif-btn"
+                aria-label="Notificaciones" aria-expanded="false">
+            <svg viewBox="0 0 20 20" fill="currentColor"><path d="M10 2a6 6 0 00-6 6v3.586l-.707.707A1 1 0 004 14h12a1 1 0 00.707-1.707L16 11.586V8a6 6 0 00-6-6zM10 18a3 3 0 01-3-3h6a3 3 0 01-3 3z"/></svg>
+            <span class="topbar__notification-dot" id="notif-badge" style="display:none;">0</span>
+        </button>
+
+        <div class="notif-panel" id="notif-panel" aria-hidden="true">
+            <div class="notif-panel__header">
+                <span class="notif-panel__title">Notificaciones</span>
+                <button class="notif-panel__marcar-todas" id="marcar-todas-btn">
+                    Marcar todas como leídas
+                </button>
+            </div>
+            <div class="notif-panel__list" id="notif-list">
+                <div class="notif-panel__loading">Cargando...</div>
+            </div>
+            <div class="notif-panel__footer">
+                <a href="/Alertas" class="notif-panel__ver-todas">Ver todas las alertas</a>
+            </div>
+        </div>
+    </div>
+    
+    <div class="topbar__user" role="button" tabindex="0">
+      <% if (typeof usuarioLocal !== 'undefined' && usuarioLocal) { %>
+        <div class="topbar__user-name-wrapper" style="text-align: right; line-height: 1.3;">
+          <span class="topbar__user-name" style="display: block; font-weight: 700; font-size: 14px; color: #0f172a;"><%= usuarioLocal.nombre %> <%= usuarioLocal.apellido %></span>
+          <span style="font-size: 11px; font-weight: 700; color: #64748b; text-transform: uppercase; letter-spacing: 0.05em;"><%= usuarioLocal.rol %></span>
+        </div>
+        <a href="/CerrarSesion" class="btn-salir">Salir</a>
+      <% } else { %>
+        <div class="topbar__user-name-wrapper" style="text-align: right; line-height: 1.3;">
+          <span class="topbar__user-name" style="display: block; font-weight: 700; font-size: 14px; color: #0f172a;">Administrador Sistema</span>
+          <span style="font-size: 11px; font-weight: 700; color: #64748b; text-transform: uppercase; letter-spacing: 0.05em;">Administrador</span>
+        </div>
+        <a href="/CerrarSesion" class="btn-salir">Salir</a>
+      <% } %>
+    </div>
+  </div>
+</header>
+
+<script>window.CSRF_TOKEN = "<%= typeof csrfToken !== 'undefined' ? csrfToken : '' %>";</script>
+<script src="/js/csrf.js"></script>
+<script src="/js/flash.js"></script>
+<% if (typeof flash !== 'undefined' && flash) { %>
+<script>document.addEventListener('DOMContentLoaded', function () { mostrarAviso(<%- JSON.stringify(flash.tipo === 'error' ? 'error' : 'ok') %>, <%- JSON.stringify(String(flash.mensaje)).replace(/</g, '\\u003c') %>); });</script>
+<% } %>
+<script>
+function escaparHtml(t) {
+    return String(t == null ? '' : t).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;').replace(/'/g, '&#39;');
+}
+
+async function actualizarBadgeNotif() {
+    try {
+        const res = await fetch('/Alertas/recientes');
+        if (!res.ok) return;
+        const data = await res.json();
+        const badge = document.getElementById('notif-badge');
+        if (!badge) return;
+        if (data.noLeidas && data.noLeidas > 0) {
+            badge.textContent = data.noLeidas > 99 ? '99+' : data.noLeidas;
+            badge.style.display = 'flex';
+        } else {
+            badge.style.display = 'none';
+        }
+    } catch (err) {
+        console.error('Error sincronizando alertas:', err);
+    }
+}
+
+const TIPO_LABEL = {
+    licencia_vencida:         'Licencia vencida',
+    licencia_proxima:         'Licencia próxima',
+    mantenimiento_pendiente:  'Mant. pendiente',
+    mantenimiento_finalizado: 'Mant. finalizado',
+    mantenimiento_proximo:    'Service próximo',
+    mantenimiento_vencido:    'Service vencido',
+    vehiculo_en_mantenimiento: 'En mantenimiento',
+    documentacion_vencida:    'Doc. vencida',
+    vehiculo_fuera_servicio:  'Fuera de servicio',
+    herramienta_devuelta:     'Herramienta devuelta',
+    prestamo_vencido:         'Préstamo vencido',
+    asignacion_vencida:       'Asignación vencida',
+    stock_bajo:               'Stock bajo',
+    siniestro_activo:         'Siniestro activo',
+    critica:                  'Crítica',
+    informativa:              'Informativa',
+};
+
+let panelAbierto = false;
+let panelCargado = false;
+
+async function cargarNotificaciones() {
+    const notifList = document.getElementById('notif-list');
+    if (!notifList) return;
+    try {
+        const res  = await fetch('/Alertas/recientes');
+        const data = await res.json();
+
+        if (!data.alertas || data.alertas.length === 0) {
+            notifList.innerHTML = '<p class="notif-panel__empty">Sin alertas pendientes.</p>';
+            return;
+        }
+
+        notifList.innerHTML = data.alertas.map(a => `
+            <div class="notif-item notif-item--noleida" data-id="${a.id_alerta}">
+                <div class="notif-item__dot"></div>
+                <div class="notif-item__body">
+                    <span class="notif-item__tipo">${escaparHtml(TIPO_LABEL[a.tipo] || a.tipo)}</span>
+                    <p class="notif-item__msg">${escaparHtml(a.mensaje)}</p>
+                    <span class="notif-item__fecha">${new Date(a.createdAt).toLocaleDateString('es-AR')}</span>
+                </div>
+                <button class="notif-item__marcar" data-id="${a.id_alerta}" title="Marcar como leída">
+                    <svg viewBox="0 0 20 20" fill="currentColor" width="14" height="14">
+                        <path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"/>
+                    </svg>
+                </button>
+            </div>
+        `).join('');
+
+        panelCargado = true;
+        actualizarBadgeNotif();
+    } catch(e) {
+        document.getElementById('notif-list').innerHTML =
+            '<p class="notif-panel__empty">Error al cargar.</p>';
+    }
+}
+
+document.addEventListener('DOMContentLoaded', () => {
+    actualizarBadgeNotif();
+
+    const notifBtn   = document.getElementById('notif-btn');
+    const notifPanel = document.getElementById('notif-panel');
+    const notifList  = document.getElementById('notif-list');
+
+    if (!notifBtn || !notifPanel) return;
+
+    notifBtn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        panelAbierto = !panelAbierto;
+        notifPanel.classList.toggle('notif-panel--open', panelAbierto);
+        notifBtn.setAttribute('aria-expanded', panelAbierto);
+        if (panelAbierto && !panelCargado) cargarNotificaciones();
+    });
+
+    document.addEventListener('click', (e) => {
+        const wrapper = document.getElementById('notif-wrapper');
+        if (panelAbierto && wrapper && !wrapper.contains(e.target)) {
+            panelAbierto = false;
+            notifPanel.classList.remove('notif-panel--open');
+            notifBtn.setAttribute('aria-expanded', 'false');
+        }
+    });
+
+    if (notifList) {
+        notifList.addEventListener('click', async (e) => {
+            const btn = e.target.closest('.notif-item__marcar');
+            if (!btn) return;
+            const id   = btn.dataset.id;
+            const item = notifList.querySelector(`.notif-item[data-id="${id}"]`);
+            try {
+                const res = await fetch(`/Alertas/${id}/leer`, { method: 'POST' });
+                if ((await res.json()).ok) {
+                    item.classList.replace('notif-item--noleida', 'notif-item--leida');
+                    btn.remove();
+                    actualizarBadgeNotif();
+                }
+            } catch(err) { console.error(err); }
+        });
+    }
+
+    const marcarTodasBtn = document.getElementById('marcar-todas-btn');
+    if (marcarTodasBtn) {
+        marcarTodasBtn.addEventListener('click', async () => {
+            try {
+                const res = await fetch('/Alertas/leer-todas', { method: 'POST' });
+                if ((await res.json()).ok) {
+                    document.querySelectorAll('.notif-item').forEach(item => {
+                        item.classList.replace('notif-item--noleida', 'notif-item--leida');
+                        item.querySelector('.notif-item__marcar')?.remove();
+                    });
+                    actualizarBadgeNotif();
+                }
+            } catch(err) { console.error(err); }
+        });
+    }
+});
+</script>

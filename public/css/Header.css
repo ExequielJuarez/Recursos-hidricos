@@ -1,0 +1,347 @@
+/*Header original - Mantenido completo por compatibilidad*/
+
+header{
+    width: 100%;
+    height: 80px;
+    display: flex;
+    background-color: #253144;
+    flex-direction: row;
+    align-items: center;
+    justify-content: space-between;
+    position: relative;
+}
+
+.contLogo{
+    width: 30%;
+    display: flex;
+    justify-content: center;
+
+}
+
+.imgLogo{
+    width: 75px;
+    height: 75px;
+}
+
+.iconBar{
+    color: white;
+    width: 30%;
+    text-align: left;
+    font-size: 40px;
+    margin-left: 15px;
+    display: flex;
+}
+
+.iconUser{
+    color: white;
+    width: 30%;
+    text-align: right;
+    font-size: 40px;
+    margin-right: 15px;
+    display: flex;
+    justify-content: flex-end;
+}
+
+.iconUser2{
+    color: white;
+    width: 30%;
+    text-align: right;
+    font-size: 40px;
+    margin-right: 15px;
+    display: flex;
+    justify-content: flex-end;
+}
+
+.contOptions{
+    width: 45%;
+    display: none;
+    justify-content: space-around;
+}
+
+.OptionsHeader{
+    color: white;
+    text-decoration: none;
+    padding: 7px;
+}
+
+.OptionsHeader:hover{
+    border-radius: 15px;
+    
+    background-color: #58687D;
+}
+
+.iconSettings{
+    color: white;
+    text-align: right;
+    font-size: 40px;
+    margin-right: 15px;
+    display: flex;
+    justify-content: flex-end;
+}
+
+.iconClipboard{
+    color: white;
+    text-align: right;
+    font-size: 40px;
+    margin-right: 15px;
+    display: flex;
+    justify-content: flex-end;
+}
+.report{
+    color: white;
+    margin-right: 30px;
+}
+
+.contIcons{
+    width: 25%;
+    display: none;
+    align-items: center;
+    justify-content: flex-end;
+}
+
+.contOptions2 {
+  position: absolute;
+  top: -3px;
+  width: 50%;
+
+  display: flex; /* o directamente sacarlo, pero flex te sirve */
+
+  flex-direction: column;
+  justify-content: space-around;
+  align-items: flex-start;
+
+  height: 400px;
+  background-color: #3b495d;
+  padding-bottom: 10px;
+
+  transform: translateX(-100%);
+  opacity: 0;
+  pointer-events: none;
+
+  transition: transform 0.4s ease, opacity 0.4s ease;
+}
+
+#contOptions2.activo {
+  transform: translateX(0);
+  opacity: 1;
+  pointer-events: auto;
+}
+
+.contOptions2.activo{
+    display: flex;
+}
+
+
+.OptionsHeader2{
+    color: rgb(255, 255, 255);
+    font-size: 20px;
+    text-decoration: none;
+    padding-left: 10px ;
+}
+
+.iconX{
+    color: rgb(255, 255, 255);
+    text-align: left;
+    font-size: 35px;
+    display: flex;
+    border-bottom: 1px solid white;
+    width: 100%;
+    padding-left: 20px;
+    padding-bottom: 21px;
+}
+
+/*-----------------------------------------------------------------*/
+
+
+@media (min-width: 768px) {
+
+    header{
+        height: 100px;
+    }
+
+    .imgLogo{
+        width: 100px ;
+        height: 100px;
+    }
+
+    .iconBar{
+        font-size: 60px;
+        margin-left: 20px;
+    }
+
+    .iconUser2{
+        font-size: 60px;
+        margin-right: 20px;
+    }
+
+    .contOptions2{
+        height: 600px;
+        top: -13px;
+    }
+
+    .iconX {
+    font-size: 45px;
+    padding-left: 30px;
+    padding-bottom: 29px;
+    }
+
+    .OptionsHeader2 {
+    font-size: 29px;
+    }
+}
+
+@media (min-width: 1024px) {
+
+    .iconBar{
+        display: none;
+    }
+
+    .iconUser{
+        font-size: 40px;
+        width: auto;
+        margin-right: 15px;
+    }
+
+    .contLogo{
+        justify-content: flex-start;
+        width: 25%;
+        margin-left: 20px;
+    }
+
+    .contIcons{
+    display: flex;
+    }
+
+    .contOptions{
+    display: flex;
+    }
+
+    .iconUser2{
+    display: none;
+    }
+
+    .contOptions2{
+        display: none;
+    }
+}
+
+/* =========================================================================
+   ESTALABIZACIÓN RESPONSIVE SENIOR: SOPORTE COMPLETO PARA CLASES .TOPBAR
+   ========================================================================= */
+.topbar {
+    width: 100%;
+    height: 70px;
+    background-color: #ffffff;
+    border-bottom: 1px solid #e2e8f0;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0 24px;
+    position: sticky;
+    top: 0;
+    z-index: 99;
+}
+
+.topbar__menu-toggle {
+    background: none;
+    border: none;
+    color: #334155;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 8px;
+    border-radius: 6px;
+    transition: background-color 0.2s;
+}
+
+.topbar__menu-toggle:hover {
+    background-color: #f1f5f9;
+}
+
+.topbar__menu-toggle svg {
+    width: 24px;
+    height: 24px;
+}
+
+.topbar__mobile-brand {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-weight: 700;
+    color: #1e293b;
+    font-size: 1.1rem;
+}
+
+.imglogosidebarcel {
+    height: 38px;
+    width: auto;
+    object-fit: contain;
+}
+
+.topbar__actions {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+}
+
+.topbar__notification-btn {
+    background: none;
+    border: none;
+    color: #64748b;
+    position: relative;
+    cursor: pointer;
+    padding: 6px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 50%;
+    transition: background-color 0.2s;
+}
+
+.topbar__notification-btn:hover {
+    background-color: #f1f5f9;
+}
+
+.topbar__notification-btn svg {
+    width: 22px;
+    height: 22px;
+}
+
+.topbar__notification-dot {
+    position: absolute;
+    top: 2px;
+    right: 2px;
+    background-color: #ef4444;
+    color: white;
+    font-size: 10px;
+    font-weight: 700;
+    border-radius: 999px;
+    padding: 1px 5px;
+    min-width: 16px;
+    text-align: center;
+}
+
+.topbar__user {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}
+
+.topbar__user-name {
+    color: #0f172a;
+    font-size: 0.95rem;
+}
+
+/* Ocultar elementos repetidos según tamaño de pantalla */
+@media (max-width: 1023px) {
+    .topbar__user-name, .topbar__user span {
+        display: none; /* En celular achicamos el texto del usuario para dar espacio */
+    }
+}
+
+@media (min-width: 1024px) {
+    .topbar__mobile-brand {
+        display: none; /* En PC se oculta la marca móvil porque ya está el sidebar */
+    }
+}

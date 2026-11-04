@@ -1,0 +1,39 @@
+{
+  "name": "emprendimiento",
+  "version": "1.0.0",
+  "main": "index.js",
+  "scripts": {
+    "start": "node src/app.js",
+    "dev": "nodemon src/app.js",
+    "db:armar": "node scripts/armar-copiaseguridad.js",
+    "db:demo": "node scripts/cargar-demo.js",
+    "test": "node --test --test-concurrency=1 tests/*.test.js",
+    "usuarios": "node scripts/crear-usuarios.js",
+    "db:limpiar": "node scripts/limpiar-datos.js",
+    "compartir": "node scripts/compartir.js",
+    "db:instalacion": "node scripts/armar-instalacion-limpia.js",
+    "db:instalar": "node scripts/crear-usuarios.js"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "description": "",
+  "dependencies": {
+    "bcryptjs": "^3.0.3",
+    "connect-session-sequelize": "^8.0.6",
+    "dotenv": "^17.4.2",
+    "ejs": "^3.1.10",
+    "exceljs": "^4.4.0",
+    "express": "^5.1.0",
+    "express-session": "^1.19.0",
+    "express-validator": "^7.3.2",
+    "method-override": "^3.0.0",
+    "multer": "^2.1.1",
+    "mysql2": "^3.22.2",
+    "node-cron": "^4.5.0",
+    "sequelize": "^6.37.8"
+  },
+  "devDependencies": {
+    "nodemon": "^3.1.14"
+  }
+}

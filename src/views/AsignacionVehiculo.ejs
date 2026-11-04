@@ -1,0 +1,345 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Asignación de Vehículo - Municipalidad</title>
+  <link rel="stylesheet" href="/css/ListadoVehiculos.css" />
+  <link rel="stylesheet" href="/css/CargaFichaVehiculo.css" />
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500;600;700;800&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet" />
+  <style>
+    /* Estilos específicos para las tarjetitas de previsualización */
+    .preview-strip { display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 16px; margin-top: 16px; }
+    .preview-card { background: #f8fafc; border: 1px dashed #cbd5e1; border-radius: 8px; padding: 16px; display: flex; align-items: center; gap: 16px; transition: 0.2s; }
+    .preview-card--active { border-style: solid; border-color: #bfdbfe; background: #eff6ff; }
+    .preview-card__icon { width: 40px; height: 40px; border-radius: 8px; background: white; border: 1px solid #e2e8f0; display: flex; align-items: center; justify-content: center; color: #2563eb; }
+    .preview-card__icon svg { width: 20px; height: 20px; }
+    .preview-card__label { display: block; font-size: 11px; font-weight: 700; color: #64748b; text-transform: uppercase; margin-bottom: 2px; }
+    .preview-card__value { display: block; font-size: 15px; font-weight: 800; color: #0f172a; font-family: var(--font-mono); }
+    .preview-card__sub { display: block; font-size: 12px; color: #475569; }
+
+    /* ── ADAPTACIÓN MÓVIL Y BOTÓN VOLVER ── */
+    #mobile-back-btn {
+      background-color: #f8fafc;
+      color: #475569;
+      border: 1px solid #cbd5e1;
+      padding: 8px 14px;
+      font-size: 13px;
+      font-weight: 700;
+      border-radius: 8px;
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      transition: 0.2s;
+      margin-bottom: 20px;
+      text-decoration: none;
+    }
+    #mobile-back-btn:hover { background-color: #e2e8f0; color: #0f172a; }
+    #mobile-back-btn svg { width: 16px; height: 16px; }
+
+    @media (min-width: 900px) {
+      #mobile-back-btn { display: none !important; }
+    }
+
+    @media (max-width: 900px) {
+      .form-row { flex-direction: column !important; gap: 0 !important; }
+      .acciones { flex-direction: column-reverse !important; width: 100% !important; gap: 12px !important; }
+      .acciones button, .acciones a { width: 100% !important; text-align: center; padding: 14px !important; font-size: 14px !important; }
+      .data-table-wrapper { overflow-x: auto !important; -webkit-overflow-scrolling: touch; border-radius: 8px; }
+    }
+  </style>
+</head>
+<body>
+
+  <%- include('./partials/sidebar') %>
+
+  <div class="app-wrapper" id="app-wrapper">
+    <%- include('./partials/topbar') %>
+
+    <main class="main-content">
+
+      <a href="/Vehicles" id="mobile-back-btn">
+        <svg viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M9.707 16.707a1 1 0 01-1.414 0l-6-6a1 1 0 010-1.414l6-6a1 1 0 011.414 1.414L5.414 9H17a1 1 0 110 2H5.414l4.293 4.293a1 1 0 010 1.414z" clip-rule="evenodd"/></svg>
+        Volver a Vehículos
+      </a>
+
+      <div class="page-header">
+        <h2 class="page-title">Asignación de Vehículo</h2>
+        <p class="page-subtitle">Asociá un vehículo a un chofer. Cuando el vehículo vuelva, marcalo como devuelto desde "Asignaciones en Curso".</p>
+      </div>
+
+      <% if (typeof error !== 'undefined' && error) { %>
+        <div style="background:#fef2f2; border:1px solid #fecaca; color:#991b1b; padding:16px; border-radius:8px; margin-bottom:24px; display:flex; align-items:center; gap:10px; font-weight:600;">
+          <svg viewBox="0 0 20 20" fill="currentColor" style="width:20px;height:20px;"><path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z" clip-rule="evenodd"/></svg>
+          <span><%= error %></span>
+        </div>
+      <% } %>
+      
+      <% if (typeof success !== 'undefined' && success) { %>
+        <div style="background:#f0fdf4; border:1px solid #bbf7d0; color:#166534; padding:16px; border-radius:8px; margin-bottom:24px; display:flex; align-items:center; gap:10px; font-weight:600;">
+          <svg viewBox="0 0 20 20" fill="currentColor" style="width:20px;height:20px;"><path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"/></svg>
+          <span><%= success %></span>
+        </div>
+      <% } %>
+
+      <form class="form" id="assignment-form" action="/Asignaciones" method="POST" novalidate>
+
+        <section class="form-section">
+          <h3>1. Selección de Entidades</h3>
+          <div class="form-row">
+            <div class="form-group" id="field-vehiculo">
+              <label for="select-vehiculo">Vehículo <span class="req">*</span></label>
+              <select id="select-vehiculo" name="id_vehiculo" required>
+                <option value="">— Seleccioná un vehículo disponible —</option>
+                <% if (typeof vehiculos !== 'undefined') { %>
+                  <% vehiculos.forEach(v => { %>
+                    <% const bloqueo = v.getDataValue ? v.getDataValue('bloqueo') : v.bloqueo; %>
+                    <option value="<%= v.id_vehiculo %>" data-modelo="<%= v.marca %> <%= v.modelo %>" data-km="<%= v.km_actual %>" data-unidad="<%= unidadDe(v) %>" data-tipo="<%= v.getDataValue ? v.getDataValue('tipoDescripcion') : '' %>" <%= bloqueo ? 'disabled' : '' %>>
+                      <%= v.patente %> — <%= v.marca %> <%= v.modelo %><%= bloqueo ? ' (' + bloqueo + ')' : '' %>
+                    </option>
+                  <% }) %>
+                <% } %>
+              </select>
+            </div>
+
+            <div class="form-group" id="field-chofer">
+              <label for="select-chofer">Chofer <span class="req">*</span></label>
+              <select id="select-chofer" name="id_chofer" required>
+                <option value="">— Seleccioná un chofer activo —</option>
+                <% if (typeof choferes !== 'undefined') { %>
+                  <% choferes.forEach(c => { %>
+                    <% const categorias = c.getDataValue ? c.getDataValue('categorias') : ''; %>
+                    <option value="<%= c.id_chofer %>" data-dni="<%= c.dni %>" data-licencia="" data-categorias="<%= categorias %>">
+                      <%= c.apellido %>, <%= c.nombre %><%= categorias ? ' (Lic. ' + categorias + ')' : '' %>
+                    </option>
+                  <% }) %>
+                <% } %>
+              </select>
+            </div>
+          </div>
+
+          <div class="preview-strip">
+            <div class="preview-card" id="preview-vehiculo">
+              <div class="preview-card__icon">
+                <svg viewBox="0 0 20 20" fill="currentColor"><path d="M8 16.5a1.5 1.5 0 11-3 0 1.5 1.5 0 013 0zM15 16.5a1.5 1.5 0 11-3 0 1.5 1.5 0 013 0z"/><path d="M3 4a1 1 0 00-1 1v10a1 1 0 001 1h1.05a2.5 2.5 0 014.9 0H10a1 1 0 001-1V5a1 1 0 00-1-1H3zM14 7a1 1 0 00-1 1v6.05A2.5 2.5 0 0115.95 16H17a1 1 0 001-1v-5a1 1 0 00-.293-.707l-2-2A1 1 0 0015 7h-1z"/></svg>
+              </div>
+              <div>
+                <span class="preview-card__label">Vehículo seleccionado</span>
+                <span class="preview-card__value" id="prev-vehiculo-patente">Ninguno</span>
+                <span class="preview-card__sub" id="prev-vehiculo-info">—</span>
+              </div>
+            </div>
+
+            <div class="preview-card" id="preview-chofer">
+              <div class="preview-card__icon">
+                <svg viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M10 9a3 3 0 100-6 3 3 0 000 6zm-7 9a7 7 0 1114 0H3z" clip-rule="evenodd"/></svg>
+              </div>
+              <div>
+                <span class="preview-card__label">Chofer asignado</span>
+                <span class="preview-card__value" id="prev-chofer-nombre">Ninguno</span>
+                <span class="preview-card__sub" id="prev-chofer-info">—</span>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <section class="form-section">
+          <h3>2. Inicio del Uso</h3>
+          <div class="form-row">
+            <div class="form-group">
+              <label for="fecha-desde">Fecha de inicio <span class="req">*</span></label>
+              <input type="date" id="fecha-desde" name="fecha_desde" required />
+              <span style="display:block; font-size:12px; margin-top:6px; color:#64748b;">No lleva fecha de fin: cuando el vehículo vuelva, lo marcás como devuelto desde "Asignaciones en Curso".</span>
+            </div>
+          </div>
+        </section>
+
+        <section class="form-section">
+          <h3>3. Información Adicional</h3>
+          <div class="form-row">
+            <div class="form-group">
+              <label for="destino">Destino / Área</label>
+              <input type="text" id="destino" name="destino" placeholder="Ej: Distrito Norte, Obras..." />
+            </div>
+            <div class="form-group">
+              <label for="km-salida">Km de salida (Automático)</label>
+              <input type="number" id="km-salida" name="km_salida" placeholder="0" min="0" />
+            </div>
+          </div>
+          <div class="form-group">
+            <label for="observaciones">Observaciones</label>
+            <textarea id="observaciones" name="observaciones" placeholder="Indicá detalles relevantes de la asignación..."></textarea>
+          </div>
+        </section>
+
+        <div class="acciones">
+          <a href="/Vehicles" class="boton-secundario">Cancelar</a>
+          <button type="submit" class="boton-primario" id="btn-submit">Confirmar Asignación</button>
+        </div>
+      </form>
+
+      <section style="margin-top: 40px;">
+        <h3 style="font-size: 18px; font-weight: 800; color: var(--color-primary); margin-bottom: 16px;">Asignaciones en Curso</h3>
+        <div class="data-card">
+          <div class="data-table-wrapper">
+            <table class="data-table">
+              <thead class="data-table__head">
+                <tr>
+                  <th class="data-table__th">Vehículo</th>
+                  <th class="data-table__th">Chofer</th>
+                  <th class="data-table__th">Desde</th>
+                  <th class="data-table__th">Destino</th>
+                  <th class="data-table__th">Acciones</th>
+                </tr>
+              </thead>
+              <tbody class="data-table__body">
+                <% if (typeof asignaciones !== 'undefined' && asignaciones && asignaciones.length > 0) { %>
+                  <% asignaciones.forEach(a => { %>
+                    <tr class="data-table__row">
+                      <td class="data-table__td" style="font-weight: 700;">
+                        <%= a.vehiculo?.patente || '—' %>
+                        <div style="font-weight: 400; font-size: 12px; color: #64748b;"><%= a.vehiculo?.marca %></div>
+                      </td>
+                      <td class="data-table__td"><%= a.Chofer?.apellido %>, <%= a.Chofer?.nombre %></td>
+                      <td class="data-table__td"><%= new Date(a.fecha_salida).toLocaleDateString('es-AR') %></td>
+                      <td class="data-table__td"><%= a.destino_area || '—' %></td>
+                      <td class="data-table__td">
+                        <form action="/Asignaciones/<%= a.id_asignacion %>/finalizar" method="POST" onsubmit="return confirm('¿Marcar este vehículo como devuelto?')">
+                          <button type="submit" style="background: #fef2f2; color: #dc2626; border: 1px solid #fecaca; padding: 6px 12px; border-radius: 6px; font-size: 12px; font-weight: 700; cursor: pointer;">
+                            ✓ Marcar como devuelto
+                          </button>
+                        </form>
+                      </td>
+                    </tr>
+                  <% }) %>
+                <% } else { %>
+                  <tr><td colspan="5" style="text-align: center; padding: 20px; color: #64748b;">No hay asignaciones activas en este momento.</td></tr>
+                <% } %>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </section>
+
+    </main>
+  </div>
+
+  <script src="/js/sidebar.js"></script>
+  <script>
+    /* ── FIX BOTÓN HAMBURGUESA BLINDADO ── */
+    document.addEventListener('DOMContentLoaded', () => {
+      const topbar = document.querySelector('.topbar') || document.querySelector('.app-header');
+      if (!topbar) return;
+      const btnHamburguesa = topbar.querySelector('button') || document.getElementById('menu-toggle');
+      const sidebar = document.getElementById('mi-sidebar-blindado');
+      const overlay = document.getElementById('sb-overlay-blindado');
+      if (btnHamburguesa && sidebar && overlay) {
+        const nuevoBtn = btnHamburguesa.cloneNode(true);
+        btnHamburguesa.parentNode.replaceChild(nuevoBtn, btnHamburguesa);
+        nuevoBtn.addEventListener('click', (e) => {
+          e.preventDefault(); e.stopPropagation();
+          sidebar.classList.toggle('abierto'); overlay.classList.toggle('activo');
+        });
+      }
+    });
+
+    /* Lógica original de previsualización y validación */
+    const selectVehiculo = document.getElementById('select-vehiculo');
+    const selectChofer   = document.getElementById('select-chofer');
+    const kmSalidaInput  = document.getElementById('km-salida');
+    const prevVehiculoCard    = document.getElementById('preview-vehiculo');
+    const prevVehiculoPatente = document.getElementById('prev-vehiculo-patente');
+    const prevVehiculoInfo    = document.getElementById('prev-vehiculo-info');
+    const prevChoferCard   = document.getElementById('preview-chofer');
+    const prevChoferNombre = document.getElementById('prev-chofer-nombre');
+    const prevChoferInfo   = document.getElementById('prev-chofer-info');
+    
+    if (selectVehiculo) {
+        selectVehiculo.addEventListener('change', function () {
+        const opt = this.options[this.selectedIndex];
+        if (this.value) {
+            const patente = opt.text.split('—')[0].trim();
+            const modelo  = opt.dataset.modelo || '—';
+            const kmRaw   = opt.dataset.km ? Number(opt.dataset.km) : 0;
+            prevVehiculoPatente.textContent = patente;
+            prevVehiculoInfo.textContent    = modelo + ' · ' + kmRaw.toLocaleString('es-AR') + ' ' + (opt.dataset.unidad === 'hs' ? 'hs' : 'km');
+            prevVehiculoCard.classList.add('preview-card--active');
+            kmSalidaInput.min = kmRaw;
+            kmSalidaInput.value = kmRaw; 
+        } else {
+            prevVehiculoPatente.textContent = 'Ninguno';
+            prevVehiculoInfo.textContent    = '—';
+            prevVehiculoCard.classList.remove('preview-card--active');
+            kmSalidaInput.min = 0;
+            kmSalidaInput.value = '';
+        }
+        });
+    }
+
+    if (selectChofer) {
+        selectChofer.addEventListener('change', function () {
+        const opt = this.options[this.selectedIndex];
+        if (this.value) {
+            prevChoferNombre.textContent = opt.text.trim();
+            const dni = opt.dataset.dni ? 'DNI ' + opt.dataset.dni : '';
+            prevChoferInfo.textContent = dni || '—';
+            prevChoferCard.classList.add('preview-card--active');
+        } else {
+            prevChoferNombre.textContent = 'Ninguno';
+            prevChoferInfo.textContent   = '—';
+            prevChoferCard.classList.remove('preview-card--active');
+        }
+        });
+    }
+
+    /* Fecha de inicio */
+    const fechaDesde = document.getElementById('fecha-desde');
+    if (fechaDesde) {
+        const hoy = new Date(Date.now() - new Date().getTimezoneOffset() * 60000).toISOString().split('T')[0];
+        fechaDesde.min   = hoy;
+        fechaDesde.value = hoy;
+    }
+
+    /* Envío y pre-selección */
+    const btnSubmit = document.getElementById('btn-submit');
+    if (btnSubmit) {
+        btnSubmit.addEventListener('click', function (e) {
+        if (kmSalidaInput && kmSalidaInput.value && Number(kmSalidaInput.value) < Number(kmSalidaInput.min)) {
+            e.preventDefault();
+            alert(`El kilometraje ingresado no puede ser menor al actual (${Number(kmSalidaInput.min).toLocaleString('es-AR')} km).`);
+            kmSalidaInput.classList.add('input-error');
+        }
+        });
+    }
+
+    // Sólo se pueden elegir choferes cuya licencia habilita para el tipo de vehículo elegido
+    (function () {
+      const CATEGORIAS_POR_TIPO = <%- safeJson(typeof categoriasPorTipo !== 'undefined' ? categoriasPorTipo : {}) %>;
+      const selV = document.getElementById('select-vehiculo');
+      const selC = document.getElementById('select-chofer');
+      if (!selV || !selC) return;
+      function filtrarChoferes() {
+        const tipo = selV.options[selV.selectedIndex] ? selV.options[selV.selectedIndex].dataset.tipo : '';
+        const permitidas = CATEGORIAS_POR_TIPO[tipo];
+        Array.from(selC.options).forEach(function (opt) {
+          if (!opt.value) return;
+          const cats = (opt.dataset.categorias || '').split(',').map(function (x) { return x.trim(); });
+          const ok = !permitidas || cats.some(function (c) { return permitidas.indexOf(c) !== -1; });
+          opt.disabled = !ok;
+          opt.textContent = opt.textContent.replace(/ — no habilitado para este vehículo$/, '') + (ok ? '' : ' — no habilitado para este vehículo');
+        });
+        if (selC.options[selC.selectedIndex] && selC.options[selC.selectedIndex].disabled) { selC.value = ''; selC.dispatchEvent(new Event('change')); }
+      }
+      selV.addEventListener('change', filtrarChoferes);
+      filtrarChoferes();
+    })();
+
+    const idVehiculo = new URLSearchParams(window.location.search).get('id_vehiculo');
+    if (idVehiculo && selectVehiculo) {
+      selectVehiculo.value = idVehiculo;
+      selectVehiculo.dispatchEvent(new Event('change'));
+    }
+  </script>
+</body>
+</html>

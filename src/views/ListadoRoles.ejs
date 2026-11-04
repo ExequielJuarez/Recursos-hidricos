@@ -1,0 +1,99 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Gestión de Roles - Gestión de Flota</title>
+    <link rel="stylesheet" href="/css/ListadoVehiculos.css"> 
+    <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        /* ── ADAPTACIÓN MÓVIL ── */
+        @media (max-width: 900px) {
+    .app-wrapper { margin-left: 0 !important; }
+    .topbar__menu-toggle { display: flex !important; }
+    .topbar__mobile-brand { display: flex !important; }
+    .topbar__user-name-wrapper { display: none; }
+
+    .main-content { padding: 16px !important; max-width: 100% !important; }
+
+    .data-table-wrapper { overflow-x: auto !important; -webkit-overflow-scrolling: touch; }
+    .data-table { min-width: 600px; }
+}
+    </style>
+</head>
+<body>
+
+    <%- include('./partials/sidebar') %>
+
+    <div class="app-wrapper" id="app-wrapper">
+
+        <%- include('./partials/topbar') %>
+
+        <main class="main-content" style="display: block; overflow-y: auto; padding: 40px; max-width: 1000px; margin: 0 auto;">
+            
+            <div class="page-header" style="margin-bottom: 24px;">
+                <h2 class="page-title">Matriz de Roles</h2>
+                <p class="page-subtitle">Visualización de los niveles de acceso configurados en el sistema.</p>
+            </div>
+
+            <div class="data-card">
+                <div class="data-table-wrapper">
+                    <table class="data-table">
+                        <thead class="data-table__head">
+                            <tr>
+                                <th class="data-table__th">Nombre del Rol</th>
+                                <th class="data-table__th">Permisos Habilitados (Módulos)</th>
+                                <th class="data-table__th" style="text-align: right;">Acciones</th>
+                            </tr>
+                        </thead>
+                        <tbody class="data-table__body">
+                            <% roles.forEach(rol => { %>
+                            <tr class="data-table__row">
+                                <td class="data-table__td" style="font-weight: 800; color: var(--color-primary);">
+                                    <%= rol.nombre %>
+                                </td>
+                                <td class="data-table__td" style="color: var(--color-text-secondary); line-height: 1.6;">
+                                    <% if (rol.permisos) { %>
+                                        <% rol.permisos.split(',').forEach(p => { %>
+                                            <span class="badge" style="background: #f1f5f9; color: #475569; border: 1px solid #cbd5e1; margin-bottom: 4px; margin-right: 4px; display: inline-block;">
+                                                <%= p.trim() %>
+                                            </span>
+                                        <% }) %>
+                                    <% } else { %>
+                                        <span style="color: #94a3b8; font-style: italic;">Sin permisos específicos</span>
+                                    <% } %>
+                                </td>
+                                <td class="data-table__td" style="text-align: right;">
+                                    <a href="/Usuarios/Roles/Editar/<%= rol.id_rol %>" style="color: var(--color-blue); font-weight: 700; font-size: 13px; text-decoration: none; padding: 6px 12px; border: 1px solid #bfdbfe; border-radius: 6px; background: #eff6ff; transition: 0.2s;">Configurar</a>
+                                </td>
+                            </tr>
+                            <% }) %>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+        </main>
+    </div>
+
+    <script src="/js/sidebar.js"></script>
+    <script>
+        /* ── FIX BOTÓN HAMBURGUESA BLINDADO ── */
+        document.addEventListener('DOMContentLoaded', () => {
+          const topbar = document.querySelector('.topbar') || document.querySelector('.app-header');
+          if (!topbar) return;
+          const btnHamburguesa = topbar.querySelector('button') || document.getElementById('menu-toggle');
+          const sidebar = document.getElementById('mi-sidebar-blindado');
+          const overlay = document.getElementById('sb-overlay-blindado');
+          if (btnHamburguesa && sidebar && overlay) {
+            const nuevoBtn = btnHamburguesa.cloneNode(true);
+            btnHamburguesa.parentNode.replaceChild(nuevoBtn, btnHamburguesa);
+            nuevoBtn.addEventListener('click', (e) => {
+              e.preventDefault(); e.stopPropagation();
+              sidebar.classList.toggle('abierto'); overlay.classList.toggle('activo');
+            });
+          }
+        });
+    </script>
+</body>
+</html>

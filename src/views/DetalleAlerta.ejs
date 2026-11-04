@@ -1,0 +1,228 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Detalle de Alerta - Gestión de Flota</title>
+    <link rel="stylesheet" href="/css/ListadoVehiculos.css">
+    <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500;600;700;800&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
+    
+    <style>
+        /* ── ADAPTACIÓN MÓVIL Y BOTÓN VOLVER ── */
+        .desktop-back-btn {
+            background-color: #f8fafc; color: #475569; border: 1px solid #cbd5e1; padding: 8px 16px; font-size: 13px; font-weight: 700; border-radius: 8px; cursor: pointer; text-decoration: none; display: inline-flex; align-items: center; gap: 6px; transition: 0.2s;
+        }
+        .desktop-back-btn:hover { background-color: #e2e8f0; }
+
+        #mobile-back-btn {
+            background-color: #f8fafc; color: #475569; border: 1px solid #cbd5e1; padding: 8px 14px; font-size: 13px; font-weight: 700; border-radius: 8px; cursor: pointer; display: inline-flex; align-items: center; gap: 6px; transition: 0.2s; margin-bottom: 20px; text-decoration: none;
+        }
+        #mobile-back-btn:hover { background-color: #e2e8f0; color: #0f172a; }
+        #mobile-back-btn svg { width: 16px; height: 16px; }
+
+        @media (min-width: 900px) {
+            #mobile-back-btn { display: none !important; }
+        }
+
+        @media (max-width: 900px) {
+            .desktop-back-btn { display: none !important; }
+            .vehicle-profile__spec-group { grid-template-columns: 1fr !important; gap: 16px !important; }
+            .action-buttons { flex-direction: column !important; gap: 12px !important; }
+            .action-buttons a, .action-buttons button { width: 100%; justify-content: center; text-align: center; }
+            
+            /* Ajustar encabezado de la alerta */
+            .alerta-header { flex-direction: column; align-items: flex-start !important; gap: 16px; }
+            .alerta-header > div:last-child { align-items: flex-start !important; flex-direction: row !important; }
+        }
+    </style>
+</head>
+<body>
+
+    <%- include('./partials/sidebar') %>
+
+    <div class="app-wrapper" id="app-wrapper">
+
+        <%- include('./partials/topbar') %>
+
+        <main class="main-content" style="display: block; overflow-y: auto; padding: 40px; max-width: 800px; margin: 0 auto;">
+
+            <nav aria-label="Ruta de navegación" style="display: flex; justify-content: flex-start; margin-bottom: 24px;">
+                <a href="/Alertas" class="desktop-back-btn">
+                    <svg viewBox="0 0 20 20" fill="currentColor" width="16" height="16"><path fill-rule="evenodd" d="M9.707 16.707a1 1 0 01-1.414 0l-6-6a1 1 0 010-1.414l6-6a1 1 0 011.414 1.414L5.414 9H17a1 1 0 110 2H5.414l4.293 4.293a1 1 0 010 1.414z" clip-rule="evenodd"/></svg>
+                    Volver al panel de alertas
+                </a>
+                
+                <a href="/Alertas" id="mobile-back-btn">
+                    <svg viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M9.707 16.707a1 1 0 01-1.414 0l-6-6a1 1 0 010-1.414l6-6a1 1 0 011.414 1.414L5.414 9H17a1 1 0 110 2H5.414l4.293 4.293a1 1 0 010 1.414z" clip-rule="evenodd"/></svg>
+                    Volver a Alertas
+                </a>
+            </nav>
+
+            <%
+            const LABELS = { licencia_vencida: 'Licencia vencida', licencia_proxima: 'Licencia próxima a vencer', mantenimiento_pendiente: 'Mantenimiento pendiente', mantenimiento_finalizado: 'Mantenimiento finalizado', documentacion_vencida: 'Documentación vencida', vehiculo_fuera_servicio: 'Vehículo fuera de servicio', herramienta_devuelta: 'Herramienta devuelta', prestamo_vencido: 'Préstamo vencido', asignacion_vencida: 'Asignación vencida', stock_bajo: 'Stock bajo', critica: 'Alerta crítica', informativa: 'Informativa' };
+            const ICONOS = { licencia_vencida: '⚠️', licencia_proxima: '🕐', mantenimiento_pendiente: '🔧', mantenimiento_finalizado: '✅', documentacion_vencida: '📄', vehiculo_fuera_servicio: '🚫', herramienta_devuelta: '🔙', prestamo_vencido: '📋', asignacion_vencida: '⏰', stock_bajo: '📦', critica: '🚨', informativa: 'ℹ️' };
+            %>
+
+            <article class="vehicle-profile" style="padding: 32px;">
+                
+                <div class="alerta-header" style="display: flex; justify-content: space-between; align-items: flex-start; border-bottom: 1px solid var(--color-border-light); padding-bottom: 20px; margin-bottom: 24px;">
+                    <div style="display: flex; align-items: center; gap: 16px;">
+                        <span style="font-size: 32px; background: var(--color-bg); padding: 12px; border-radius: 12px; border: 1px solid var(--color-border);">
+                            <%= ICONOS[alerta.tipo] || 'ℹ️' %>
+                        </span>
+                        <div>
+                            <h2 style="margin: 0; font-size: 20px; color: var(--color-primary); font-weight: 800;">
+                                <%= LABELS[alerta.tipo] || alerta.tipo %>
+                            </h2>
+                            <p style="margin: 4px 0 0 0; color: var(--color-text-muted); font-size: 13px; font-weight: 600;">
+                                Generada el <%= new Date(alerta.createdAt).toLocaleDateString('es-AR', { day: '2-digit', month: 'long', year: 'numeric' }) %> a las <%= new Date(alerta.createdAt).toLocaleTimeString('es-AR', { hour: '2-digit', minute: '2-digit' }) %>
+                            </p>
+                        </div>
+                    </div>
+                    <div style="display: flex; flex-direction: column; gap: 8px; align-items: flex-end;">
+                        <span class="badge <%= alerta.prioridad === 'alta' ? 'badge--danger' : (alerta.prioridad === 'media' ? 'badge--warning' : 'badge--info') %>" style="font-size: 12px;">
+                            Prioridad <%= alerta.prioridad.charAt(0).toUpperCase() + alerta.prioridad.slice(1) %>
+                        </span>
+                        <span class="badge <%= alerta.leida ? 'badge--success' : 'badge--warning' %>" style="font-size: 12px;" id="badge-estado">
+                            <%= alerta.leida ? 'Leída' : 'Nueva' %>
+                        </span>
+                    </div>
+                </div>
+
+                <div style="background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 12px; padding: 20px; margin-bottom: 24px;">
+                    <h3 style="margin: 0 0 10px 0; font-size: 13px; text-transform: uppercase; letter-spacing: 0.05em; color: var(--color-text-muted); font-weight: 800;">Descripción del Evento</h3>
+                    <p style="margin: 0; font-size: 16px; color: var(--color-text-primary); font-weight: 500; line-height: 1.5;">
+                        <%= alerta.mensaje %>
+                    </p>
+                </div>
+
+                <dl class="vehicle-profile__spec-group" style="grid-template-columns: 1fr 1fr; gap: 24px;">
+                    
+                    <% if (alerta.entidad_nombre) { %>
+                    <div class="vehicle-profile__spec-row">
+                        <dt class="vehicle-profile__spec-label">Entidad Afectada</dt>
+                        <dd class="vehicle-profile__spec-value">
+                            <% if (alerta.entidad_tipo && alerta.entidad_id) { %>
+                                <%
+                                const RUTAS_ENTIDAD = {
+                                    'Chofer':      '/Choferes',
+                                    'Vehiculo':    '/Vehicles',
+                                    'Herramienta': '/Tools',
+                                    'Siniestro':   '/Siniestros',
+                                };
+                                const rutaDetalle = alerta.entidad_tipo === 'Repuesto'
+                                    ? '/Repuestos/Gestionar'
+                                    : (RUTAS_ENTIDAD[alerta.entidad_tipo]
+                                        ? `${RUTAS_ENTIDAD[alerta.entidad_tipo]}/${alerta.entidad_id}`
+                                        : null);
+                                %>
+                                <% if (rutaDetalle) { %>
+                                    <a href="<%= rutaDetalle %>" style="color: var(--color-blue); text-decoration: none; font-weight: 700; display: inline-flex; align-items: center; gap: 4px;">
+                                        <%= alerta.entidad_nombre %>
+                                        <svg viewBox="0 0 20 20" fill="currentColor" width="14" height="14"><path d="M11 3a1 1 0 100 2h2.586l-6.293 6.293a1 1 0 101.414 1.414L15 6.414V9a1 1 0 102 0V4a1 1 0 00-1-1h-5z"/><path d="M5 5a2 2 0 00-2 2v8a2 2 0 002 2h8a2 2 0 002-2v-3a1 1 0 10-2 0v3H5V7h3a1 1 0 000-2H5z"/></svg>
+                                    </a>
+                                <% } else { %>
+                                    <strong><%= alerta.entidad_nombre %></strong>
+                                <% } %>
+                            <% } else { %>
+                                <strong><%= alerta.entidad_nombre %></strong>
+                            <% } %>
+                        </dd>
+                    </div>
+                    <% } %>
+
+                    <% if (alerta.entidad_tipo) { %>
+                    <div class="vehicle-profile__spec-row">
+                        <dt class="vehicle-profile__spec-label">Tipo de Registro</dt>
+                        <dd class="vehicle-profile__spec-value"><%= alerta.entidad_tipo %></dd>
+                    </div>
+                    <% } %>
+
+                    <div class="vehicle-profile__spec-row">
+                        <dt class="vehicle-profile__spec-label">Origen de la Alerta</dt>
+                        <dd class="vehicle-profile__spec-value">
+                            <%= alerta.generada_automaticamente ? ' Sistema (Automático)' : '👤 Acción de Usuario' %>
+                        </dd>
+                    </div>
+
+                    <div class="vehicle-profile__spec-row">
+                        <dt class="vehicle-profile__spec-label">Última actualización</dt>
+                        <dd class="vehicle-profile__spec-value">
+                            <%= new Date(alerta.updatedAt).toLocaleDateString('es-AR') %> - <%= new Date(alerta.updatedAt).toLocaleTimeString('es-AR', { hour: '2-digit', minute: '2-digit' }) %>
+                        </dd>
+                    </div>
+                </dl>
+
+                <div class="action-buttons" style="margin-top: 32px; padding-top: 24px; border-top: 1px solid var(--color-border-light); display: flex; justify-content: flex-end; gap: 12px;">
+                    <% if (alerta.entidad_tipo && alerta.entidad_id) { %>
+                        <%
+                        const RUTAS_BTN = {
+                            'Chofer':      '/Choferes',
+                            'Vehiculo':    '/Vehicles',
+                            'Herramienta': '/Tools',
+                            'Siniestro':   '/Siniestros',
+                        };
+                        const rutaBtn = alerta.entidad_tipo === 'Repuesto'
+                            ? '/Repuestos/Gestionar'
+                            : (RUTAS_BTN[alerta.entidad_tipo]
+                                ? `${RUTAS_BTN[alerta.entidad_tipo]}/${alerta.entidad_id}`
+                                : null);
+                        %>
+                        <% if (rutaBtn) { %>
+                            <a href="<%= rutaBtn %>" style="background: white; border: 1px solid var(--color-border); padding: 10px 20px; border-radius: 8px; font-weight: 700; font-size: 13px; color: var(--color-text-primary); text-decoration: none; display: inline-flex; align-items: center;">
+                                Ver <%= alerta.entidad_tipo %>
+                            </a>
+                        <% } %>
+                    <% } %>
+
+                    <% if (!alerta.leida) { %>
+                        <button id="btn-marcar-leida" data-id="<%= alerta.id_alerta %>" style="background: var(--color-primary); border: none; padding: 10px 20px; border-radius: 8px; font-weight: 700; font-size: 13px; color: white; cursor: pointer; display: inline-flex; align-items: center;">
+                            ✓ Marcar como leída
+                        </button>
+                    <% } %>
+                </div>
+
+            </article>
+
+        </main>
+    </div>
+
+    <script src="/js/sidebar.js"></script>
+    <script>
+        /* ── FIX BOTÓN HAMBURGUESA BLINDADO ── */
+        document.addEventListener('DOMContentLoaded', () => {
+          const topbar = document.querySelector('.topbar') || document.querySelector('.app-header');
+          if (!topbar) return;
+          const btnHamburguesa = topbar.querySelector('button') || document.getElementById('menu-toggle');
+          const sidebar = document.getElementById('mi-sidebar-blindado');
+          const overlay = document.getElementById('sb-overlay-blindado');
+          if (btnHamburguesa && sidebar && overlay) {
+            const nuevoBtn = btnHamburguesa.cloneNode(true);
+            btnHamburguesa.parentNode.replaceChild(nuevoBtn, btnHamburguesa);
+            nuevoBtn.addEventListener('click', (e) => {
+              e.preventDefault(); e.stopPropagation();
+              sidebar.classList.toggle('abierto'); overlay.classList.toggle('activo');
+            });
+          }
+        });
+
+        const btnMarcar = document.getElementById('btn-marcar-leida');
+        const badgeEstado = document.getElementById('badge-estado');
+
+        if (btnMarcar) {
+            btnMarcar.addEventListener('click', async () => {
+                const id = btnMarcar.dataset.id;
+                try {
+                    const res = await fetch(`/Alertas/${id}/leer`, { method: 'POST' });
+                    if ((await res.json()).ok) {
+                        badgeEstado.className = 'badge badge--success';
+                        badgeEstado.textContent = 'Leída';
+                        btnMarcar.remove();
+                    }
+                } catch(err) { console.error("Error al marcar como leída:", err); }
+            });
+        }
+    </script>
+
+</body>
+</html>

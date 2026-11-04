@@ -1,0 +1,259 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Auditoría del Sistema - Gestión de Flota</title>
+    <link rel="stylesheet" href="/css/ListadoVehiculos.css"> 
+    <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        .filtro-container { background: var(--color-surface); padding: 20px; border-radius: var(--radius-lg); box-shadow: var(--shadow-sm); margin-bottom: 24px; display: flex; gap: 15px; align-items: flex-end; flex-wrap: wrap; border: 1px solid var(--color-border);}
+        .filtro-group { display: flex; flex-direction: column; gap: 6px; flex: 1; min-width: 160px; }
+        .filtro-group label { font-size: 11px; font-weight: 700; color: var(--color-text-muted); text-transform: uppercase; letter-spacing: 0.05em;}
+        .filtro-input { padding: 10px 14px; border: 1px solid var(--color-border); border-radius: var(--radius-md); font-family: var(--font-sans); font-size: 13px; color: var(--color-text-primary); outline: none; transition: 0.2s; background: white;}
+        .filtro-input:focus { border-color: var(--color-blue); box-shadow: 0 0 0 3px rgba(37,99,235,0.1); }
+        
+        .btn-filtrar { background-color: var(--color-primary); color: white; padding: 10px 24px; border-radius: var(--radius-md); font-weight: 700; font-size: 13px; border: none; cursor: pointer; height: 42px; transition: 0.2s; white-space: nowrap;}
+        .btn-filtrar:hover { background-color: var(--color-primary-hover); }
+        .btn-limpiar { background-color: var(--color-bg); color: var(--color-text-secondary); padding: 10px 20px; border-radius: var(--radius-md); font-weight: 700; font-size: 13px; border: 1px solid var(--color-border); cursor: pointer; height: 42px; transition: 0.2s; text-decoration: none; display: inline-flex; align-items: center; justify-content: center;}
+        .btn-limpiar:hover { background-color: #e2e8f0; color: var(--color-primary);}
+
+        .dashboard-charts { display: grid; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); gap: 24px; margin-bottom: 32px; }
+        .chart-card { background: var(--color-surface); border: 1px solid var(--color-border); border-radius: var(--radius-lg); padding: 24px; box-shadow: var(--shadow-sm); display: flex; flex-direction: column; align-items: center; justify-content: center; }
+        .chart-card h3 { font-size: 16px; color: var(--color-primary); margin: 0 0 20px 0; font-weight: 800; align-self: flex-start; border-bottom: 1px solid var(--color-border-light); padding-bottom: 12px; width: 100%;}
+        .chart-container { position: relative; height: 220px; width: 100%; }
+
+        /* ── ADAPTACIÓN MÓVIL ── */
+        @media (max-width: 900px) {
+    .app-wrapper { margin-left: 0 !important; }
+    .topbar__menu-toggle { display: flex !important; }
+    .topbar__mobile-brand { display: flex !important; }
+    .topbar__user-name-wrapper { display: none; }
+
+    .main-content { padding: 16px !important; max-width: 100% !important; }
+
+    .dashboard-charts { grid-template-columns: 1fr; }
+    .chart-container { height: 200px; }
+
+    .filtro-container { flex-direction: column; align-items: stretch; padding: 14px; }
+    .filtro-group { width: 100%; min-width: unset; }
+    .botones-filtro { display: flex !important; flex-direction: column; width: 100%; gap: 8px; margin-top: 4px; }
+    .botones-filtro button, .botones-filtro a { width: 100%; height: auto; padding: 12px; box-sizing: border-box; text-align: center; }
+
+    .data-table-wrapper { overflow-x: auto !important; -webkit-overflow-scrolling: touch; }
+    .data-table { min-width: 900px; }
+}
+    </style>
+</head>
+<body>
+
+    <%- include('./partials/sidebar') %>
+
+    <div class="app-wrapper" id="app-wrapper">
+
+        <%- include('./partials/topbar') %>
+
+        <main class="main-content" style="display: block; overflow-y: auto; padding: 40px; max-width: 1200px; margin: 0 auto;">
+
+            <div class="page-header" style="margin-bottom: 24px;">
+                <h2 class="page-title">Log de Auditoría</h2>
+                <p class="page-subtitle">Registro inmutable de movimientos, creaciones y eliminaciones realizadas por los usuarios.</p>
+            </div>
+
+            <div class="dashboard-charts">
+                <div class="chart-card">
+                    <h3>Resumen de Acciones</h3>
+                    <div class="chart-container">
+                        <canvas id="graficoAcciones"></canvas>
+                    </div>
+                </div>
+            </div>
+
+            <form action="/Auditoria" method="GET">
+                <div class="filtro-container">
+                    <div class="filtro-group">
+                        <label for="fechaDesde">Desde Fecha</label>
+                        <input type="date" name="fechaDesde" id="fechaDesde" class="filtro-input" value="<%= locals.filtros && filtros.fechaDesde ? filtros.fechaDesde : '' %>">
+                    </div>
+                    
+                    <div class="filtro-group">
+                        <label for="fechaHasta">Hasta Fecha</label>
+                        <input type="date" name="fechaHasta" id="fechaHasta" class="filtro-input" value="<%= locals.filtros && filtros.fechaHasta ? filtros.fechaHasta : '' %>">
+                    </div>
+
+                    <div class="filtro-group" style="flex: 2;">
+                        <label>Búsqueda rápida en pantalla</label>
+                        <input type="text" id="buscadorAuditoria" class="filtro-input" placeholder="🔍 Escribí para filtrar la tabla al instante...">
+                    </div>
+
+                    <div class="botones-filtro" style="display: flex; gap: 10px;">
+                        <% if (locals.filtros && (filtros.fechaDesde || filtros.fechaHasta)) { %>
+                            <a href="/Auditoria" class="btn-limpiar" style="color: #dc2626; border-color: #fecaca; background: #fef2f2;">✖ Quitar</a>
+                        <% } else { %>
+                            <button type="reset" class="btn-limpiar" id="btn-reset">Limpiar</button>
+                        <% } %>
+                        <button type="submit" class="btn-filtrar">Filtrar Base</button>
+                    </div>
+                </div>
+            </form>
+
+            <div style="margin-bottom: 12px;">
+                <span style="font-size: 12px; color: #64748b; font-weight: 600;" id="contadorResultados"></span>
+            </div>
+
+            <div class="data-card">
+                <div class="data-table-wrapper">
+                    <table class="data-table" id="tablaAuditoria">
+                        <thead class="data-table__head">
+                            <tr>
+                                <th class="data-table__th">Fecha y Hora</th>
+                                <th class="data-table__th">Usuario Responsable</th>
+                                <th class="data-table__th">Módulo / Tabla</th>
+                                <th class="data-table__th">Tipo Acción</th>
+                                <th class="data-table__th">Detalle del Registro</th>
+                            </tr>
+                        </thead>
+                        <tbody class="data-table__body">
+                            <% if (locals.registros && registros.length > 0) { %>
+                                <% registros.forEach(registro => { %>
+                                    <%
+                                        // Estilos según tus acciones reales
+                                        let badgeColor = 'badge--info';
+                                        let accionStr = registro.accion || '';
+                                        if(accionStr === 'CREAR' || accionStr === 'LOGIN') badgeColor = 'badge--success';
+                                        if(accionStr === 'ELIMINAR' || accionStr.indexOf('LOGIN_') === 0) badgeColor = 'badge--danger';
+                                        if(accionStr.indexOf('EDITAR') === 0) badgeColor = 'badge--warning';
+                                    %>
+                                    <tr class="data-table__row fila-registro">
+                                        <td class="data-table__td" style="white-space: nowrap;">
+                                            <span style="display: block; font-weight: 700; color: var(--color-primary);">
+                                                <%= registro.fechaLimpia || '-' %>
+                                            </span>
+                                            <span style="font-size: 12px; color: var(--color-text-muted);">
+                                                <%= registro.hora || '' %>
+                                            </span>
+                                        </td>
+                                        <td class="data-table__td" style="font-weight: 600; color: var(--color-blue);">
+                                            <%= registro.nombreUsuario || 'Sistema' %>
+                                        </td>
+                                        <td class="data-table__td" style="text-transform: capitalize; font-family: var(--font-mono); font-size: 13px;">
+                                            <%= registro.tabla_afectada || 'N/A' %>
+                                        </td>
+                                        <td class="data-table__td">
+                                            <span class="badge badge-accion <%= badgeColor %>"><%= accionStr %></span>
+                                        </td>
+                                        <td class="data-table__td" style="font-size: 13px; color: var(--color-text-secondary); max-width: 350px;">
+                                            <%= registro.descripcion || '' %>
+                                        </td>
+                                    </tr>
+                                <% }) %>
+                            <% } else { %>
+                                <tr id="filaVacia">
+                                    <td colspan="5" class="data-table__td" style="text-align: center; padding: 40px; color: var(--color-text-muted);">No hay movimientos registrados para los filtros seleccionados.</td>
+                                </tr>
+                            <% } %>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+        </main>
+    </div>
+
+    <script src="/js/sidebar.js"></script>
+    <script>
+        /* ── FIX BOTÓN HAMBURGUESA BLINDADO ── */
+        document.addEventListener('DOMContentLoaded', () => {
+          const topbar = document.querySelector('.topbar') || document.querySelector('.app-header');
+          if (!topbar) return;
+          const btnHamburguesa = topbar.querySelector('button') || document.getElementById('menu-toggle');
+          const sidebar = document.getElementById('mi-sidebar-blindado');
+          const overlay = document.getElementById('sb-overlay-blindado');
+          if (btnHamburguesa && sidebar && overlay) {
+            const nuevoBtn = btnHamburguesa.cloneNode(true);
+            btnHamburguesa.parentNode.replaceChild(nuevoBtn, btnHamburguesa);
+            nuevoBtn.addEventListener('click', (e) => {
+              e.preventDefault(); e.stopPropagation();
+              sidebar.classList.toggle('abierto'); overlay.classList.toggle('activo');
+            });
+          }
+        });
+
+        document.addEventListener('DOMContentLoaded', () => {
+            // 1. Buscador en pantalla en tiempo real (Tú lógica original mejorada)
+            const buscador = document.getElementById('buscadorAuditoria');
+            const filas = document.querySelectorAll('.fila-registro');
+            const contadorResultados = document.getElementById('contadorResultados');
+            
+            if(buscador && filas.length > 0) {
+                contadorResultados.innerText = `Mostrando ${filas.length} registros.`;
+                buscador.addEventListener('input', function() {
+                    let textoBusqueda = this.value.toLowerCase();
+                    let visibles = 0;
+
+                    filas.forEach(fila => {
+                        let contenidoFila = fila.textContent.toLowerCase();
+                        if(contenidoFila.includes(textoBusqueda)) {
+                            fila.style.display = '';
+                            visibles++;
+                        } else {
+                            fila.style.display = 'none';
+                        }
+                    });
+                    
+                    contadorResultados.innerText = visibles === 1 ? '1 registro visible.' : `${visibles} registros visibles.`;
+                });
+            }
+
+            // 2. Gráfico Inteligente (Lee la tabla directamente, sin depender del backend)
+            let conteoAcciones = {};
+            document.querySelectorAll('.badge-accion').forEach(span => {
+                let accion = span.textContent.trim();
+                conteoAcciones[accion] = (conteoAcciones[accion] || 0) + 1;
+            });
+            const ctx = document.getElementById('graficoAcciones');
+            
+            if(Object.keys(conteoAcciones).length > 0 && ctx) {
+                new Chart(ctx, {
+                    type: 'doughnut',
+                    data: {
+                        labels: Object.keys(conteoAcciones),
+                        datasets: [{
+                            data: Object.values(conteoAcciones),
+                            backgroundColor: [
+                                '#10b981', // Verde
+                                '#ef4444', // Rojo
+                                '#f59e0b', // Amarillo
+                                '#3b82f6'  // Azul
+                            ],
+                            borderWidth: 0,
+                            hoverOffset: 4
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        plugins: {
+                            legend: { position: 'right', labels: { usePointStyle: true, boxWidth: 8, font: { family: "'DM Sans', sans-serif" } } }
+                        },
+                        cutout: '70%'
+                    }
+                });
+            } else if (ctx) {
+                ctx.outerHTML = '<p style="text-align:center; color:#94a3b8; font-size:13px; margin-top:60px;">Sin datos para graficar</p>';
+            }
+
+            // Botón de reset
+            const btnReset = document.getElementById('btn-reset');
+            if (btnReset) {
+                btnReset.addEventListener('click', () => {
+                    if (buscador) buscador.value = '';
+                    filas.forEach(f => f.style.display = '');
+                    if(contadorResultados) contadorResultados.innerText = `Mostrando ${filas.length} registros.`;
+                });
+            }
+        });
+    </script>
+</body>
+</html>

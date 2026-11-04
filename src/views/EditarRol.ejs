@@ -1,0 +1,123 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Editar Rol - Gestión de Flota</title>
+    <link rel="stylesheet" href="/css/ListadoVehiculos.css"> 
+    <link rel="stylesheet" href="/css/CargaFichaVehiculo.css"> 
+    <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        .permisos-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(180px, 1fr)); gap: 12px; margin-top: 12px; }
+        .permiso-label { display: flex; align-items: center; gap: 10px; background: #f8fafc; border: 1px solid #e2e8f0; padding: 12px; border-radius: 8px; cursor: pointer; font-size: 13px; font-weight: 600; color: var(--color-text-secondary); transition: 0.2s; }
+        .permiso-label:hover { border-color: var(--color-blue); background: #eff6ff; }
+        .permiso-label input { width: 16px; height: 16px; accent-color: var(--color-blue); cursor: pointer;}
+
+        /* ── ADAPTACIÓN MÓVIL Y BOTÓN VOLVER ── */
+        #mobile-back-btn {
+          background-color: #f8fafc; color: #475569; border: 1px solid #cbd5e1; padding: 8px 14px; font-size: 13px; font-weight: 700; border-radius: 8px; cursor: pointer; display: inline-flex; align-items: center; gap: 6px; transition: 0.2s; margin-bottom: 20px; text-decoration: none;
+        }
+        #mobile-back-btn:hover { background-color: #e2e8f0; color: #0f172a; }
+        #mobile-back-btn svg { width: 16px; height: 16px; }
+
+        @media (min-width: 900px) {
+          #mobile-back-btn { display: none !important; }
+        }
+
+        @media (max-width: 900px) {
+          .form-row { flex-direction: column !important; gap: 0 !important; }
+          .acciones { flex-direction: column-reverse !important; width: 100% !important; gap: 12px !important; }
+          .acciones button, .acciones a { width: 100% !important; text-align: center; padding: 14px !important; font-size: 14px !important; justify-content: center; }
+          .page-header { margin-bottom: 16px !important; }
+          .form-group { max-width: 100% !important; }
+        }
+    </style>
+</head>
+<body>
+
+    <%- include('./partials/sidebar') %>
+
+    <div class="app-wrapper" id="app-wrapper">
+
+        <%- include('./partials/topbar') %>
+
+        <main class="main-content">
+            
+            <a href="/Usuarios/Roles" id="mobile-back-btn">
+                <svg viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M9.707 16.707a1 1 0 01-1.414 0l-6-6a1 1 0 010-1.414l6-6a1 1 0 011.414 1.414L5.414 9H17a1 1 0 110 2H5.414l4.293 4.293a1 1 0 010 1.414z" clip-rule="evenodd"/></svg>
+                Volver a la Matriz de Roles
+            </a>
+
+            <div class="page-header">
+                <h2 class="page-title">Configurar Rol: <%= rol.nombre %></h2>
+                <p class="page-subtitle">Definí a qué módulos podrán acceder todos los usuarios que tengan este rol asignado.</p>
+            </div>
+
+            <form action="/Usuarios/Roles/Editar/<%= rol.id_rol %>" method="POST" class="form">
+
+                <section class="form-section">
+                    <h3>Identificación del Rol</h3>
+                    
+                    <div class="form-group" style="max-width: 400px;">
+                        <label for="nombre">Nombre de la Jerarquía</label>
+                        <input type="text" id="nombre" value="<%= rol.nombre %>" disabled style="background-color: #f1f5f9; color: #64748b; cursor: not-allowed; border-style: dashed; width: 100%;">
+                        <span style="font-size: 12px; color: var(--color-text-muted); margin-top: 6px; display: block;">El nombre del rol es estructural y no puede modificarse.</span>
+                    </div>
+                </section>
+
+                <section class="form-section">
+                    <h3>Matriz de Permisos Globales</h3>
+                    
+                    <% if (rol.nombre === 'Administrador') { %>
+                        <div style="background: #f0fdf4; border: 1px solid #bbf7d0; color: #166534; padding: 16px; border-radius: 8px; font-weight: 600; font-size: 13px;">
+                            👑 El rol de Administrador posee control total del sistema por diseño y sus permisos no pueden ser revocados.
+                        </div>
+                    <% } else { %>
+                        <p style="font-size: 13px; color: var(--color-text-muted); margin-bottom: 12px;">Seleccioná las secciones que estarán visibles para este grupo:</p>
+                        
+                        <div class="permisos-grid">
+                            <label class="permiso-label"><input type="checkbox" name="vistas" value="Vehicles" <%= permisosActuales.includes('Vehicles') ? 'checked' : '' %>> Vehículos / Flota</label>
+                            <label class="permiso-label"><input type="checkbox" name="vistas" value="Choferes" <%= permisosActuales.includes('Choferes') ? 'checked' : '' %>> Choferes</label>
+                            <label class="permiso-label"><input type="checkbox" name="vistas" value="Mantenimientos" <%= permisosActuales.includes('Mantenimientos') ? 'checked' : '' %>> Mantenimientos</label>
+                            <label class="permiso-label"><input type="checkbox" name="vistas" value="Tools" <%= permisosActuales.includes('Tools') ? 'checked' : '' %>> Herramientas Locales</label>
+                            <label class="permiso-label"><input type="checkbox" name="vistas" value="Alertas" <%= permisosActuales.includes('Alertas') ? 'checked' : '' %>> Panel de Alertas</label>
+                            <label class="permiso-label"><input type="checkbox" name="vistas" value="Reportes" <%= permisosActuales.includes('Reportes') ? 'checked' : '' %>> Reportes y Análisis</label>
+                            <label class="permiso-label"><input type="checkbox" name="vistas" value="Siniestros" <%= permisosActuales.includes('Siniestros') ? 'checked' : '' %>> Siniestros / Seguros</label>
+                            
+                            <label class="permiso-label" style="border-color: #fecaca; background: #fef2f2; color: #991b1b;"><input type="checkbox" name="vistas" value="Auditoria" <%= permisosActuales.includes('Auditoria') ? 'checked' : '' %>> Log de Auditoría</label>
+                        </div>
+                    <% } %>
+                </section>
+
+                <div class="acciones">
+                    <a href="/Usuarios/Roles" class="boton-secundario">Volver a Roles</a>
+                    <% if (rol.nombre !== 'Administrador') { %>
+                        <button type="submit" class="boton-primario">Actualizar Privilegios</button>
+                    <% } %>
+                </div>
+
+            </form>
+        </main>
+    </div>
+
+    <script src="/js/sidebar.js"></script>
+    <script>
+        /* ── FIX BOTÓN HAMBURGUESA BLINDADO ── */
+        document.addEventListener('DOMContentLoaded', () => {
+          const topbar = document.querySelector('.topbar') || document.querySelector('.app-header');
+          if (!topbar) return;
+          const btnHamburguesa = topbar.querySelector('button') || document.getElementById('menu-toggle');
+          const sidebar = document.getElementById('mi-sidebar-blindado');
+          const overlay = document.getElementById('sb-overlay-blindado');
+          if (btnHamburguesa && sidebar && overlay) {
+            const nuevoBtn = btnHamburguesa.cloneNode(true);
+            btnHamburguesa.parentNode.replaceChild(nuevoBtn, btnHamburguesa);
+            nuevoBtn.addEventListener('click', (e) => {
+              e.preventDefault(); e.stopPropagation();
+              sidebar.classList.toggle('abierto'); overlay.classList.toggle('activo');
+            });
+          }
+        });
+    </script>
+</body>
+</html>

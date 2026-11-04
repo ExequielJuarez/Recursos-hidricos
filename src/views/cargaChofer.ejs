@@ -1,0 +1,311 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Cargar Chofer - Gestión de Flota</title>
+  <link rel="stylesheet" href="/css/ListadoVehiculos.css" />
+  <link rel="stylesheet" href="/css/CargaFichaVehiculo.css" />
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500;600;700&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet" />
+  <style>
+    /* ── ADAPTACIÓN MÓVIL Y BOTÓN VOLVER ── */
+    #mobile-back-btn {
+      background-color: #f8fafc;
+      color: #475569;
+      border: 1px solid #cbd5e1;
+      padding: 8px 14px;
+      font-size: 13px;
+      font-weight: 700;
+      border-radius: 8px;
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      transition: 0.2s;
+      margin-bottom: 20px;
+      text-decoration: none;
+    }
+    #mobile-back-btn:hover { background-color: #e2e8f0; color: #0f172a; }
+    #mobile-back-btn svg { width: 16px; height: 16px; }
+
+    @media (min-width: 900px) {
+      #mobile-back-btn { display: none !important; }
+    }
+
+    @media (max-width: 900px) {
+      .form-row { flex-direction: column !important; gap: 0 !important; }
+      .acciones { flex-direction: column-reverse !important; width: 100% !important; gap: 12px !important; }
+      .acciones button, .acciones a { width: 100% !important; text-align: center; padding: 14px !important; font-size: 14px !important; }
+      .page-header { margin-bottom: 16px !important; }
+    }
+  </style>
+</head>
+<body>
+
+  <%- include('./partials/sidebar') %>
+
+  <div class="app-wrapper" id="app-wrapper">
+    <%- include('./partials/topbar') %>
+
+    <main class="main-content">
+      
+      <!-- Botón Volver Exclusivo de Celulares -->
+      <a href="/Choferes" id="mobile-back-btn">
+        <svg viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M9.707 16.707a1 1 0 01-1.414 0l-6-6a1 1 0 010-1.414l6-6a1 1 0 011.414 1.414L5.414 9H17a1 1 0 110 2H5.414l4.293 4.293a1 1 0 010 1.414z" clip-rule="evenodd"/></svg>
+        Volver a Choferes
+      </a>
+
+      <div class="page-header">
+        <h2 class="page-title">Cargar Chofer</h2>
+        <p class="page-subtitle">Complete los datos personales, laborales y de licencia del nuevo conductor.</p>
+      </div>
+
+      <form class="form" action="/Choferes/Carga" method="post" enctype="multipart/form-data">
+
+        <section class="form-section">
+          <h3>Información Básica</h3>
+          <div class="form-row">
+            <div class="form-group">
+              <label>Nombre</label>
+              <input class="<%= errors?.nombre ? 'input-error' : '' %>" name="nombre" type="text" placeholder="Ej: Juan" value="<%= old?.nombre || '' %>">
+              <% if (errors?.nombre) { %><span class="error"><%= errors.nombre.msg %></span><% } %>
+            </div>
+            <div class="form-group">
+              <label>Apellido</label>
+              <input class="<%= errors?.apellido ? 'input-error' : '' %>" name="apellido" type="text" placeholder="Ej: Pérez" value="<%= old?.apellido || '' %>">
+              <% if (errors?.apellido) { %><span class="error"><%= errors.apellido.msg %></span><% } %>
+            </div>
+          </div>
+
+          <div class="form-row">
+            <div class="form-group">
+              <label>DNI</label>
+              <input class="<%= errors?.dni ? 'input-error' : '' %>" name="dni" type="text" placeholder="Sin puntos" value="<%= old?.dni || '' %>">
+              <% if (errors?.dni) { %><span class="error"><%= errors.dni.msg %></span><% } %>
+            </div>
+            <div class="form-group">
+              <label>Fecha de Nacimiento</label>
+              <input class="<%= errors?.fechaNacimiento ? 'input-error' : '' %>" name="fechaNacimiento" type="date" value="<%= old?.fechaNacimiento || '' %>">
+              <% if (errors?.fechaNacimiento) { %><span class="error"><%= errors.fechaNacimiento.msg %></span><% } %>
+            </div>
+          </div>
+
+          <div class="form-row">
+            <div class="form-group">
+              <label>Teléfono</label>
+              <input class="<%= errors?.telefono ? 'input-error' : '' %>" name="telefono" type="tel" placeholder="Código de área + número" value="<%= old?.telefono || '' %>">
+              <% if (errors?.telefono) { %><span class="error"><%= errors.telefono.msg %></span><% } %>
+            </div>
+            <div class="form-group">
+              <label>E-mail (Opcional)</label>
+              <input class="<%= errors?.email ? 'input-error' : '' %>" name="email" type="email" placeholder="correo@ejemplo.com" value="<%= old?.email || '' %>">
+              <% if (errors?.email) { %><span class="error"><%= errors.email.msg %></span><% } %>
+            </div>
+          </div>
+
+          <div class="form-group">
+            <label>Dirección</label>
+            <input class="<%= errors?.direccion ? 'input-error' : '' %>" name="direccion" type="text" placeholder="Calle y número" value="<%= old?.direccion || '' %>">
+            <% if (errors?.direccion) { %><span class="error"><%= errors.direccion.msg %></span><% } %>
+          </div>
+
+          <div class="form-section" style="margin-top: 16px;">
+            <label style="font-size:13px; font-weight:600; color:#374151;">Fotocopia / fotos del DNI <span style="font-weight:400;color:#94a3b8;">(obligatorio: frente y dorso, mínimo 2 archivos)</span></label>
+            <div class="upload-box" style="margin-top: 8px;">
+              <label for="dni_archivos">Haga clic aquí para subir el DNI (elegí los 2 archivos juntos)</label>
+              <span style="font-size: 12px; color: var(--color-text-muted);">PDF, JPG, PNG o WEBP · hasta 8 MB cada uno · podés elegir varios a la vez</span>
+              <input type="file" id="dni_archivos" name="dni_archivos" accept=".pdf,.jpg,.jpeg,.png,.webp" multiple>
+            </div>
+            <div id="preview-documento" style="font-size:13px; color:var(--color-text-muted); margin-top:6px;">Sin archivos seleccionados</div>
+            <% if (errors?.dni_archivos) { %><span class="error"><%= errors.dni_archivos.msg %></span><% } %>
+          </div>
+
+        </section>
+
+        <%- include('./partials/carnetChofer', { old, errors, carnetCargados: 0 }) %>
+
+        <section class="form-section">
+          <h3>Datos Laborales</h3>
+          <div class="form-row">
+            <div class="form-group">
+              <label>Fecha de Ingreso</label>
+              <input class="<%= errors?.fechaIngreso ? 'input-error' : '' %>" name="fechaIngreso" type="date" value="<%= old?.fechaIngreso || '' %>">
+              <% if (errors?.fechaIngreso) { %><span class="error"><%= errors.fechaIngreso.msg %></span><% } %>
+            </div>
+            <div class="form-group">
+              <label>Estado</label>
+              <select class="<%= errors?.['activo-inactivo'] ? 'input-error' : '' %>" name="activo-inactivo">
+                <option value="">Seleccionar</option>
+                <option value="Activo"   <%= old?.['activo-inactivo'] === 'Activo'   ? 'selected' : '' %>>Activo</option>
+                <option value="Inactivo" <%= old?.['activo-inactivo'] === 'Inactivo' ? 'selected' : '' %>>Inactivo</option>
+                <option value="Licencia Vacaciones/Medica" <%= old?.['activo-inactivo'] === 'Licencia Vacaciones/Medica' ? 'selected' : '' %>>Licencia Vacaciones/Medica</option>
+              </select>
+              <% if (errors?.['activo-inactivo']) { %><span class="error"><%= errors['activo-inactivo'].msg %></span><% } %>
+            </div>
+          </div>
+          <div class="form-row">
+            <div class="form-group">
+              <label>Turno</label>
+              <select name="Turno">
+                <option value="">Seleccionar</option>
+                <option <%= old?.Turno === 'Mañana' ? 'selected' : '' %>>Mañana</option>
+                <option <%= old?.Turno === 'Tarde'  ? 'selected' : '' %>>Tarde</option>
+                <option <%= old?.Turno === 'Tarde/Noche'  ? 'selected' : '' %>>Tarde/Noche</option>
+                <option <%= old?.Turno === 'Noche'  ? 'selected' : '' %>>Noche</option>
+              </select>
+            </div>
+          </div>
+        </section>
+
+        <section class="form-section">
+          <h3>Datos de Licencia de Conducir</h3>
+          <div class="form-row">
+            <div class="form-group">
+              <label>Número de Licencia</label>
+              <input class="<%= errors?.numero_licencia ? 'input-error' : '' %>" name="numero_licencia" type="text" placeholder="Ingrese el N° de licencia" value="<%= old?.numero_licencia || '' %>">
+              <% if (errors?.numero_licencia) { %><span class="error"><%= errors.numero_licencia.msg %></span><% } %>
+            </div>
+            <div class="form-group">
+              <label>Categoría</label>
+              <select class="<%= errors?.categoria ? 'input-error' : '' %>" name="categoria">
+                <option value="">Seleccione categoría</option>
+                <option value="A"  <%= old?.categoria === 'A'  ? 'selected' : '' %>>A - Motocicletas</option>
+                <option value="B"  <%= old?.categoria === 'B'  ? 'selected' : '' %>>B - Autos</option>
+                <option value="B1" <%= old?.categoria === 'B1' ? 'selected' : '' %>>B1 - Autos y camionetas</option>
+                <option value="B2" <%= old?.categoria === 'B2' ? 'selected' : '' %>>B2 - Vehículos utilitarios</option>
+                <option value="C"  <%= old?.categoria === 'C'  ? 'selected' : '' %>>C - Camiones sin acoplado</option>
+                <option value="D"  <%= old?.categoria === 'D'  ? 'selected' : '' %>>D - Transporte de pasajeros</option>
+                <option value="E"  <%= old?.categoria === 'E'  ? 'selected' : '' %>>E - Camiones con acoplado</option>
+                <option value="G"  <%= old?.categoria === 'G'  ? 'selected' : '' %>>G - Maquinaria especial</option>
+              </select>
+              <% if (errors?.categoria) { %><span class="error"><%= errors.categoria.msg %></span><% } %>
+            </div>
+          </div>
+
+          <div class="form-row">
+            <div class="form-group">
+              <label>Fecha de Emisión</label>
+              <input class="<%= errors?.fecha_emision ? 'input-error' : '' %>" name="fecha_emision" type="date" value="<%= old?.fecha_emision || '' %>">
+              <% if (errors?.fecha_emision) { %><span class="error"><%= errors.fecha_emision.msg %></span><% } %>
+            </div>
+            <div class="form-group">
+              <label>Fecha de Vencimiento</label>
+              <input class="<%= errors?.fecha_vencimiento ? 'input-error' : '' %>" name="fecha_vencimiento" type="date" value="<%= old?.fecha_vencimiento || '' %>">
+              <% if (errors?.fecha_vencimiento) { %><span class="error"><%= errors.fecha_vencimiento.msg %></span><% } %>
+            </div>
+          </div>
+
+          <div style="margin-top: 16px;">
+            <label style="font-size:13px; font-weight:600; color:#374151;">Foto o PDF de la Licencia</label>
+            <div class="upload-box" style="margin-top: 8px;">
+              <label for="foto_licencia">Haga clic aquí para subir foto o PDF de la licencia</label>
+              <span style="font-size: 12px; color: var(--color-text-muted);">Formatos aceptados: JPG, PNG, WEBP o PDF</span>
+              <input type="file" id="foto_licencia" name="foto_licencia" accept=".pdf,.jpg,.jpeg,.png,.webp">
+            </div>
+            <div id="preview-licencia" style="font-size:13px; color:var(--color-text-muted); margin-top:6px;">Sin imagen seleccionada</div>
+          </div>
+        </section>
+
+        <section class="form-section">
+          <h3>Fotografía de Chofer</h3>
+          <div class="upload-box">
+            <label for="imagen">Haga clic aquí para subir la foto</label>
+            <span style="font-size: 12px; color: var(--color-text-muted);">Formatos aceptados: JPG, PNG</span>
+            <input type="file" id="imagen" name="imagen" accept="image/*">
+          </div>
+          <div id="preview">Sin imagen seleccionada</div>
+        </section>
+
+        <section class="form-section">
+          <h3>Fechas Administrativas (Opcionales)</h3>
+          <div class="form-row">
+            <div class="form-group">
+              <label>Fecha de Alta en Sistema</label>
+              <input name="fecha_alta" type="date">
+            </div>
+            <div class="form-group">
+              <label>Fecha de Baja</label>
+              <input name="fecha_baja" type="date">
+            </div>
+          </div>
+        </section>
+
+        <div class="acciones">
+          <a href="/Choferes" class="boton-secundario">Cancelar</a>
+          <button type="submit" class="boton-primario">Guardar Chofer</button>
+        </div>
+      </form>
+    </main>
+  </div>
+  
+  <script src="/js/sidebar.js"></script>
+  <script src="/js/subidas.js"></script>
+  <script>
+
+document.getElementById('dni_archivos').addEventListener('change', function(e) {
+  const p = document.getElementById('preview-documento');
+  const nombres = Array.from(e.target.files).map(f => f.name.replace(/[<>&"']/g, ''));
+  if (nombres.length > 0) {
+    p.innerHTML = `Seleccionados (${nombres.length}): <strong>${nombres.join(', ')}</strong>`;
+    p.style.color = nombres.length >= 2 ? 'var(--color-blue)' : '#dc2626';
+    if (nombres.length < 2) p.innerHTML += ' — falta al menos un archivo más (frente y dorso).';
+  } else {
+    p.innerHTML = 'Sin archivos seleccionados';
+    p.style.color = 'var(--color-text-muted)';
+  }
+});
+
+document.getElementById('foto_licencia').addEventListener('change', function(e) {
+  const p = document.getElementById('preview-licencia');
+  if (e.target.files.length > 0) {
+    p.innerHTML = `Archivo seleccionado: <strong>${e.target.files[0].name.replace(/[<>&"']/g, '')}</strong>`;
+    p.style.color = 'var(--color-blue)';
+  } else {
+    p.innerHTML = 'Sin imagen seleccionada';
+    p.style.color = 'var(--color-text-muted)';
+  }
+});
+    /* ── FIX BOTÓN HAMBURGUESA BLINDADO ── */
+    document.addEventListener('DOMContentLoaded', () => {
+      const topbar = document.querySelector('.topbar') || document.querySelector('.app-header');
+      if (!topbar) return;
+      const btnHamburguesa = topbar.querySelector('button') || document.getElementById('menu-toggle');
+      const sidebar = document.getElementById('mi-sidebar-blindado');
+      const overlay = document.getElementById('sb-overlay-blindado');
+      if (btnHamburguesa && sidebar && overlay) {
+        const nuevoBtn = btnHamburguesa.cloneNode(true);
+        btnHamburguesa.parentNode.replaceChild(nuevoBtn, btnHamburguesa);
+        nuevoBtn.addEventListener('click', (e) => {
+          e.preventDefault(); e.stopPropagation();
+          sidebar.classList.toggle('abierto'); overlay.classList.toggle('activo');
+        });
+      }
+    });
+
+    // Mostrar nombre del archivo subido
+    const fileInput = document.getElementById('imagen');
+    const preview = document.getElementById('preview');
+    
+    fileInput.addEventListener('change', function(e) {
+      if(e.target.files.length > 0) {
+        preview.innerHTML = `Archivo seleccionado: <strong>${e.target.files[0].name.replace(/[<>&"']/g, '')}</strong>`;
+        preview.style.color = 'var(--color-blue)';
+      } else {
+        preview.innerHTML = 'Sin imagen seleccionada';
+        preview.style.color = 'var(--color-text-muted)';
+      }
+    });
+
+    // Limpiar clases de error al escribir
+    document.querySelectorAll('.input-error').forEach(input => {
+      input.addEventListener('input', function() {
+        this.classList.remove('input-error');
+        const errorSpan = this.nextElementSibling;
+        if(errorSpan && errorSpan.classList.contains('error')) {
+          errorSpan.style.display = 'none';
+        }
+      });
+    });
+  </script>
+</body>
+</html>

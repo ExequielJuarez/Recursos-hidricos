@@ -1,0 +1,181 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Siniestros del Vehículo - Gestión de Flota</title>
+    <link rel="stylesheet" href="/css/ListadoVehiculos.css">
+    <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500;600;700&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
+    <style>
+        .mv-resumen { display: grid; grid-template-columns: repeat(auto-fit, minmax(190px, 1fr)); gap: 14px; margin-bottom: 22px; }
+        .mv-kpi { background: #fff; border: 1px solid var(--color-border); border-radius: var(--radius-lg); padding: 14px 16px; }
+        .mv-kpi__label { display: block; font-size: 11px; font-weight: 700; color: var(--color-text-muted); text-transform: uppercase; letter-spacing: .05em; margin-bottom: 6px; }
+        .mv-kpi__value { font-size: 20px; font-weight: 800; color: #0f172a; }
+        .mv-filtros { display: flex; gap: 10px; flex-wrap: wrap; margin-bottom: 16px; }
+        .mv-filtros input, .mv-filtros select { padding: 9px 12px; border: 1px solid var(--color-border); border-radius: var(--radius-md); font-family: var(--font-sans); font-size: 13px; background: #fff; }
+        .mv-filtros input { flex: 1; min-width: 200px; }
+        .mv-item { background: #fff; border: 1px solid var(--color-border); border-radius: var(--radius-lg); margin-bottom: 10px; overflow: hidden; }
+        .mv-item__cabecera { width: 100%; display: grid; grid-template-columns: 110px 1fr 1fr 130px 24px; gap: 12px; align-items: center; padding: 14px 18px; background: transparent; border: none; text-align: left; cursor: pointer; font-family: inherit; font-size: 13px; color: #0f172a; }
+        .mv-item__cabecera:hover { background: #f8fafc; }
+        .mv-item__fecha { font-weight: 700; color: var(--color-primary); }
+        .mv-item__tipo { font-weight: 700; }
+        .mv-item__flecha { transition: transform .2s; color: #94a3b8; }
+        .mv-item--abierto .mv-item__flecha { transform: rotate(180deg); }
+        .mv-item__detalle { display: none; border-top: 1px solid var(--color-border-light); padding: 18px 20px; background: #f8fafc; }
+        .mv-item--abierto .mv-item__detalle { display: block; }
+        .mv-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(210px, 1fr)); gap: 16px; margin-bottom: 16px; }
+        .mv-dato__label { display: block; font-size: 11px; font-weight: 700; color: var(--color-text-muted); text-transform: uppercase; letter-spacing: .05em; margin-bottom: 3px; }
+        .mv-dato__valor { font-size: 14px; font-weight: 600; color: #0f172a; word-break: break-word; }
+        .mv-texto { background: #fff; border: 1px solid var(--color-border-light); border-radius: var(--radius-md); padding: 12px 14px; font-size: 13px; color: #334155; white-space: pre-wrap; margin-bottom: 14px; }
+        .mv-vacio { text-align: center; color: #64748b; padding: 40px 20px; background: #fff; border: 1px dashed var(--color-border); border-radius: var(--radius-lg); }
+        .mv-archivo { display: inline-block; margin: 0 8px 6px 0; padding: 6px 10px; border: 1px solid #cbd5e1; border-radius: 6px; background: #fff; color: #2563eb; font-size: 12px; font-weight: 700; text-decoration: none; }
+        @media (max-width: 800px) {
+            .mv-item__cabecera { grid-template-columns: 1fr 1fr; row-gap: 6px; }
+            .mv-item__flecha { display: none; }
+        }
+    </style>
+</head>
+<body>
+
+    <%- include('./partials/sidebar') %>
+
+    <div class="app-wrapper" id="app-wrapper">
+
+        <%- include('./partials/topbar') %>
+
+        <%
+            const abiertos = siniestros.filter(s => s.estado !== 'RESUELTO').length;
+            const ultimo = siniestros[0] || null;
+        %>
+
+        <main class="main-content" style="display: block; overflow-y: auto; padding: 40px; max-width: 1200px; margin: 0 auto;">
+
+            <div class="page-header" style="margin-bottom: 24px; display: flex; justify-content: space-between; align-items: flex-end; gap: 16px; flex-wrap: wrap;">
+                <div>
+                    <h2 class="page-title">Siniestros de <span style="font-family: var(--font-mono);"><%= vehiculo.patente %></span></h2>
+                    <p class="page-subtitle"><%= vehiculo.marca %> <%= vehiculo.modelo %> · <%= vehiculo.anio %> · <%= fmtUso(vehiculo.km_actual, vehiculo) %> · <%= vehiculo.estado_actual %></p>
+                </div>
+                <div style="display: flex; gap: 8px; flex-wrap: wrap;">
+                    <a href="/Vehicles/<%= vehiculo.id_vehiculo %>" style="background-color: #f1f5f9; color: #334155; border: 1px solid #cbd5e1; padding: 8px 14px; font-size: 12px; font-weight: 700; border-radius: 6px; text-decoration: none;">← Volver a la ficha</a>
+                    <a href="/Siniestros/Carga" style="background-color: #fef2f2; color: #dc2626; border: 1px solid #fecaca; padding: 8px 14px; font-size: 12px; font-weight: 700; border-radius: 6px; text-decoration: none;">+ Registrar siniestro</a>
+                </div>
+            </div>
+
+            <section class="mv-resumen">
+                <div class="mv-kpi"><span class="mv-kpi__label">Siniestros registrados</span><span class="mv-kpi__value"><%= siniestros.length %></span></div>
+                <div class="mv-kpi"><span class="mv-kpi__label">Abiertos (en proceso)</span><span class="mv-kpi__value" style="color: <%= abiertos ? '#d97706' : '#0f172a' %>;"><%= abiertos %></span></div>
+                <div class="mv-kpi"><span class="mv-kpi__label">Resueltos</span><span class="mv-kpi__value"><%= siniestros.length - abiertos %></span></div>
+                <div class="mv-kpi"><span class="mv-kpi__label">Último siniestro</span><span class="mv-kpi__value" style="font-size: 16px;"><%= ultimo ? fmtFecha(ultimo.fecha_siniestro) : '—' %></span></div>
+            </section>
+
+            <% if (siniestros.length > 0) { %>
+            <div class="mv-filtros">
+                <input type="search" id="mv-buscar" placeholder="🔍 Buscar por ubicación, chofer, descripción o tercero...">
+                <select id="mv-estado">
+                    <option value="">Todos los estados</option>
+                    <option value="EN PROCESO">En proceso</option>
+                    <option value="RESUELTO">Resuelto</option>
+                </select>
+            </div>
+            <div style="margin-bottom: 10px;"><span style="font-size: 12px; color: #64748b; font-weight: 600;" id="mv-contador"></span></div>
+
+            <div id="mv-lista">
+                <% siniestros.forEach((s) => { %>
+                <%
+                    const choferTxt = s.Chofer ? s.Chofer.nombre + ' ' + s.Chofer.apellido : (s.chofer_involucrado || '');
+                    const archivos = s.archivos_adjuntos ? s.archivos_adjuntos.split(',').map(a => a.trim()).filter(Boolean) : [];
+                %>
+                <article class="mv-item" data-estado="<%= s.estado %>" data-texto="<%= [s.ubicacion, choferTxt, s.relato, s.danos_vehiculo, s.tercero_vehiculo, s.tercero_seguro, s.tercero_conductor].filter(Boolean).join(' ').toLowerCase() %>">
+                    <button type="button" class="mv-item__cabecera" aria-expanded="false">
+                        <span class="mv-item__fecha"><%= fmtFecha(s.fecha_siniestro) %></span>
+                        <span class="mv-item__tipo"><%= s.ubicacion || '—' %></span>
+                        <span><%= choferTxt || 'Chofer no indicado' %></span>
+                        <span><span class="badge <%= s.estado === 'RESUELTO' ? 'badge--success' : 'badge--warning' %>"><%= s.estado === 'RESUELTO' ? 'Resuelto' : 'En proceso' %></span></span>
+                        <svg class="mv-item__flecha" viewBox="0 0 20 20" fill="currentColor" width="18" height="18"><path fill-rule="evenodd" d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z" clip-rule="evenodd"/></svg>
+                    </button>
+
+                    <div class="mv-item__detalle">
+                        <div class="mv-grid">
+                            <div><span class="mv-dato__label">Fecha del siniestro</span><span class="mv-dato__valor"><%= fmtFecha(s.fecha_siniestro) %></span></div>
+                            <div><span class="mv-dato__label">Ubicación</span><span class="mv-dato__valor"><%= s.ubicacion || '—' %></span></div>
+                            <div><span class="mv-dato__label">Chofer involucrado</span><span class="mv-dato__valor"><%= choferTxt || 'No indicado' %></span></div>
+                            <div><span class="mv-dato__label">Estado del trámite</span><span class="mv-dato__valor"><%= s.estado === 'RESUELTO' ? 'Resuelto' : 'En proceso' %></span></div>
+                        </div>
+
+                        <% if (s.relato) { %>
+                        <span class="mv-dato__label">Descripción de lo ocurrido</span>
+                        <div class="mv-texto"><%= s.relato %></div>
+                        <% } %>
+                        <% if (s.danos_vehiculo) { %>
+                        <span class="mv-dato__label">Daños en el vehículo</span>
+                        <div class="mv-texto"><%= s.danos_vehiculo %></div>
+                        <% } %>
+
+                        <% if (s.tercero_vehiculo || s.tercero_seguro || s.tercero_conductor || s.tercero_contacto) { %>
+                        <span class="mv-dato__label">Terceros involucrados</span>
+                        <div class="mv-grid">
+                            <div><span class="mv-dato__label">Vehículo</span><span class="mv-dato__valor"><%= s.tercero_vehiculo || '—' %></span></div>
+                            <div><span class="mv-dato__label">Seguro</span><span class="mv-dato__valor"><%= s.tercero_seguro || '—' %></span></div>
+                            <div><span class="mv-dato__label">Conductor</span><span class="mv-dato__valor"><%= s.tercero_conductor || '—' %></span></div>
+                            <div><span class="mv-dato__label">Contacto</span><span class="mv-dato__valor"><%= s.tercero_contacto || '—' %></span></div>
+                        </div>
+                        <% } %>
+
+                        <span class="mv-dato__label">Archivos y evidencia</span>
+                        <div style="margin-bottom: 14px;">
+                            <% if (archivos.length) { archivos.forEach(a => { %>
+                                <a class="mv-archivo" href="/img/siniestros/<%= encodeURIComponent(a) %>" target="_blank" rel="noopener"><%= a %></a>
+                            <% }) } else { %>
+                                <span style="font-size: 13px; color: #94a3b8;">Sin archivos adjuntos.</span>
+                            <% } %>
+                        </div>
+
+                        <a href="/Siniestros/<%= s.id_siniestro %>" style="background-color: #f1f5f9; color: #0f172a; border: 1px solid #cbd5e1; padding: 7px 14px; font-size: 12px; font-weight: 700; border-radius: 6px; text-decoration: none;">Abrir expediente completo</a>
+                    </div>
+                </article>
+                <% }) %>
+            </div>
+            <div class="mv-vacio" id="mv-sin-resultados" style="display: none;">Ningún siniestro coincide con el filtro.</div>
+            <% } else { %>
+            <div class="mv-vacio">Este vehículo no tiene siniestros registrados.</div>
+            <% } %>
+        </main>
+    </div>
+
+    <script src="/js/sidebar.js"></script>
+    <script>
+        (function () {
+            const lista = document.getElementById('mv-lista');
+            if (!lista) return;
+            const items = Array.from(lista.querySelectorAll('.mv-item'));
+            const buscar = document.getElementById('mv-buscar');
+            const estado = document.getElementById('mv-estado');
+            const contador = document.getElementById('mv-contador');
+            const vacio = document.getElementById('mv-sin-resultados');
+
+            lista.addEventListener('click', function (e) {
+                const cabecera = e.target.closest('.mv-item__cabecera');
+                if (!cabecera) return;
+                const item = cabecera.parentElement;
+                const abierto = item.classList.toggle('mv-item--abierto');
+                cabecera.setAttribute('aria-expanded', abierto ? 'true' : 'false');
+            });
+
+            function filtrar() {
+                const texto = buscar.value.trim().toLowerCase();
+                let visibles = 0;
+                items.forEach(function (item) {
+                    const ok = (!estado.value || item.dataset.estado === estado.value) && (!texto || item.dataset.texto.indexOf(texto) !== -1);
+                    item.style.display = ok ? '' : 'none';
+                    if (ok) visibles++;
+                });
+                contador.textContent = visibles === 1 ? '1 siniestro' : visibles + ' siniestros';
+                vacio.style.display = visibles === 0 ? 'block' : 'none';
+            }
+            buscar.addEventListener('input', filtrar);
+            estado.addEventListener('change', filtrar);
+            filtrar();
+        })();
+    </script>
+</body>
+</html>

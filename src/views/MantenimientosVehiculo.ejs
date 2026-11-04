@@ -1,0 +1,210 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Mantenimientos del Vehículo - Gestión de Flota</title>
+    <link rel="stylesheet" href="/css/ListadoVehiculos.css">
+    <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500;600;700&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
+    <style>
+        .mv-resumen { display: grid; grid-template-columns: repeat(auto-fit, minmax(190px, 1fr)); gap: 14px; margin-bottom: 22px; }
+        .mv-kpi { background: #fff; border: 1px solid var(--color-border); border-radius: var(--radius-lg); padding: 14px 16px; }
+        .mv-kpi__label { display: block; font-size: 11px; font-weight: 700; color: var(--color-text-muted); text-transform: uppercase; letter-spacing: .05em; margin-bottom: 6px; }
+        .mv-kpi__value { font-size: 20px; font-weight: 800; color: #0f172a; }
+        .mv-filtros { display: flex; gap: 10px; flex-wrap: wrap; margin-bottom: 16px; }
+        .mv-filtros input, .mv-filtros select { padding: 9px 12px; border: 1px solid var(--color-border); border-radius: var(--radius-md); font-family: var(--font-sans); font-size: 13px; background: #fff; }
+        .mv-filtros input { flex: 1; min-width: 200px; }
+        .mv-item { background: #fff; border: 1px solid var(--color-border); border-radius: var(--radius-lg); margin-bottom: 10px; overflow: hidden; }
+        .mv-item__cabecera { width: 100%; display: grid; grid-template-columns: 110px 1fr 120px 130px 120px 24px; gap: 12px; align-items: center; padding: 14px 18px; background: transparent; border: none; text-align: left; cursor: pointer; font-family: inherit; font-size: 13px; color: #0f172a; }
+        .mv-item__cabecera:hover { background: #f8fafc; }
+        .mv-item__fecha { font-weight: 700; color: var(--color-primary); }
+        .mv-item__tipo { font-weight: 700; }
+        .mv-item__km { font-family: var(--font-mono); color: #475569; }
+        .mv-item__total { font-weight: 800; text-align: right; }
+        .mv-item__flecha { transition: transform .2s; color: #94a3b8; }
+        .mv-item--abierto .mv-item__flecha { transform: rotate(180deg); }
+        .mv-item__detalle { display: none; border-top: 1px solid var(--color-border-light); padding: 18px 20px; background: #f8fafc; }
+        .mv-item--abierto .mv-item__detalle { display: block; }
+        .mv-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(210px, 1fr)); gap: 16px; margin-bottom: 16px; }
+        .mv-dato__label { display: block; font-size: 11px; font-weight: 700; color: var(--color-text-muted); text-transform: uppercase; letter-spacing: .05em; margin-bottom: 3px; }
+        .mv-dato__valor { font-size: 14px; font-weight: 600; color: #0f172a; word-break: break-word; }
+        .mv-texto { background: #fff; border: 1px solid var(--color-border-light); border-radius: var(--radius-md); padding: 12px 14px; font-size: 13px; color: #334155; white-space: pre-wrap; margin-bottom: 14px; }
+        .mv-vacio { text-align: center; color: #64748b; padding: 40px 20px; background: #fff; border: 1px dashed var(--color-border); border-radius: var(--radius-lg); }
+        @media (max-width: 800px) {
+            .mv-item__cabecera { grid-template-columns: 1fr 1fr; row-gap: 6px; }
+            .mv-item__total { text-align: left; }
+            .mv-item__flecha { display: none; }
+        }
+    </style>
+</head>
+<body>
+
+    <%- include('./partials/sidebar') %>
+
+    <div class="app-wrapper" id="app-wrapper">
+
+        <%- include('./partials/topbar') %>
+
+        <%
+            const moneda = (n) => '$' + Number(n || 0).toLocaleString('es-AR', { minimumFractionDigits: 0, maximumFractionDigits: 2 });
+            const claseEstado = (e) => e === 'Realizado' ? 'badge--success' : (e === 'En proceso' ? 'badge--info' : (e === 'Cancelado' ? 'badge--danger' : 'badge--warning'));
+            const u = unidadDe(vehiculo);
+            const esProg = (m) => m.estado === 'Programado' || m.estado === 'Cancelado';
+            const realizados = mantenimientos.filter(m => m.estado === 'Realizado');
+            const totalGastado = mantenimientos.reduce((t, m) => t + (esProg(m) ? 0 : m.costo_total), 0);
+            const ultimo = realizados[0] || null;
+            const programados = mantenimientos.filter(m => m.estado === 'Programado' && m.proximo_km).sort((a, b) => a.proximo_km - b.proximo_km);
+            const proximo = programados[0] || (ultimo && ultimo.proximo_km ? { proximo_km: ultimo.proximo_km } : null);
+        %>
+
+        <main class="main-content" style="display: block; overflow-y: auto; padding: 40px; max-width: 1200px; margin: 0 auto;">
+
+            <div class="page-header" style="margin-bottom: 24px; display: flex; justify-content: space-between; align-items: flex-end; gap: 16px; flex-wrap: wrap;">
+                <div>
+                    <h2 class="page-title">Mantenimientos de <span style="font-family: var(--font-mono);"><%= vehiculo.patente %></span></h2>
+                    <p class="page-subtitle"><%= vehiculo.marca %> <%= vehiculo.modelo %> · <%= vehiculo.anio %> · <%= fmtUso(vehiculo.km_actual, vehiculo) %> · <%= vehiculo.estado_actual %></p>
+                </div>
+                <div style="display: flex; gap: 8px; flex-wrap: wrap;">
+                    <a href="/Vehicles/<%= vehiculo.id_vehiculo %>" style="background-color: #f1f5f9; color: #334155; border: 1px solid #cbd5e1; padding: 8px 14px; font-size: 12px; font-weight: 700; border-radius: 6px; text-decoration: none;">← Volver a la ficha</a>
+                    <a href="/Mantenimientos/Historial?vehiculo=<%= vehiculo.id_vehiculo %>" style="background-color: #f8fafc; color: #475569; border: 1px solid #cbd5e1; padding: 8px 14px; font-size: 12px; font-weight: 700; border-radius: 6px; text-decoration: none;">Historial administrativo</a>
+                    <a href="/Mantenimientos/carga/<%= vehiculo.id_vehiculo %>" style="background-color: #ecfdf5; color: #059669; border: 1px solid #a7f3d0; padding: 8px 14px; font-size: 12px; font-weight: 700; border-radius: 6px; text-decoration: none;">+ Mantenimiento</a>
+                </div>
+            </div>
+
+            <section class="mv-resumen">
+                <div class="mv-kpi"><span class="mv-kpi__label">Órdenes registradas</span><span class="mv-kpi__value"><%= mantenimientos.length %></span></div>
+                <div class="mv-kpi"><span class="mv-kpi__label">Gasto total</span><span class="mv-kpi__value"><%= moneda(totalGastado) %></span></div>
+                <div class="mv-kpi"><span class="mv-kpi__label">Último service realizado</span><span class="mv-kpi__value" style="font-size: 16px;"><%= ultimo ? fmtFecha(ultimo.fecha_inicio) + ' · ' + fmtUso(ultimo.km_servicio, vehiculo) : '—' %></span></div>
+                <div class="mv-kpi"><span class="mv-kpi__label">Próximo service</span><span class="mv-kpi__value" style="font-size: 16px; color: #d97706;"><%= proximo ? 'A los ' + fmtUso(proximo.proximo_km, vehiculo) : 'No definido' %></span></div>
+            </section>
+
+            <% if (mantenimientos.length > 0) { %>
+            <div class="mv-filtros">
+                <input type="search" id="mv-buscar" placeholder="🔍 Buscar por servicio, descripción o repuesto...">
+                <select id="mv-estado">
+                    <option value="">Todos los estados</option>
+                    <option value="Programado">Programado</option>
+                    <option value="En proceso">En proceso</option>
+                    <option value="Realizado">Realizado</option>
+                    <option value="Cancelado">Cancelado</option>
+                </select>
+            </div>
+            <div style="margin-bottom: 10px;"><span style="font-size: 12px; color: #64748b; font-weight: 600;" id="mv-contador"></span></div>
+
+            <div id="mv-lista">
+                <% mantenimientos.forEach((m) => { %>
+                <% const repuestosTexto = (m.detalles || []).map(d => d.repuesto ? d.repuesto.nombre : '').join(' '); %>
+                <article class="mv-item" data-estado="<%= m.estado %>" data-texto="<%= (m.tipo_servicio + ' ' + (m.descripcion || '') + ' ' + (m.observaciones || '') + ' ' + repuestosTexto).toLowerCase() %>">
+                    <button type="button" class="mv-item__cabecera" aria-expanded="false">
+                        <span class="mv-item__fecha"><%= esProg(m) ? 'Programado' : fmtFecha(m.fecha_inicio) %></span>
+                        <span class="mv-item__tipo"><%= m.tipo_servicio %></span>
+                        <span><span class="badge <%= claseEstado(m.estado) %>"><%= m.estado %></span></span>
+                        <span class="mv-item__km"><%= fmtUso(esProg(m) ? m.proximo_km : m.km_servicio, vehiculo) %></span>
+                        <span class="mv-item__total"><%= esProg(m) ? '—' : moneda(m.costo_total) %></span>
+                        <svg class="mv-item__flecha" viewBox="0 0 20 20" fill="currentColor" width="18" height="18"><path fill-rule="evenodd" d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z" clip-rule="evenodd"/></svg>
+                    </button>
+
+                    <div class="mv-item__detalle">
+                        <div class="mv-grid">
+                            <div><span class="mv-dato__label"><%= esProg(m) ? 'Fecha de carga' : 'Fecha de inicio' %></span><span class="mv-dato__valor"><%= fmtFecha(m.fecha_inicio) %></span></div>
+                            <% if (!esProg(m)) { %>
+                            <div><span class="mv-dato__label">Fecha de fin</span><span class="mv-dato__valor"><%= m.fecha_fin ? fmtFecha(m.fecha_fin) : 'En curso' %></span></div>
+                            <% } %>
+                            <div><span class="mv-dato__label"><%= esProg(m) ? (u === 'hs' ? 'Horas programadas' : 'Km programado') : (u === 'hs' ? 'Horas del servicio' : 'Km del servicio') %></span><span class="mv-dato__valor"><%= fmtUso(m.km_servicio, vehiculo) %></span></div>
+                            <% if (!esProg(m)) { %>
+                            <div><span class="mv-dato__label">Próximo service sugerido</span><span class="mv-dato__valor"><%= m.proximo_km ? 'A los ' + fmtUso(m.proximo_km, vehiculo) : 'No especificado' %></span></div>
+                            <% } %>
+                            <% if (m.nro_remito || m.nro_factura || m.proveedor || m.nro_pedido || m.nro_expediente) { %>
+                            <div><span class="mv-dato__label">Casa proveedora</span><span class="mv-dato__valor"><%= m.proveedor || '—' %></span></div>
+                            <div><span class="mv-dato__label">N° remito / factura</span><span class="mv-dato__valor"><%= m.nro_remito || '—' %> / <%= m.nro_factura || '—' %></span></div>
+                            <div><span class="mv-dato__label">N° pedido / expediente</span><span class="mv-dato__valor"><%= m.nro_pedido || '—' %> / <%= m.nro_expediente || '—' %></span></div>
+                            <% } %>
+                            <div><span class="mv-dato__label">Cargado por</span><span class="mv-dato__valor"><%= m.usuario ? m.usuario.nombre + ' ' + m.usuario.apellido : '—' %></span></div>
+                        </div>
+
+                        <% if (m.descripcion) { %>
+                        <span class="mv-dato__label">Descripción del trabajo</span>
+                        <div class="mv-texto"><%= m.descripcion %></div>
+                        <% } %>
+                        <% if (m.observaciones) { %>
+                        <span class="mv-dato__label">Observaciones / diagnóstico</span>
+                        <div class="mv-texto"><%= m.observaciones %></div>
+                        <% } %>
+
+                        <% if (!esProg(m)) { %>
+                        <span class="mv-dato__label">Repuestos utilizados</span>
+                        <% if (m.detalles && m.detalles.length > 0) { %>
+                        <div class="data-table-wrapper" style="margin-bottom: 14px;">
+                            <table class="data-table" style="min-width: 0;">
+                                <thead class="data-table__head"><tr><th class="data-table__th">Repuesto</th><th class="data-table__th">Cant.</th><th class="data-table__th">Costo unit.</th><th class="data-table__th">Subtotal</th></tr></thead>
+                                <tbody class="data-table__body">
+                                    <% m.detalles.forEach(d => { %>
+                                    <tr class="data-table__row">
+                                        <td class="data-table__td" data-label="Repuesto"><%= d.repuesto ? d.repuesto.nombre : 'Repuesto eliminado' %></td>
+                                        <td class="data-table__td" data-label="Cant."><%= d.cantidad %></td>
+                                        <td class="data-table__td" data-label="Costo unit."><%= moneda(d.costo_unitario) %></td>
+                                        <td class="data-table__td" data-label="Subtotal" style="font-weight: 700;"><%= moneda(d.cantidad * d.costo_unitario) %></td>
+                                    </tr>
+                                    <% }) %>
+                                </tbody>
+                            </table>
+                        </div>
+                        <% } else { %>
+                        <div class="mv-texto" style="color: #64748b;">No se registraron repuestos.</div>
+                        <% } %>
+
+                        <div class="mv-grid" style="margin-bottom: 0;">
+                            <div><span class="mv-dato__label">Mano de obra</span><span class="mv-dato__valor"><%= moneda(m.mano_obra) %></span></div>
+                            <div><span class="mv-dato__label">Repuestos</span><span class="mv-dato__valor"><%= moneda(m.costo_repuestos) %></span></div>
+                            <div><span class="mv-dato__label">Total facturado</span><span class="mv-dato__valor" style="color: #1d4ed8; font-size: 17px; font-weight: 800;"><%= moneda(m.costo_total) %></span></div>
+                        </div>
+                        <% } %>
+                    </div>
+                </article>
+                <% }) %>
+            </div>
+            <div class="mv-vacio" id="mv-sin-resultados" style="display: none;">Ningún mantenimiento coincide con el filtro.</div>
+            <% } else { %>
+            <div class="mv-vacio">Este vehículo todavía no tiene mantenimientos registrados.</div>
+            <% } %>
+        </main>
+    </div>
+
+    <script src="/js/sidebar.js"></script>
+    <script>
+        (function () {
+            const lista = document.getElementById('mv-lista');
+            if (!lista) return;
+            const items = Array.from(lista.querySelectorAll('.mv-item'));
+            const buscar = document.getElementById('mv-buscar');
+            const estado = document.getElementById('mv-estado');
+            const contador = document.getElementById('mv-contador');
+            const vacio = document.getElementById('mv-sin-resultados');
+
+            // Abrir / cerrar el detalle de cada mantenimiento
+            lista.addEventListener('click', function (e) {
+                const cabecera = e.target.closest('.mv-item__cabecera');
+                if (!cabecera) return;
+                const item = cabecera.parentElement;
+                const abierto = item.classList.toggle('mv-item--abierto');
+                cabecera.setAttribute('aria-expanded', abierto ? 'true' : 'false');
+            });
+
+            function filtrar() {
+                const texto = buscar.value.trim().toLowerCase();
+                let visibles = 0;
+                items.forEach(function (item) {
+                    const ok = (!estado.value || item.dataset.estado === estado.value) && (!texto || item.dataset.texto.indexOf(texto) !== -1);
+                    item.style.display = ok ? '' : 'none';
+                    if (ok) visibles++;
+                });
+                contador.textContent = visibles === 1 ? '1 mantenimiento' : visibles + ' mantenimientos';
+                vacio.style.display = visibles === 0 ? 'block' : 'none';
+            }
+            buscar.addEventListener('input', filtrar);
+            estado.addEventListener('change', filtrar);
+            filtrar();
+        })();
+    </script>
+</body>
+</html>

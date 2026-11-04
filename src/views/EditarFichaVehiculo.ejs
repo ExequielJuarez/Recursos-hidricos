@@ -1,0 +1,328 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Editar Vehículo - Gestión de Flota</title>
+  <link rel="stylesheet" href="/css/CargaFichaVehiculo.css" />
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500;600;700&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet" />
+  
+  <style>
+    .readonly-field {
+      background-color: #f8fafc !important;
+      color: #64748b !important;
+      border-color: #e2e8f0 !important;
+      pointer-events: none;
+    }
+    .readonly-section h3 { color: #64748b; }
+
+    /* ── ADAPTACIÓN MÓVIL Y BOTÓN VOLVER ── */
+    #mobile-back-btn {
+      background-color: #f8fafc;
+      color: #475569;
+      border: 1px solid #cbd5e1;
+      padding: 8px 14px;
+      font-size: 13px;
+      font-weight: 700;
+      border-radius: 8px;
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      transition: 0.2s;
+      margin-bottom: 20px;
+      text-decoration: none;
+    }
+    #mobile-back-btn:hover { background-color: #e2e8f0; color: #0f172a; }
+    #mobile-back-btn svg { width: 16px; height: 16px; }
+
+    @media (min-width: 900px) {
+      #mobile-back-btn { display: none !important; }
+    }
+
+    @media (max-width: 900px) {
+      .form-row { flex-direction: column !important; gap: 0 !important; }
+      .acciones { flex-direction: column-reverse !important; width: 100% !important; gap: 12px !important; }
+      .acciones button { width: 100% !important; padding: 14px !important; font-size: 14px !important; }
+      .page-header { flex-direction: column; align-items: flex-start !important; gap: 12px; margin-bottom: 16px !important; }
+    }
+  </style>
+</head>
+<body>
+
+  <%- include('./partials/sidebar') %>
+
+  <div class="app-wrapper" id="app-wrapper">
+
+    <%- include('./partials/topbar') %>
+
+    <main class="main-content">
+
+      <a href="/Vehicles" id="mobile-back-btn">
+        <svg viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M9.707 16.707a1 1 0 01-1.414 0l-6-6a1 1 0 010-1.414l6-6a1 1 0 011.414 1.414L5.414 9H17a1 1 0 110 2H5.414l4.293 4.293a1 1 0 010 1.414z" clip-rule="evenodd"/></svg>
+        Volver a Vehículos
+      </a>
+
+      <div class="page-header" style="display: flex; justify-content: space-between; align-items: center; width: 100%;">
+        <div>
+          <h2 class="page-title">Editar Vehículo</h2>
+          <p class="page-subtitle">Modifica los datos del vehículo seleccionado.</p>
+        </div>
+
+        <a href="/Mantenimientos/carga/<%= vehiculo.id_vehiculo %>" class="boton-secundario" style="display:inline-flex;align-items:center;gap:0.4rem;text-decoration:none;">
+          <svg viewBox="0 0 20 20" fill="currentColor" style="width:16px;height:16px;flex-shrink:0;">
+            <path fill-rule="evenodd" d="M11.49 3.17c-.38-1.56-2.6-1.56-2.98 0a1.532 1.532 0 01-2.286.948c-1.372-.836-2.942.734-2.106 2.106.54.886.061 2.042-.947 2.287-1.561.379-1.561 2.6 0 2.978a1.532 1.532 0 01.947 2.287c-.836 1.372.734 2.942 2.106 2.106a1.532 1.532 0 012.287.947c.379 1.561 2.6 1.561 2.978 0a1.533 1.533 0 012.287-.947c1.372.836 2.942-.734 2.106-2.106a1.533 1.533 0 01.947-2.287c1.561-.379 1.561-2.6 0-2.978a1.532 1.532 0 01-.947-2.287c.836-1.372-.734-2.942-2.106-2.106a1.532 1.532 0 01-2.287-.947zM10 13a3 3 0 100-6 3 3 0 000 6z" clip-rule="evenodd"/>
+          </svg>
+          Registrar Mantenimiento
+        </a>
+      </div>
+
+      <form class="form" action="/Vehicles/Editar/<%= vehiculo.id_vehiculo %>" method="post" id="form-editar" novalidate>
+
+        <section class="form-section readonly-section">
+          <h3>Información Básica <span style="font-size:12px;color:#94a3b8;font-weight:400;">(Bloqueada por Seguridad)</span></h3>
+      
+          <div class="form-group">
+            <label>Patente <span class="field-locked"></span></label>
+            <input name="patente" type="text" value="<%= vehiculo.patente %>" readonly class="readonly-field">
+          </div>
+      
+          <div class="form-group">
+            <label>Tipo de Vehículo <span class="field-locked"></span></label>
+            <input type="text" value="<%= vehiculo.TipoVehiculo?.descripcion || '—' %>" readonly class="readonly-field">
+            <input type="hidden" name="id_tipo" value="<%= vehiculo.id_tipo %>">
+          </div>
+      
+          <div class="form-row">
+            <div class="form-group">
+              <label>Marca <span class="field-locked"></span></label>
+              <input name="marca" type="text" value="<%= vehiculo.marca %>" readonly class="readonly-field">
+            </div>
+            <div class="form-group">
+              <label>Modelo <span class="field-locked"></span></label>
+              <input name="modelo" type="text" value="<%= vehiculo.modelo %>" readonly class="readonly-field">
+            </div>
+          </div>
+      
+          <div class="form-group small">
+            <label>Año <span class="field-locked"></span></label>
+            <input name="anio" type="number" value="<%= vehiculo.anio %>" readonly class="readonly-field">
+          </div>
+        </section>
+      
+        <section class="form-section readonly-section">
+          <h3>Información Técnica <span style="font-size:12px;color:#94a3b8;font-weight:400;">(Bloqueada por Seguridad)</span></h3>
+      
+          <div class="form-group">
+            <label>Número de Chasis <span class="field-locked"></span></label>
+            <input name="chasis" type="text" value="<%= vehiculo.num_chasis || '' %>" readonly class="readonly-field">
+          </div>
+      
+          <div class="form-group">
+            <label>Número de Motor <span class="field-locked"></span></label>
+            <input name="num_motor" type="text" value="<%= vehiculo.num_motor || '' %>" readonly class="readonly-field">
+          </div>
+      
+          <div class="form-row">
+            <div class="form-group">
+              <label>Combustible <span class="field-locked"></span></label>
+              <input type="text" value="<%= vehiculo.combustible || '—' %>" readonly class="readonly-field">
+              <input type="hidden" name="combustible" value="<%= vehiculo.combustible || '' %>">
+            </div>
+            <div class="form-group">
+              <label>Transmisión <span class="field-locked"></span></label>
+              <input type="text" value="<%= vehiculo.transmision || '—' %>" readonly class="readonly-field">
+              <input type="hidden" name="transmision" value="<%= vehiculo.transmision || '' %>">
+            </div>
+          </div>
+        </section>
+
+        <section class="form-section">
+          <h3>Documentación Legal <span style="font-size:12px;color:#16a34a;font-weight:400;">(Editable)</span></h3>
+          
+          <div class="form-row">
+            <div class="form-group">
+              <label>Número de Cédula</label>
+              <input name="cedula_numero" type="text" value="<%= vehiculo.cedula_numero || '' %>" placeholder="Ej: 001234567">
+            </div>
+            <div class="form-group">
+              <label>Titular / Empresa</label>
+              <input name="cedula_titular" type="text" value="<%= vehiculo.cedula_titular || '' %>" placeholder="Ej: Municipalidad">
+            </div>
+          </div>
+
+          <div class="form-row">
+            <div class="form-group">
+              <label>Compañía de Seguro</label>
+              <input name="seguro_compania" type="text" value="<%= vehiculo.seguro_compania || '' %>" placeholder="Ej: Federación Patronal">
+            </div>
+            <div class="form-group">
+              <label>Vencimiento del Seguro</label>
+              <input name="seguro_vencimiento" type="date" value="<%= vehiculo.seguro_vencimiento || '' %>">
+            </div>
+          </div>
+
+          <div class="form-group small">
+            <label>Vencimiento RTO / VTV</label>
+            <input name="rto_vencimiento" type="date" value="<%= vehiculo.rto_vencimiento || '' %>">
+          </div>
+        </section>
+      
+        <section class="form-section">
+          <h3>Estado y Ubicación <span style="font-size:12px;color:#16a34a;font-weight:400;">(Editable)</span></h3>
+      
+          <div class="form-row">
+            <div class="form-group">
+              <label>Estado <span class="req">*</span></label>
+              <select name="estado_actual" id="estado_actual">
+                <option value="">Seleccionar</option>
+                <option value="Disponible"       <%= vehiculo.estado_actual === 'Disponible'       ? 'selected' : '' %>>Disponible</option>
+                <option value="En uso"           <%= vehiculo.estado_actual === 'En uso'           ? 'selected' : '' %>>En uso</option>
+                <% if (vehiculo.estado_actual === 'En mantenimiento') { %>
+                <option value="En mantenimiento" selected>En mantenimiento</option>
+                <% } %>
+                <% if (vehiculo.estado_actual === 'En siniestro') { %>
+                <option value="En siniestro"     selected>En siniestro</option>
+                <% } %>
+                <option value="Baja"             <%= vehiculo.estado_actual === 'Baja'             ? 'selected' : '' %>>Baja</option>
+              </select>
+              <span class="field-error" id="err-estado"></span>
+            </div>
+      
+            <div class="form-group">
+              <label>Kilometraje <span class="req">*</span></label>
+              <input name="km_actual" type="number" value="<%= vehiculo.km_actual || 0 %>" id="km_actual" min="0">
+              <span class="field-error" id="err-km"></span>
+            </div>
+          </div>
+      
+          <div class="form-group">
+            <label>Distrito</label>
+            <select name="distrito">
+              <option value="">Sin distrito</option>
+              <% (typeof distritos !== 'undefined' ? distritos : []).forEach(d => { %>
+              <option value="<%= d.nombre %>" <%= vehiculo.distrito === d.nombre ? 'selected' : '' %>><%= d.nombre %></option>
+              <% }) %>
+              <% if (vehiculo.distrito && !(typeof distritos !== 'undefined' ? distritos : []).some(d => d.nombre === vehiculo.distrito)) { %>
+              <option value="<%= vehiculo.distrito %>" selected><%= vehiculo.distrito %></option>
+              <% } %>
+            </select>
+          </div>
+      
+          <div class="form-group">
+            <label>Observaciones</label>
+            <textarea name="observaciones"><%= vehiculo.observaciones || '' %></textarea>
+          </div>
+        </section>
+      
+        <section class="form-section">
+          <h3>Fechas</h3>
+          <div class="form-row">
+            <div class="form-group">
+              <label>Fecha de Alta <span class="field-locked"></span></label>
+              <input name="fecha_alta" type="date"
+                value="<%= vehiculo.fecha_alta || '' %>"
+                readonly class="readonly-field" id="fecha_alta">
+            </div>
+            <div class="form-group">
+              <label>Fecha de Baja <span style="font-size:12px;color:#16a34a;font-weight:400;">(Editable)</span></label>
+              <input name="fecha_baja" type="date"
+                value="<%= vehiculo.fecha_baja || '' %>"
+                id="fecha_baja">
+              <span class="field-error" id="err-fecha-baja"></span>
+            </div>
+          </div>
+        </section>
+      
+        <div class="acciones">
+          <button type="button" class="boton-secundario" onclick="window.history.back();">Cancelar</button>
+          <button type="submit" class="boton-primario">Guardar Cambios</button>
+        </div>
+      
+      </form>
+
+    </main>
+
+    <footer class="app-footer">
+      <p class="app-footer__copy">* Campos obligatorios &nbsp;|&nbsp; &copy; 2025 &mdash; Ficha Tecnica</p>
+    </footer>
+
+  </div>
+
+  <script src="/js/sidebar.js"></script>
+  <script>
+    /* ── FIX BOTÓN HAMBURGUESA BLINDADO ── */
+    document.addEventListener('DOMContentLoaded', () => {
+      const topbar = document.querySelector('.topbar') || document.querySelector('.app-header');
+      if (!topbar) return;
+      const btnHamburguesa = topbar.querySelector('button') || document.getElementById('menu-toggle');
+      const sidebar = document.getElementById('mi-sidebar-blindado');
+      const overlay = document.getElementById('sb-overlay-blindado');
+      if (btnHamburguesa && sidebar && overlay) {
+        const nuevoBtn = btnHamburguesa.cloneNode(true);
+        btnHamburguesa.parentNode.replaceChild(nuevoBtn, btnHamburguesa);
+        nuevoBtn.addEventListener('click', (e) => {
+          e.preventDefault(); e.stopPropagation();
+          sidebar.classList.toggle('abierto'); overlay.classList.toggle('activo');
+        });
+      }
+    });
+
+    /* ── Validación ──────────────────────────────────────── */
+    function setError(inputId, errId, msg) {
+      const el = document.getElementById(inputId);
+      const er = document.getElementById(errId);
+      if (msg) {
+        el?.classList.add('input-error');
+        if (er) er.textContent = msg;
+      } else {
+        el?.classList.remove('input-error');
+        if (er) er.textContent = '';
+      }
+    }
+
+    document.getElementById('form-editar').addEventListener('submit', function (e) {
+      e.preventDefault();
+      document.querySelectorAll('.input-error').forEach(el => el.classList.remove('input-error'));
+      document.querySelectorAll('.field-error').forEach(el => el.textContent = '');
+
+      let valido = true;
+      const anio      = parseInt(document.querySelector('input[name="anio"]')?.value);
+      const estado    = document.getElementById('estado_actual').value;
+      const km        = document.getElementById('km_actual').value;
+      const fechaAlta = document.getElementById('fecha_alta').value;
+      const fechaBaja = document.getElementById('fecha_baja').value;
+
+      if (!estado) {
+        setError('estado_actual', 'err-estado', 'Seleccioná un estado.');
+        valido = false;
+      }
+      if (km === '' || Number(km) < 0) {
+        setError('km_actual', 'err-km', 'El kilometraje no puede ser negativo.');
+        valido = false;
+      }
+      if (fechaBaja && fechaAlta && fechaBaja <= fechaAlta) {
+        setError('fecha_baja', 'err-fecha-baja', 'La fecha de baja debe ser posterior a la de alta.');
+        valido = false;
+      }
+      if (fechaBaja && anio) {
+        if (new Date(fechaBaja).getFullYear() < anio) {
+          setError('fecha_baja', 'err-fecha-baja', `La fecha de baja no puede ser anterior al año del vehículo (${anio}).`);
+          valido = false;
+        }
+      }
+
+      if (valido) this.submit();
+    });
+
+    ['estado_actual', 'km_actual', 'fecha_baja'].forEach(id => {
+      document.getElementById(id)?.addEventListener('input', function () {
+        this.classList.remove('input-error');
+        const errMap = { estado_actual: 'err-estado', km_actual: 'err-km', fecha_baja: 'err-fecha-baja' };
+        const er = document.getElementById(errMap[id]);
+        if (er) er.textContent = '';
+      });
+    });
+  </script>
+</body>
+</html>

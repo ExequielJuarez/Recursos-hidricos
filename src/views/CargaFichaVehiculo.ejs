@@ -1,0 +1,421 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Cargar Vehículo - Gestión de Flota</title>
+  <link rel="stylesheet" href="/css/ListadoVehiculos.css" />
+  <link rel="stylesheet" href="/css/CargaFichaVehiculo.css" />
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500;600;700&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet" />
+  
+  <style>
+    #mobile-back-btn {
+      background-color: #f8fafc;
+      color: #475569;
+      border: 1px solid #cbd5e1;
+      padding: 8px 14px;
+      font-size: 13px;
+      font-weight: 700;
+      border-radius: 8px;
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      transition: 0.2s;
+      margin-bottom: 20px;
+      text-decoration: none;
+    }
+    #mobile-back-btn:hover { background-color: #e2e8f0; color: #0f172a; }
+    #mobile-back-btn svg { width: 16px; height: 16px; }
+
+    @media (min-width: 900px) {
+      #mobile-back-btn { display: none !important; }
+    }
+
+    @media (max-width: 900px) {
+      .form-row { flex-direction: column !important; gap: 0 !important; }
+      .acciones { flex-direction: column-reverse !important; width: 100% !important; gap: 12px !important; }
+      .acciones button, .acciones a { width: 100% !important; padding: 14px !important; font-size: 16px !important; text-align: center; }
+      .page-header { margin-bottom: 16px !important; }
+    }
+  </style>
+</head>
+<body>
+
+  <%- include('./partials/sidebar') %>
+
+  <div class="app-wrapper" id="app-wrapper">
+    <%- include('./partials/topbar') %>
+
+    <main class="main-content">
+      
+      <a href="/Vehicles" id="mobile-back-btn">
+        <svg viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M9.707 16.707a1 1 0 01-1.414 0l-6-6a1 1 0 010-1.414l6-6a1 1 0 011.414 1.414L5.414 9H17a1 1 0 110 2H5.414l4.293 4.293a1 1 0 010 1.414z" clip-rule="evenodd"/></svg>
+        Volver al listado
+      </a>
+
+      <div class="page-header">
+        <h2 class="page-title">Cargar Vehículo</h2>
+        <p class="page-subtitle">Complete los datos de la ficha técnica del nuevo vehículo.</p>
+      </div>
+
+      <form class="form" action="/CargaVehiculo" method="post" id="form-vehiculo" novalidate enctype="multipart/form-data">
+
+        <section class="form-section">
+          <h3>Información Básica</h3>
+          <div class="form-row">
+            <div class="form-group">
+              <label>Patente <span class="req">*</span></label>
+              <input name="patente" type="text" placeholder="Ej: AB123CD" id="patente">
+              <span class="field-error" id="err-patente"></span>
+            </div>
+            <div class="form-group">
+              <label>Tipo de Vehículo <span class="req">*</span></label>
+              <select name="id_tipo" id="id_tipo">
+                <option value="">Seleccione tipo</option>
+                <% if (typeof tiposVehiculo !== 'undefined' && tiposVehiculo.length > 0) { %>
+                  <% tiposVehiculo.forEach(t => { %>
+                    <option value="<%= t.id_tipo || t.id %>"><%= t.descripcion || t.nombre %></option>
+                  <% }) %>
+                <% } %>
+              </select>
+              <span class="field-error" id="err-tipo"></span>
+            </div>
+          </div>
+          <div class="form-row">
+            <div class="form-group">
+              <label>Marca <span class="req">*</span></label>
+              <input name="marca" type="text" id="marca" placeholder="Ej: Toyota">
+              <span class="field-error" id="err-marca"></span>
+            </div>
+            <div class="form-group">
+              <label>Modelo <span class="req">*</span></label>
+              <input name="modelo" type="text" id="modelo" placeholder="Ej: Hilux">
+              <span class="field-error" id="err-modelo"></span>
+            </div>
+          </div>
+          <div class="form-group small">
+            <label>Año <span class="req">*</span></label>
+            <input name="anio" type="number" id="anio" min="1900" max="2100" placeholder="Ej: 2024">
+            <span class="field-error" id="err-anio"></span>
+          </div>
+        </section>
+      
+        <section class="form-section">
+          <h3>Información Técnica</h3>
+          <div class="form-row">
+            <div class="form-group">
+              <label>Número de Chasis <span class="req">*</span></label>
+              <input name="chasis" type="text" id="chasis" placeholder="Ingrese N° de Chasis">
+              <span class="field-error" id="err-chasis"></span>
+            </div>
+            <div class="form-group">
+              <label>Número de Motor <span class="req">*</span></label>
+              <input name="num_motor" type="text" id="num_motor" placeholder="Ingrese N° de Motor">
+              <span class="field-error" id="err-motor"></span>
+            </div>
+          </div>
+          <div class="form-row">
+            <div class="form-group">
+              <label>Combustible</label>
+              <select name="combustible">
+                <option value="">Seleccionar</option>
+                <option>Diesel</option>
+                <option>Nafta</option>
+                <option>Electrico</option>
+              </select>
+            </div>
+            <div class="form-group">
+              <label>Transmisión</label>
+              <select name="transmision">
+                <option value="">Seleccionar</option>
+                <option value="Manual">Manual</option>
+                <option value="Automatica">Automatica</option>
+              </select>
+            </div>
+          </div>
+        </section>
+
+        <section class="form-section">
+          <h3>Documentación Legal</h3>
+          <div class="form-row">
+            <div class="form-group">
+              <label>Número de Cédula</label>
+              <input name="cedula_numero" type="text" id="cedula_numero" placeholder="Ej: 001234567">
+            </div>
+            <div class="form-group">
+              <label>Titular / Empresa</label>
+              <input name="cedula_titular" type="text" id="cedula_titular" placeholder="Ej: Municipalidad">
+            </div>
+          </div>
+          <div class="form-row">
+            <div class="form-group">
+              <label>Compañía de Seguro</label>
+              <input name="seguro_compania" type="text" id="seguro_compania" placeholder="Ej: Federación Patronal">
+            </div>
+            <div class="form-group">
+              <label>Vencimiento del Seguro</label>
+              <input name="seguro_vencimiento" type="date" id="seguro_vencimiento">
+            </div>
+          </div>
+          <div class="form-group small">
+            <label>Vencimiento RTO / VTV</label>
+            <input name="rto_vencimiento" type="date" id="rto_vencimiento">
+          </div>
+        
+          <div style="margin-top: 20px; display: flex; flex-direction: column; gap: 16px;">
+            <div class="form-group">
+              <label style="font-size:13px; font-weight:600; color:#374151;">Foto o PDF de la Cédula</label>
+              <div class="upload-box" style="margin-top: 8px;">
+                <label for="foto_cedula">Haga clic aquí para subir foto o PDF de la cédula</label>
+                <span style="font-size: 12px; color: var(--color-text-muted);">Formatos aceptados: JPG, PNG, WEBP o PDF</span>
+                <input type="file" id="foto_cedula" name="foto_cedula" accept=".pdf,.jpg,.jpeg,.png,.webp">
+              </div>
+              <div id="preview-cedula" style="font-size:13px;color:var(--color-text-muted);margin-top:6px;">Sin imagen seleccionada</div>
+            </div>
+        
+            <div class="form-group">
+              <label style="font-size:13px; font-weight:600; color:#374151;">Foto o PDF del Título del Vehículo</label>
+              <div class="upload-box" style="margin-top: 8px;">
+                <label for="foto_titulo">Haga clic aquí para subir foto o PDF del título</label>
+                <span style="font-size: 12px; color: var(--color-text-muted);">Formatos aceptados: JPG, PNG, WEBP o PDF</span>
+                <input type="file" id="foto_titulo" name="foto_titulo" accept=".pdf,.jpg,.jpeg,.png,.webp">
+              </div>
+              <div id="preview-titulo" style="font-size:13px;color:var(--color-text-muted);margin-top:6px;">Sin imagen seleccionada</div>
+            </div>
+        
+            <div class="form-group">
+              <label style="font-size:13px; font-weight:600; color:#374151;">Foto o PDF del seguro <span style="font-weight:400;color:#94a3b8;">(Opcional)</span></label>
+              <div class="upload-box" style="margin-top: 8px;">
+                <label for="foto_rto">Haga clic aquí para subir foto o PDF del seguro</label>
+                <span style="font-size: 12px; color: var(--color-text-muted);">Formatos aceptados: JPG, PNG, WEBP o PDF</span>
+                <input type="file" id="foto_rto" name="foto_rto" accept=".pdf,.jpg,.jpeg,.png,.webp">
+              </div>
+              <div id="preview-rto" style="font-size:13px;color:var(--color-text-muted);margin-top:6px;">Sin imagen seleccionada</div>
+            </div>
+          </div>
+        </section>
+
+        <section class="form-section">
+          <h3>Estado, Ubicación y Alta</h3>
+          <div class="form-row">
+            <div class="form-group">
+              <label>Estado Inicial <span class="req">*</span></label>
+              <select name="estado_actual" id="estado_actual">
+                <option value="">Seleccionar</option>
+                <option value="Disponible">Disponible</option>
+                <option value="Baja">Baja</option>
+              </select>
+              <span class="field-error" id="err-estado"></span>
+            </div>
+            <div class="form-group">
+              <label>Kilometraje Actual <span class="req">*</span></label>
+              <input name="km_actual" type="number" id="km_actual" min="0" placeholder="Ej: 15000">
+              <span class="field-error" id="err-km"></span>
+            </div>
+          </div>
+          <div class="form-row">
+            <div class="form-group">
+              <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px;">
+                <label style="margin: 0;">Distrito</label>
+                <a href="/Vehicles/Ajustes" style="font-size: 11px; color: #2563eb; text-decoration: none; font-weight: 700; display: flex; align-items: center; gap: 4px;">
+                  <svg viewBox="0 0 20 20" fill="currentColor" style="width: 14px; height: 14px;"><path fill-rule="evenodd" d="M11.49 3.17c-.38-1.56-2.6-1.56-2.98 0a1.532 1.532 0 01-2.286.948c-1.372-.836-2.942.734-2.106 2.106.54.886.061 2.042-.947 2.287-1.561.379-1.561 2.6 0 2.978a1.532 1.532 0 01.947 2.287c-.836 1.372.734 2.942 2.106 2.106a1.532 1.532 0 012.287.947c.379 1.561 2.6 1.561 2.978 0a1.533 1.533 0 012.287-.947c1.372.836 2.942-.734 2.106-2.106a1.533 1.533 0 01.947-2.287c1.561-.379 1.561-2.6 0-2.978a1.532 1.532 0 01-.947-2.287c.836-1.372-.734-2.942-2.106-2.106a1.532 1.532 0 01-2.287-.947zM10 13a3 3 0 100-6 3 3 0 000 6z" clip-rule="evenodd"/></svg>
+                  Gestionar
+                </a>
+              </div>
+              <select name="distrito">
+                <option value="">Seleccione un distrito</option>
+                <% if (typeof distritos !== 'undefined' && distritos.length > 0) { %>
+                  <% distritos.forEach(d => { %>
+                    <option value="<%= d.nombre %>"><%= d.nombre %></option>
+                  <% }) %>
+                <% } %>
+              </select>
+            </div>
+            <div class="form-group">
+              <label style="margin-bottom: 6px; display: block;">Fecha de Alta <span class="req">*</span></label>
+              <input name="fecha_alta" type="date" id="fecha_alta">
+              <span class="field-error" id="err-fecha-alta"></span>
+            </div>
+          </div>
+          <div class="form-group">
+            <label>Observaciones</label>
+            <textarea name="observaciones" placeholder="Añade notas adicionales..."></textarea>
+          </div>
+        </section>
+      
+        <section class="form-section">
+          <h3>Documentación Adjunta (Opcional)</h3>
+          <div class="form-group">
+            <label style="font-size:13px; font-weight:600; color:#374151;">¿Tenés documentación de este vehículo para cargar ahora?</label>
+            <span style="display:block; font-size:12px; color: var(--color-text-muted); margin: 4px 0 8px;">Comodatos, actas de afectación, actas de entrega, actas de desafectación temporal (si el vehículo se queda sin chofer), fotocopias, etc. También podés cargarla después desde la ficha del vehículo.</span>
+            <div style="display:flex; gap:20px;">
+              <label style="display:inline-flex; align-items:center; gap:8px; font-weight:600; cursor:pointer; white-space:nowrap; margin:0; width:auto;"><input type="radio" style="width:auto; height:auto; padding:0; margin:0; flex:none; box-shadow:none;" name="tiene_documentacion" value="no" checked> No, por ahora no</label>
+              <label style="display:inline-flex; align-items:center; gap:8px; font-weight:600; cursor:pointer; white-space:nowrap; margin:0; width:auto;"><input type="radio" style="width:auto; height:auto; padding:0; margin:0; flex:none; box-shadow:none;" name="tiene_documentacion" value="si"> Sí, tengo archivos para cargar</label>
+            </div>
+          </div>
+          <div id="bloque-documentacion" style="display:none; margin-top: 8px; flex-direction: column; gap: 16px;">
+            <% [['comodato','Comodato'],['acta_afectacion','Acta de afectación'],['acta_entrega','Acta de entrega'],['acta_desafectacion','Acta de desafectación temporal'],['otro','Otra documentación (fotocopias, etc.)']].forEach(([clave, etiqueta]) => { %>
+            <div class="form-group">
+              <label style="font-size:13px; font-weight:600; color:#374151;"><%= etiqueta %> <span style="font-weight:400;color:#94a3b8;">(PDF o foto, podés elegir varios)</span></label>
+              <div class="upload-box" style="margin-top: 8px;">
+                <label for="doc_<%= clave %>">Haga clic aquí para subir: <%= etiqueta.toLowerCase() %></label>
+                <span style="font-size: 12px; color: var(--color-text-muted);">Formatos aceptados: PDF, JPG, PNG, WEBP · hasta 8 MB cada archivo</span>
+                <input type="file" id="doc_<%= clave %>" name="doc_<%= clave %>" accept=".pdf,.jpg,.jpeg,.png,.webp" multiple disabled>
+              </div>
+              <div id="preview-doc_<%= clave %>" style="font-size:13px;color:var(--color-text-muted);margin-top:6px;">Sin archivos seleccionados</div>
+            </div>
+            <% }) %>
+          </div>
+        </section>
+
+        <div class="acciones">
+          <button type="button" class="boton-secundario" onclick="history.back()">Cancelar</button>
+          <button type="submit" class="boton-primario">Guardar Vehículo</button>
+        </div>
+      </form>
+    </main>
+  </div>
+  
+  <script src="/js/sidebar.js"></script>
+  <script src="/js/subidas.js"></script>
+<script>
+  document.addEventListener('DOMContentLoaded', () => {
+    const topbar = document.querySelector('.topbar') || document.querySelector('.app-header');
+    if (!topbar) return;
+    const btnHamburguesa = topbar.querySelector('button') || document.getElementById('menu-toggle');
+    const sidebar = document.getElementById('mi-sidebar-blindado');
+    const overlay = document.getElementById('sb-overlay-blindado');
+
+    if (btnHamburguesa && sidebar && overlay) {
+      const nuevoBtn = btnHamburguesa.cloneNode(true);
+      btnHamburguesa.parentNode.replaceChild(nuevoBtn, btnHamburguesa);
+      nuevoBtn.addEventListener('click', (e) => {
+        e.preventDefault(); e.stopPropagation();
+        sidebar.classList.toggle('abierto'); overlay.classList.toggle('activo');
+      });
+    }
+  });
+
+  function setError(inputId, errId, msg) {
+    const el = document.getElementById(inputId);
+    const er = document.getElementById(errId);
+    if (msg) { el?.classList.add('input-error'); if (er) er.textContent = msg; }
+    else { el?.classList.remove('input-error'); if (er) er.textContent = ''; }
+  }
+
+  function limpiarErrores() {
+    document.querySelectorAll('.input-error').forEach(el => el.classList.remove('input-error'));
+    document.querySelectorAll('.field-error').forEach(el => el.textContent = '');
+  }
+
+  document.getElementById('form-vehiculo').addEventListener('submit', function (e) {
+    e.preventDefault();
+    limpiarErrores();
+    let valido = true;
+    const anioActual = new Date().getFullYear();
+
+    const inputs = {
+      patente:       { val: document.getElementById('patente').value.trim(),       err: 'La patente es obligatoria.' },
+      id_tipo:       { val: document.getElementById('id_tipo').value,              err: 'Seleccioná un tipo de vehículo.' },
+      marca:         { val: document.getElementById('marca').value.trim(),         err: 'La marca es obligatoria.' },
+      modelo:        { val: document.getElementById('modelo').value.trim(),        err: 'El modelo es obligatorio.' },
+      chasis:        { val: document.getElementById('chasis').value.trim(),        err: 'El número de chasis es obligatorio.' },
+      num_motor:     { val: document.getElementById('num_motor').value.trim(),     err: 'El número de motor es obligatorio.' },
+      estado_actual: { val: document.getElementById('estado_actual').value,        err: 'Seleccioná un estado.' },
+      fecha_alta:    { val: document.getElementById('fecha_alta').value,           err: 'La fecha de alta es obligatoria.' }
+    };
+
+    const errIds = {
+      patente: 'err-patente', id_tipo: 'err-tipo', marca: 'err-marca',
+      modelo: 'err-modelo', chasis: 'err-chasis', num_motor: 'err-motor',
+      estado_actual: 'err-estado', fecha_alta: 'err-fecha-alta'
+    };
+
+    for (const [id, data] of Object.entries(inputs)) {
+      if (!data.val) { setError(id, errIds[id], data.err); valido = false; }
+    }
+
+    const anio = parseInt(document.getElementById('anio').value);
+    if (!anio || anio < 1900 || anio > anioActual) {
+      setError('anio', 'err-anio', `El año debe estar entre 1900 y ${anioActual}.`);
+      valido = false;
+    }
+
+    const km = document.getElementById('km_actual').value;
+    if (km === '' || Number(km) < 0) {
+      setError('km_actual', 'err-km', 'El kilometraje es obligatorio y no puede ser negativo.');
+      valido = false;
+    }
+
+    const fechaAlta = document.getElementById('fecha_alta').value;
+    if (fechaAlta && anio) {
+      const anioAlta = new Date(fechaAlta).getFullYear();
+      if (anioAlta < anio) {
+        setError('fecha_alta', 'err-fecha-alta', 'La fecha de alta no puede ser anterior al año del vehículo.');
+        valido = false;
+      }
+    }
+
+    if (valido) this.submit();
+  });
+
+  ['patente','id_tipo','marca','modelo','anio','chasis','num_motor','estado_actual','km_actual','fecha_alta'].forEach(id => {
+    const errIds = {
+      patente: 'err-patente', id_tipo: 'err-tipo', marca: 'err-marca',
+      modelo: 'err-modelo', anio: 'err-anio', chasis: 'err-chasis',
+      num_motor: 'err-motor', estado_actual: 'err-estado',
+      km_actual: 'err-km', fecha_alta: 'err-fecha-alta'
+    };
+    document.getElementById(id)?.addEventListener('input', function () {
+      this.classList.remove('input-error');
+      const er = document.getElementById(errIds[id]);
+      if (er) er.textContent = '';
+    });
+  });
+
+  // Previews de fotos
+  ['cedula', 'titulo', 'rto'].forEach(nombre => {
+    document.getElementById(`foto_${nombre}`)?.addEventListener('change', function(e) {
+      const p = document.getElementById(`preview-${nombre}`);
+      if (e.target.files.length > 0) {
+        p.innerHTML = `Archivo seleccionado: <strong>${e.target.files[0].name.replace(/[<>&"']/g, '')}</strong>`;
+        p.style.color = 'var(--color-blue)';
+      } else {
+        p.innerHTML = 'Sin imagen seleccionada';
+        p.style.color = 'var(--color-text-muted)';
+      }
+    });
+  });
+
+  // Documentación adjunta: se pregunta si hay archivos para cargar
+  (function () {
+    const bloque = document.getElementById('bloque-documentacion');
+    const radios = document.querySelectorAll('input[name="tiene_documentacion"]');
+    const inputs = bloque ? bloque.querySelectorAll('input[type=file]') : [];
+    function alternar() {
+      const si = document.querySelector('input[name="tiene_documentacion"]:checked').value === 'si';
+      bloque.style.display = si ? 'flex' : 'none';
+      inputs.forEach(i => { i.disabled = !si; if (!si) i.value = ''; });
+      if (!si) bloque.querySelectorAll('[id^="preview-doc_"]').forEach(p => { p.textContent = 'Sin archivos seleccionados'; });
+    }
+    radios.forEach(r => r.addEventListener('change', alternar));
+    inputs.forEach(i => i.addEventListener('change', function () {
+      const p = document.getElementById('preview-' + i.id);
+      const nombres = Array.from(i.files).map(f => f.name.replace(/[<>&"']/g, ''));
+      p.innerHTML = nombres.length ? 'Seleccionado: <strong>' + nombres.join(', ') + '</strong>' : 'Sin archivos seleccionados';
+      p.style.color = nombres.length ? 'var(--color-blue)' : 'var(--color-text-muted)';
+    }));
+    alternar();
+    // Si dijo "Sí" pero no eligió ningún archivo, se avisa antes de enviar
+    document.getElementById('form-vehiculo').addEventListener('submit', function (e) {
+      const si = document.querySelector('input[name="tiene_documentacion"]:checked').value === 'si';
+      if (si && !Array.from(inputs).some(i => i.files.length)) {
+        e.preventDefault(); e.stopImmediatePropagation();
+        alert('Indicaste que tenés documentación para cargar. Elegí al menos un archivo o marcá "No".');
+      }
+    }, true);
+  })();
+</script>
+</body>
+</html>

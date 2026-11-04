@@ -1,0 +1,159 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Usuarios - Gestión de Flota</title>
+    <link rel="stylesheet" href="/css/ListadoVehiculos.css">
+    <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500;600;700&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
+    <style>
+        .filtro-container { background: var(--color-surface); padding: 20px; border-radius: var(--radius-lg); box-shadow: var(--shadow-sm); margin-bottom: 24px; display: flex; gap: 15px; align-items: flex-end; flex-wrap: wrap; border: 1px solid var(--color-border);}
+        .filtro-group { display: flex; flex-direction: column; gap: 6px; flex: 1; min-width: 200px; }
+        .filtro-group label { font-size: 11px; font-weight: 700; color: var(--color-text-muted); text-transform: uppercase; letter-spacing: 0.05em;}
+        .filtro-input { padding: 10px 14px; border: 1px solid var(--color-border); border-radius: var(--radius-md); font-family: var(--font-sans); font-size: 13px; color: var(--color-text-primary); outline: none; transition: 0.2s; }
+        .filtro-input:focus { border-color: var(--color-blue); box-shadow: 0 0 0 3px rgba(37,99,235,0.1); }
+        .btn-add { background-color: var(--color-blue); color: white; padding: 10px 20px; border-radius: var(--radius-md); text-decoration: none; font-size: 13px; font-weight: 700; display: inline-flex; align-items: center; justify-content: center; gap: 8px; border: none; cursor: pointer; transition: 0.2s; height: 42px;}
+        .btn-add:hover { background-color: var(--color-blue-hover); }
+
+        /* ── ADAPTACIÓN MÓVIL ── */
+        @media (max-width: 900px) {
+    .app-wrapper { margin-left: 0 !important; }
+    .topbar__menu-toggle { display: flex !important; }
+    .topbar__mobile-brand { display: flex !important; }
+    .topbar__user-name-wrapper { display: none; }
+
+    .main-content { padding: 16px !important; max-width: 100% !important; }
+
+    .header-acciones { flex-direction: column; align-items: flex-start !important; gap: 16px; }
+    .btn-add { width: 100%; box-sizing: border-box; }
+
+    .filtro-container { flex-direction: column; align-items: stretch; padding: 14px; }
+    .filtro-group { width: 100%; min-width: unset; }
+
+    .data-table-wrapper { overflow-x: auto !important; -webkit-overflow-scrolling: touch; }
+    .data-table { min-width: 700px; }
+}
+    </style>
+</head>
+<body>
+
+    <%- include('./partials/sidebar') %>
+
+    <div class="app-wrapper" id="app-wrapper">
+
+        <%- include('./partials/topbar') %>
+
+        <main class="main-content" style="display: block; overflow-y: auto; padding: 40px; max-width: 1000px; margin: 0 auto;">
+
+            <div class="header-acciones" style="display: flex; justify-content: space-between; align-items: flex-end; margin-bottom: 24px; flex-wrap: wrap; gap: 20px;">
+                <div class="page-header" style="margin-bottom: 0;">
+                    <h2 class="page-title">Usuarios del Sistema</h2>
+                    <p class="page-subtitle">Listado y gestión de accesos para el personal.</p>
+                </div>
+                <a href="/Usuarios/Carga" class="btn-add">+ Nuevo Usuario</a>
+            </div>
+
+            <div class="filtro-container">
+                <div class="filtro-group" style="flex: 2;">
+                    <label>Buscar Usuario</label>
+                    <input id="filtro-busqueda" class="filtro-input" type="search" placeholder="Nombre, apellido, usuario...">
+                </div>
+                <div class="filtro-group">
+                    <label>Filtrar por Rol</label>
+                    <select id="filtro-rol" class="filtro-input">
+                        <option value="">Todos los roles</option>
+                        <option value="Administrador">Administrador</option>
+                        <option value="Usuario">Usuario</option>
+                    </select>
+                </div>
+            </div>
+
+            <div class="data-card">
+                <div class="data-table-wrapper">
+                    <table class="data-table">
+                        <thead class="data-table__head">
+                            <tr>
+                                <th class="data-table__th">Nombre Completo</th>
+                                <th class="data-table__th">Usuario (Login)</th>
+                                <th class="data-table__th">Rol</th>
+                                <th class="data-table__th">Estado</th>
+                                <th class="data-table__th" style="text-align: right;">Acciones</th>
+                            </tr>
+                        </thead>
+                        <tbody class="data-table__body" id="tabla-usuarios-body">
+                            <% usuarios.forEach(usuario => { %>
+                                <tr class="data-table__row fila-usuario" data-rol="<%= usuario.rol ? usuario.rol.nombre : 'Sin Rol' %>">
+                                    <td class="data-table__td" style="font-weight: 700; color: var(--color-primary);">
+                                        <%= usuario.nombre %> <%= usuario.apellido %>
+                                    </td>
+                                    <td class="data-table__td" style="font-family: var(--font-mono); color: var(--color-text-secondary);">
+                                        <%= usuario.nombre_usuario %>
+                                    </td>
+                                    <td class="data-table__td">
+                                        <span class="badge" style="background: #e2e8f0; color: #334155;"><%= usuario.rol ? usuario.rol.nombre : 'Sin Rol' %></span>
+                                    </td>
+                                    <td class="data-table__td">
+                                        <span class="badge <%= usuario.activo ? 'badge--success' : 'badge--danger' %>">
+                                            <%= usuario.activo ? 'Activo' : 'Bloqueado' %>
+                                        </span>
+                                    </td>
+                                    <td class="data-table__td" style="text-align: right;">
+                                        <a href="/Usuarios/Editar/<%= usuario.id_usuario %>" style="color: var(--color-blue); font-weight: 700; font-size: 13px; text-decoration: none; padding: 6px 12px; border: 1px solid #bfdbfe; border-radius: 6px; background: #eff6ff; transition: 0.2s;">Editar</a>
+                                    </td>
+                                </tr>
+                            <% }) %>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+        </main>
+    </div>
+
+    <script src="/js/sidebar.js"></script>
+    <script>
+        /* ── FIX BOTÓN HAMBURGUESA BLINDADO ── */
+        document.addEventListener('DOMContentLoaded', () => {
+          const topbar = document.querySelector('.topbar') || document.querySelector('.app-header');
+          if (!topbar) return;
+          const btnHamburguesa = topbar.querySelector('button') || document.getElementById('menu-toggle');
+          const sidebar = document.getElementById('mi-sidebar-blindado');
+          const overlay = document.getElementById('sb-overlay-blindado');
+          if (btnHamburguesa && sidebar && overlay) {
+            const nuevoBtn = btnHamburguesa.cloneNode(true);
+            btnHamburguesa.parentNode.replaceChild(nuevoBtn, btnHamburguesa);
+            nuevoBtn.addEventListener('click', (e) => {
+              e.preventDefault(); e.stopPropagation();
+              sidebar.classList.toggle('abierto'); overlay.classList.toggle('activo');
+            });
+          }
+        });
+
+        const filtroBusqueda = document.getElementById('filtro-busqueda');
+        const filtroRol = document.getElementById('filtro-rol');
+        const filas = document.querySelectorAll('.fila-usuario');
+
+        function filtrarUsuarios() {
+            const busqueda = filtroBusqueda.value.toLowerCase();
+            const rol = filtroRol.value;
+
+            filas.forEach(fila => {
+                const texto = fila.textContent.toLowerCase();
+                const rolFila = fila.dataset.rol;
+                
+                let coincideBusqueda = texto.includes(busqueda);
+                let coincideRol = (rol === "") || (rolFila === rol);
+
+                if (coincideBusqueda && coincideRol) {
+                    fila.style.display = '';
+                } else {
+                    fila.style.display = 'none';
+                }
+            });
+        }
+
+        filtroBusqueda.addEventListener('input', filtrarUsuarios);
+        filtroRol.addEventListener('change', filtrarUsuarios);
+    </script>
+</body>
+</html>

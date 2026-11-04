@@ -1,0 +1,148 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Ajustes de Vehículos - Gestión de Flota</title>
+  <link rel="stylesheet" href="/css/ListadoVehiculos.css">
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500;600;700;800&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
+  <style>
+    .settings-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); gap: 24px; }
+    .settings-card { background: #ffffff; border-radius: 12px; padding: 24px; box-shadow: 0 1px 3px rgba(0,0,0,0.05); border: 1px solid #e2e8f0; }
+    .settings-card h3 { margin-top: 0; color: #0f172a; border-bottom: 1px solid #f1f5f9; padding-bottom: 12px; margin-bottom: 20px; font-size: 16px; font-weight: 800; }
+    .list-item { display: flex; justify-content: space-between; align-items: center; padding: 12px 0; border-bottom: 1px solid #f1f5f9; font-size: 14px; font-weight: 600; color: #475569; }
+    .list-item:last-child { border-bottom: none; }
+    .btn-add { background: #2563eb; color: white; border: none; padding: 10px 16px; border-radius: 8px; font-weight: 700; font-size: 13px; cursor: pointer; transition: 0.2s; white-space: nowrap; }
+    .btn-add:hover { background: #1d4ed8; }
+    .input-add { flex: 1; padding: 10px 14px; border: 1px solid #cbd5e1; border-radius: 8px; font-size: 13px; outline: none; transition: 0.2s; font-family: 'DM Sans', sans-serif; color: #0f172a; }
+    .input-add:focus { border-color: #2563eb; box-shadow: 0 0 0 3px rgba(37,99,235,0.1); }
+    .form-add { display: flex; gap: 10px; margin-top: 20px; }
+    .btn-delete { background: #fef2f2; color: #dc2626; border: 1px solid #fecaca; padding: 6px 12px; border-radius: 6px; font-size: 12px; font-weight: 800; cursor: pointer; transition: 0.2s; }
+    .btn-delete:hover { background: #fee2e2; }
+    .btn-edit { background: #eff6ff; color: #1d4ed8; border: 1px solid #bfdbfe; padding: 6px 12px; border-radius: 6px; font-size: 12px; font-weight: 800; cursor: pointer; transition: 0.2s; }
+    .btn-edit:hover { background: #dbeafe; }
+
+    #mobile-back-btn {
+      background-color: #f8fafc; color: #475569; border: 1px solid #cbd5e1; padding: 8px 14px; font-size: 13px; font-weight: 700; border-radius: 8px; cursor: pointer; display: inline-flex; align-items: center; gap: 6px; transition: 0.2s; margin-bottom: 20px; text-decoration: none;
+    }
+    #mobile-back-btn:hover { background-color: #e2e8f0; color: #0f172a; }
+    #mobile-back-btn svg { width: 16px; height: 16px; }
+
+    @media (max-width: 900px) {
+      .settings-grid { grid-template-columns: 1fr !important; }
+      .form-add { flex-direction: column; }
+      .btn-add { width: 100%; text-align: center; padding: 14px; font-size: 14px; }
+    }
+  </style>
+</head>
+<body>
+
+  <%- include('./partials/sidebar') %>
+
+  <div class="app-wrapper" id="app-wrapper">
+
+    <%- include('./partials/topbar') %>
+
+    <main class="main-content" style="display: block; overflow-y: auto; padding: 40px; max-width: 1100px; margin: 0 auto;">
+
+      <a href="/CargaVehiculo" id="mobile-back-btn">
+        <svg viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M9.707 16.707a1 1 0 01-1.414 0l-6-6a1 1 0 010-1.414l6-6a1 1 0 011.414 1.414L5.414 9H17a1 1 0 110 2H5.414l4.293 4.293a1 1 0 010 1.414z" clip-rule="evenodd"/></svg>
+        Volver al Formulario
+      </a>
+
+      <div class="page-header" style="margin-bottom: 24px;">
+        <h2 class="page-title" style="font-size: 24px; font-weight: 800; color: #0f172a; margin: 0 0 8px 0;">Ajustes de Flota</h2>
+        <p class="page-subtitle" style="color: #64748b; margin: 0; font-size: 14px;">Administrá los distritos operativos y tipos de vehículos del sistema.</p>
+      </div>
+
+      <div class="settings-grid">
+        
+        <div class="settings-card">
+          <h3>Distritos Operativos</h3>
+          <div style="max-height: 250px; overflow-y: auto; padding-right: 10px; margin-bottom: 10px;">
+            <% if (typeof distritos !== 'undefined' && distritos.length > 0) { %>
+              <% distritos.forEach(d => { %>
+                <div class="list-item">
+                  <span><%= d.nombre %></span>
+                  <div style="display:flex; gap:6px;">
+                  <button type="button" class="btn-edit" title="Renombrar distrito" onclick="renombrarCatalogo('/Vehicles/Ajustes/Distritos/Renombrar/<%= d.id_distrito || d.id %>', <%= JSON.stringify(d.nombre) %>, 'Nuevo nombre del distrito (se actualizan los vehículos que lo usan):')">Editar</button>
+                  <form action="/Vehicles/Ajustes/Distritos/Eliminar/<%= d.id_distrito || d.id %>" method="POST" style="margin:0;">
+                    <button type="submit" class="btn-delete" title="Eliminar Distrito" onclick="return confirm('¿Eliminar este distrito?');">X</button>
+                  </form>
+                  </div>
+                </div>
+              <% }) %>
+            <% } else { %>
+              <div style="padding: 16px; background: #f8fafc; border: 1px dashed #cbd5e1; border-radius: 8px; text-align: center;">
+                <p style="color: #64748b; font-size: 13px; margin: 0;">No hay distritos cargados.</p>
+              </div>
+            <% } %>
+          </div>
+          <form action="/Vehicles/Ajustes/Distritos" method="POST" class="form-add">
+            <input type="text" name="nombre" class="input-add" placeholder="Ej: Distrito Este..." required>
+            <button type="submit" class="btn-add">+ Añadir Distrito</button>
+          </form>
+        </div>
+
+        <div class="settings-card">
+          <h3>Tipos de Vehículos</h3>
+          <div style="max-height: 250px; overflow-y: auto; padding-right: 10px; margin-bottom: 10px;">
+            <% if (typeof tiposVehiculo !== 'undefined' && tiposVehiculo.length > 0) { %>
+              <% tiposVehiculo.forEach(t => { %>
+                <div class="list-item">
+                  <span><%= t.descripcion || t.nombre %></span>
+                  <div style="display:flex; gap:6px; align-items:center;">
+                  <form action="/Vehicles/Ajustes/Tipos/Editar/<%= t.id_tipo || t.id %>" method="POST" style="margin:0;">
+                    <select name="unidad" title="Unidad de medida de uso" onchange="this.form.submit()" style="padding:5px 6px; border:1px solid #cbd5e1; border-radius:6px; font-size:12px; font-weight:700; color:#475569; background:#fff;">
+                      <option value="km" <%= t.unidad !== 'hs' ? 'selected' : '' %>>km</option>
+                      <option value="hs" <%= t.unidad === 'hs' ? 'selected' : '' %>>horas</option>
+                    </select>
+                  </form>
+                  <button type="button" class="btn-edit" title="Renombrar tipo" onclick="renombrarCatalogo('/Vehicles/Ajustes/Tipos/Editar/<%= t.id_tipo || t.id %>', <%= JSON.stringify(t.descripcion || t.nombre) %>, 'Nuevo nombre del tipo de vehículo:')">Editar</button>
+                  <form action="/Vehicles/Ajustes/Tipos/Eliminar/<%= t.id_tipo || t.id %>" method="POST" style="margin:0;">
+                    <button type="submit" class="btn-delete" title="Eliminar Tipo" onclick="return confirm('¿Eliminar este tipo de vehículo?');">X</button>
+                  </form>
+                  </div>
+                </div>
+              <% }) %>
+            <% } else { %>
+               <div style="padding: 16px; background: #f8fafc; border: 1px dashed #cbd5e1; border-radius: 8px; text-align: center;">
+                <p style="color: #64748b; font-size: 13px; margin: 0;">No hay tipos cargados.</p>
+              </div>
+            <% } %>
+          </div>
+          <form action="/Vehicles/Ajustes/Tipos" method="POST" class="form-add">
+            <input type="text" name="descripcion" class="input-add" placeholder="Ej: Motocicleta..." required>
+            <select name="unidad" title="Unidad de medida de uso" class="input-add" style="flex: 0 0 auto;">
+              <option value="km">km</option>
+              <option value="hs">horas</option>
+            </select>
+            <button type="submit" class="btn-add">+ Añadir Tipo</button>
+          </form>
+        </div>
+
+      </div>
+    </main>
+  </div>
+
+  <script src="/js/renombrar.js"></script>
+  <script src="/js/sidebar.js"></script>
+  <script>
+    document.addEventListener('DOMContentLoaded', () => {
+      const topbar = document.querySelector('.topbar') || document.querySelector('.app-header');
+      if (!topbar) return;
+      const btnHamburguesa = topbar.querySelector('button') || document.getElementById('menu-toggle');
+      const sidebar = document.getElementById('mi-sidebar-blindado');
+      const overlay = document.getElementById('sb-overlay-blindado');
+      if (btnHamburguesa && sidebar && overlay) {
+        const nuevoBtn = btnHamburguesa.cloneNode(true);
+        btnHamburguesa.parentNode.replaceChild(nuevoBtn, btnHamburguesa);
+        nuevoBtn.addEventListener('click', (e) => {
+          e.preventDefault(); e.stopPropagation();
+          sidebar.classList.toggle('abierto'); overlay.classList.toggle('activo');
+        });
+      }
+    });
+  </script>
+</body>
+</html>

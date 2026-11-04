@@ -1,0 +1,569 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Plantilla de Choferes - Gestión de Flota</title>
+  <link rel="stylesheet" href="/css/ListadoVehiculos.css">
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500;600;700&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
+  <style>
+    @media print {
+      #sidebar, .app-header, .vehicle-list-panel, .topbar { display: none !important; }
+      .app-wrapper { margin: 0 !important; padding: 0 !important; }
+      .vehicle-detail { width: 100% !important; padding: 0 !important; background: #fff !important; }
+      .vehicle-profile { box-shadow: none !important; border: 1px solid #000 !important; }
+    }
+    .detail-chofer-content { display: none; }
+    .detail-chofer-content.active { display: flex; flex-direction: column; gap: 24px; }
+
+    /* ── LÓGICA RESPONSIVE Y BOTÓN VOLVER (CELULARES) ── */
+    #detail-back-btn {
+      background-color: #f8fafc;
+      color: #475569;
+      border: 1px solid #cbd5e1;
+      padding: 8px 14px;
+      font-size: 13px;
+      font-weight: 700;
+      border-radius: 8px;
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      transition: 0.2s;
+      margin-bottom: 20px;
+    }
+    #detail-back-btn:hover { background-color: #e2e8f0; color: #0f172a; }
+    #detail-back-btn svg { width: 16px; height: 16px; }
+
+    /* Ocultar botón volver en PC */
+    @media (min-width: 900px) {
+      #detail-back-btn { display: none !important; }
+    }
+
+    /* Comportamiento de las dos columnas en Celular */
+    @media (max-width: 900px) {
+  .main-content { flex-direction: column !important; }
+  .vehicle-list-panel { width: 100% !important; border-right: none !important; }
+  .vehicle-detail { display: none; width: 100% !important; }
+
+  #choferList { width: 100% !important; }
+  .vehicle-card { width: 100% !important; box-sizing: border-box; }
+
+  /* AGREGAR ESTOS: */
+  .vehicle-list-panel { height: auto !important; max-height: none !important; overflow: visible !important; }
+  #choferList { height: auto !important; max-height: none !important; overflow: visible !important; }
+  .vehicle-list { height: auto !important; max-height: none !important; overflow-y: visible !important; }
+
+  .vehicle-list-panel--hidden { display: none !important; }
+  .vehicle-detail--visible { display: block !important; }
+}
+  </style>
+</head>
+<body>
+
+  <%- include('./partials/sidebar') %>
+
+  <div class="app-wrapper" id="app-wrapper">
+
+    <%- include('./partials/topbar') %>
+
+    <%
+      const getEstadoClass = (est) => est === 'Activo' ? 'badge--success' : (est === 'Inactivo' ? 'badge--danger' : 'badge--warning');
+      
+      const checkVencimiento = (fechaStr) => {
+         if (!fechaStr) return { class: 'badge--danger', colorText: '#991b1b', text: 'Sin Licencia', diff: -999, format: '—' };
+         const d = new Date(fechaStr);
+         const format = `${String(d.getUTCDate()).padStart(2,'0')}/${String(d.getUTCMonth()+1).padStart(2,'0')}/${d.getUTCFullYear()}`;
+         const hoy = new Date(); hoy.setHours(0,0,0,0);
+         const diff = Math.ceil((d - hoy)/(1000*60*60*24));
+         
+         let cls = 'badge--success';
+         let colorText = '#065f46';
+         if (diff <= 30) { cls = 'badge--danger'; colorText = '#991b1b'; }
+         else if (diff <= 90) { cls = 'badge--warning'; colorText = '#92400e'; }
+         
+         return { class: cls, colorText, diff, format, dateObj: d };
+      };
+    %>
+
+    <main class="main-content" id="main-content">
+
+      <section class="vehicle-list-panel" id="vehicle-list-panel">
+        <div class="vehicle-list-panel__top" style="display: flex; justify-content: space-between; align-items: center;">
+          <h2 class="vehicle-list-panel__title">Plantilla de Choferes</h2>
+          <a href="/Choferes/Carga" style="background-color: #2563eb; color: white; border-radius: 6px; padding: 6px 12px; font-size: 12px; font-weight: 700; text-decoration: none; display: flex; align-items: center; transition: 0.2s;">
+            + Nuevo
+          </a>
+        </div>
+
+        <div class="vehicle-list-panel__search-bar" style="flex-direction: column; align-items: stretch; gap: 10px;">
+          <input class="vehicle-list-panel__search-input" type="search" placeholder="Buscar por DNI, nombre..." id="searchInput" />
+          
+          <details style="background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 6px; padding: 8px 12px; cursor: pointer;">
+            <summary style="font-size: 12px; font-weight: 700; color: #475569; outline: none;">Filtros Avanzados</summary>
+            <form method="GET" action="/Choferes" style="display: flex; flex-direction: column; gap: 8px; margin-top: 10px;">
+              <select name="categoriaLicencia" style="width: 100%; padding: 6px; font-size: 12px; border-radius: 4px; border: 1px solid #cbd5e1;">
+                <option value="">Todas las Categorías</option>
+                <option value="A">A - Motocicletas</option>
+                <option value="B">B - Autos</option>
+                <option value="B1">B1 - Autos y camionetas</option>
+                <option value="B2">B2 - Vehículos utilitarios</option>
+                <option value="C">C - Camiones sin acoplado</option>
+                <option value="D">D - Transporte pasajeros</option>
+                <option value="E">E - Camiones con acoplado</option>
+                <option value="G">G - Maquinaria especial</option>
+              </select>
+              <select name="estado" style="width: 100%; padding: 6px; font-size: 12px; border-radius: 4px; border: 1px solid #cbd5e1;">
+                <option value="">Cualquier Estado</option>
+                <option value="Activo">Activos</option>
+                <option value="Inactivo">Inactivos</option>
+                <option value="Licencia Vacaciones/Medica">De licencia</option>
+              </select>
+              <div style="display: flex; gap: 5px;">
+                <button type="submit" style="flex: 1; background: #0f172a; color: white; padding: 6px; font-size: 11px; border-radius: 4px; font-weight: 700;">Filtrar</button>
+                <a href="/Choferes" style="flex: 1; background: #e2e8f0; color: #475569; padding: 6px; font-size: 11px; border-radius: 4px; font-weight: 700; text-align: center; text-decoration: none;">Limpiar</a>
+              </div>
+            </form>
+          </details>
+        </div>
+
+        <ul class="vehicle-list" id="choferList">
+          <% if (choferes && choferes.length > 0) { %>
+            <% choferes.forEach(chofer => { %>
+              <% 
+                const lic = chofer.licencias.length > 0 ? chofer.licencias[0] : null;
+                const vInfo = checkVencimiento(lic ? lic.fecha_vencimiento : null);
+              %>
+              <li class="vehicle-card chofer-item" data-id="<%= chofer.id_chofer %>" style="padding: 12px 16px;">
+                <div style="display: flex; justify-content: space-between; align-items: baseline; margin-bottom: 4px;">
+                  <span class="vehicle-card__plate" style="font-size: 14px;"><%= chofer.nombre %> <%= chofer.apellido %></span>
+                  <span class="badge <%= getEstadoClass(chofer.estado) %>" style="font-size: 10px; padding: 2px 6px;"><%= chofer.estado %></span>
+                </div>
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 4px;">
+                  <span class="vehicle-card__model" style="font-size: 12px; margin: 0;">DNI: <%= chofer.dni %></span>
+                </div>
+                <div style="display: flex; align-items: center; gap: 6px;">
+                  <span class="badge <%= vInfo.class %>" style="font-size: 9px; padding: 2px 6px;">
+                    Lic. <%= lic ? lic.categoria : 'N/A' %>
+                  </span>
+                  <span style="font-size: 11px; color: <%= vInfo.colorText %>; font-weight: 600;">Venc: <%= vInfo.format %></span>
+                </div>
+              </li>
+            <% }) %>
+          <% } else { %>
+            <div style="padding: 30px 20px; text-align: center; color: #64748b;">
+              <p style="font-weight: 500;">No hay choferes registrados.</p>
+            </div>
+          <% } %>
+        </ul>
+
+        <div class="vehicle-list-panel__footer" style="padding: 12px; display: flex; flex-direction: column; gap: 8px;">
+          <span style="font-size: 11px; color: #64748b; font-weight: 600;">
+            Mostrando pág. <%= paginaActual %> de <%= totalPaginas %> (<%= totalRegistros %> totales)
+          </span>
+          <div class="pagination">
+            <% const base = '/Choferes?' + (queryString ? queryString + '&' : ''); %>
+            <% if (paginaActual > 1) { %>
+                <a href="<%= base %>pagina=<%= paginaActual - 1 %>" class="pagination__btn">«</a>
+            <% } else { %>
+                <button class="pagination__btn" disabled>«</button>
+            <% } %>
+            
+            <button class="pagination__btn pagination__btn--active"><%= paginaActual %></button>
+            
+            <% if (paginaActual < totalPaginas) { %>
+                <a href="<%= base %>pagina=<%= paginaActual + 1 %>" class="pagination__btn">»</a>
+            <% } else { %>
+                <button class="pagination__btn" disabled>»</button>
+            <% } %>
+          </div>
+        </div>
+      </section>
+
+      <section class="vehicle-detail" id="vehicle-detail">
+        <nav aria-label="Navegación móvil" style="padding: 20px 24px 0 24px;">
+          <button id="detail-back-btn">
+            <svg viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M9.707 16.707a1 1 0 01-1.414 0l-6-6a1 1 0 010-1.414l6-6a1 1 0 011.414 1.414L5.414 9H17a1 1 0 110 2H5.414l4.293 4.293a1 1 0 010 1.414z" clip-rule="evenodd"/></svg>
+            Volver al listado
+          </button>
+        </nav>
+      
+        <div id="empty-state" style="display:flex;flex-direction:column;align-items:center;justify-content:center;height:50vh;color:#94a3b8;">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" style="width:60px;height:60px;margin-bottom:16px;opacity:0.5;"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z"/></svg>
+          <p>Hacé clic en un chofer de la lista para ver su ficha.</p>
+        </div>
+      
+        <div id="detalle-container" style="display:flex;flex-direction:column;gap:24px;padding:0;"></div>
+      </section>
+    </main>
+
+  </div>
+
+  <script src="/js/sidebar.js"></script>
+<script>
+  /* ── FIX BOTÓN HAMBURGUESA ── */
+  document.addEventListener('DOMContentLoaded', () => {
+    const topbar = document.querySelector('.topbar') || document.querySelector('.app-header');
+    if (!topbar) return;
+    const btnHamburguesa = topbar.querySelector('button') || document.getElementById('menu-toggle');
+    const sidebar = document.getElementById('mi-sidebar-blindado');
+    const overlay = document.getElementById('sb-overlay-blindado');
+    if (btnHamburguesa && sidebar && overlay) {
+      const nuevoBtn = btnHamburguesa.cloneNode(true);
+      btnHamburguesa.parentNode.replaceChild(nuevoBtn, btnHamburguesa);
+      nuevoBtn.addEventListener('click', (e) => {
+        e.preventDefault(); e.stopPropagation();
+        sidebar.classList.toggle('abierto'); overlay.classList.toggle('activo');
+      });
+    }
+  });
+
+  /* ── MODAL DE FOTOS ── */
+  const modalOverlay = document.createElement('div');
+  modalOverlay.id = 'foto-modal';
+  modalOverlay.style.cssText = `
+    display:none; position:fixed; inset:0; background:rgba(0,0,0,0.75);
+    z-index:9999; align-items:center; justify-content:center; padding:20px;
+  `;
+  modalOverlay.innerHTML = `
+    <div style="position:relative; max-width:90vw; max-height:90vh;">
+      <button id="foto-modal-close" style="
+        position:absolute; top:-14px; right:-14px; width:32px; height:32px;
+        background:#fff; border:none; border-radius:50%; font-size:18px;
+        font-weight:800; cursor:pointer; color:#0f172a; line-height:1;
+        box-shadow:0 2px 8px rgba(0,0,0,0.3);
+      ">×</button>
+      <img id="foto-modal-img" src="" alt="Foto"
+        style="max-width:100%; max-height:85vh; border-radius:8px; display:block;">
+    </div>
+  `;
+  document.body.appendChild(modalOverlay);
+
+  document.getElementById('foto-modal-close').addEventListener('click', () => {
+    modalOverlay.style.display = 'none';
+  });
+  modalOverlay.addEventListener('click', (e) => {
+    if (e.target === modalOverlay) modalOverlay.style.display = 'none';
+  });
+
+  function abrirFoto(src) {
+    if (/\.pdf$/i.test(src)) { window.open(src, '_blank', 'noopener'); return; } // PDF: se abre en otra pestaña
+    document.getElementById('foto-modal-img').src = src;
+    modalOverlay.style.display = 'flex';
+  }
+
+  /* ── DATOS DE CHOFERES EN MEMORIA ── */
+  // Los datos iniciales vienen del servidor (primera carga)
+  let todosLosChoferes = <%- safeJson(choferes.map(c => ({
+    id_chofer: c.id_chofer,
+    nombre: c.nombre,
+    apellido: c.apellido,
+    dni: c.dni,
+    telefono: c.telefono || '',
+    email: c.email || '',
+    direccion: c.direccion || '',
+    turno: c.turno || '',
+    estado: c.estado,
+    foto_documento: c.foto_documento || null,
+    tiene_carnet_oficial: !!c.tiene_carnet_oficial,
+    documentos: (c.documentos || []).map(d => ({ id: d.id_documento, categoria: d.categoria, nombre: d.nombre_original || d.archivo })),
+    imagen: c.imagen || null,
+    motivoBaja: c.motivoBaja || '',
+    licencia: c.licencias && c.licencias.length > 0 ? {
+      numero: c.licencias[0].numero,
+      categoria: c.licencias[0].categoria,
+      fecha_vencimiento: c.licencias[0].fecha_vencimiento,
+      imagen: c.licencias[0].imagen || null
+    } : null,
+    asignacion: c.asignaciones && c.asignaciones.length > 0 ? {
+      patente: c.asignaciones[0].vehiculo ? c.asignaciones[0].vehiculo.patente : '',
+      marca: c.asignaciones[0].vehiculo ? c.asignaciones[0].vehiculo.marca : '',
+      modelo: c.asignaciones[0].vehiculo ? c.asignaciones[0].vehiculo.modelo : '',
+      fecha_salida: c.asignaciones[0].fecha_salida || ''
+    } : null
+  }))) %>;
+
+  /* ── HELPERS ── */
+  function esc(t) {
+    return String(t == null ? '' : t).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#39;');
+  }
+
+  function getEstadoClass(est) {
+    return est === 'Activo' ? 'badge--success' : (est === 'Inactivo' ? 'badge--danger' : 'badge--warning');
+  }
+
+  function checkVencimiento(fechaStr) {
+    if (!fechaStr) return { cls: 'badge--danger', colorText: '#991b1b', text: 'Sin Licencia', diff: -999, format: '—' };
+    const d = new Date(fechaStr);
+    const format = `${String(d.getUTCDate()).padStart(2,'0')}/${String(d.getUTCMonth()+1).padStart(2,'0')}/${d.getUTCFullYear()}`;
+    const hoy = new Date(); hoy.setHours(0,0,0,0);
+    const diff = Math.ceil((d - hoy) / (1000*60*60*24));
+    let cls = 'badge--success', colorText = '#065f46';
+    if (diff <= 30) { cls = 'badge--danger'; colorText = '#991b1b'; }
+    else if (diff <= 90) { cls = 'badge--warning'; colorText = '#92400e'; }
+    return { cls, colorText, diff, format };
+  }
+
+  /* ── RENDER LISTA ── */
+  function renderLista(choferes) {
+    const ul = document.getElementById('choferList');
+    if (choferes.length === 0) {
+      ul.innerHTML = `<div style="padding:30px 20px;text-align:center;color:#64748b;"><p style="font-weight:500;">No se encontraron choferes.</p></div>`;
+      return;
+    }
+    ul.innerHTML = choferes.map(c => {
+      const v = checkVencimiento(c.licencia?.fecha_vencimiento);
+      return `
+        <li class="vehicle-card chofer-item" data-id="${c.id_chofer}" style="padding:12px 16px; cursor:pointer;">
+          <div style="display:flex;justify-content:space-between;align-items:baseline;margin-bottom:4px;">
+            <span class="vehicle-card__plate" style="font-size:14px;">${esc(c.nombre)} ${esc(c.apellido)}</span>
+            <span class="badge ${getEstadoClass(c.estado)}" style="font-size:10px;padding:2px 6px;">${esc(c.estado)}</span>
+          </div>
+          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px;">
+            <span class="vehicle-card__model" style="font-size:12px;margin:0;">DNI: ${esc(c.dni)}</span>
+          </div>
+          <div style="display:flex;align-items:center;gap:6px;">
+            <span class="badge ${v.cls}" style="font-size:9px;padding:2px 6px;">Lic. ${esc(c.licencia?.categoria || 'N/A')}</span>
+            <span style="font-size:11px;color:${v.colorText};font-weight:600;">Venc: ${v.format}</span>
+            ${c.tiene_carnet_oficial ? '<span class="badge badge--info" style="font-size:9px;padding:2px 6px;margin-left:auto;">Carnet oficial</span>' : ''}
+          </div>
+        </li>`;
+    }).join('');
+
+    // Re-asignar eventos de click
+    document.querySelectorAll('.chofer-item').forEach(item => {
+      item.addEventListener('click', function() {
+        document.querySelectorAll('.chofer-item').forEach(c => c.classList.remove('vehicle-card--active'));
+        this.classList.add('vehicle-card--active');
+        const chofer = todosLosChoferes.find(c => c.id_chofer == this.dataset.id);
+        if (chofer) renderDetalle(chofer);
+        if (isMobileView()) {
+          document.getElementById('vehicle-list-panel').classList.add('vehicle-list-panel--hidden');
+          document.getElementById('vehicle-detail').classList.add('vehicle-detail--visible');
+        }
+      });
+    });
+  }
+
+  // Archivos del DNI (los nuevos + la foto única de versiones anteriores) y botones para verlos
+  function dniArchivos(c) {
+    const lista = (c.documentos || []).filter(d => d.categoria === 'dni').map(d => ({ url: '/Documentos/' + d.id, nombre: d.nombre }));
+    if (c.foto_documento) lista.unshift({ url: '/img/licencias/' + c.foto_documento, nombre: c.foto_documento });
+    return lista;
+  }
+  function botonesDocumentos(c) {
+    const estilo = 'background:#f1f5f9;border:1px solid #cbd5e1;border-radius:6px;padding:7px 14px;font-size:12px;font-weight:700;color:#2563eb;cursor:pointer;';
+    const boton = (url, nombre, rotulo) => `<button type="button" data-visor="${esc(url)}" data-nombre="${esc(nombre)}" style="${estilo}">${rotulo}</button>`;
+    const dni = dniArchivos(c).map((d, i) => boton(d.url, d.nombre, '📄 DNI ' + (i + 1)));
+    const carnet = (c.documentos || []).filter(d => d.categoria === 'carnet_provincia').map((d, i) => boton('/Documentos/' + d.id, d.nombre, '🪪 Carnet ' + (i + 1)));
+    const todos = dni.concat(carnet);
+    return todos.length ? todos.join('') : '<span style="font-size:11px;color:#94a3b8;padding:7px 0;">Sin documentos de DNI</span>';
+  }
+
+  /* ── RENDER DETALLE ── */
+  function renderDetalle(c) {
+    const v = checkVencimiento(c.licencia?.fecha_vencimiento);
+    const emptyState = document.getElementById('empty-state');
+    if (emptyState) emptyState.style.display = 'none';
+
+    const avatarHTML = true
+      ? `<img src="/img/licencias/${esc(c.imagen || 'chofer.jpg')}" alt="Foto" style="width:60px;height:60px;border-radius:50%;object-fit:cover;border:2px solid #e2e8f0;">`
+      : `<div style="width:60px;height:60px;border-radius:50%;background:#e2e8f0;display:flex;align-items:center;justify-content:center;font-size:24px;font-weight:800;color:#94a3b8;">${esc(c.nombre.charAt(0))}${esc(c.apellido.charAt(0))}</div>`;
+
+    const estadoBtn = c.estado === 'Activo'
+      ? `<form method="POST" action="/Choferes/${c.id_chofer}/desactivar" style="margin:0;" onsubmit="return confirm('¿Desactivar a este chofer?');">
+           <button type="submit" style="background-color:#fef2f2;color:#dc2626;border:1px solid #fecaca;padding:8px 14px;font-size:12px;font-weight:700;border-radius:6px;">Desactivar</button>
+         </form>`
+      : `<form method="POST" action="/Choferes/${c.id_chofer}/activar" style="margin:0;" onsubmit="return confirm('¿Activar a este chofer?');">
+           <button type="submit" style="background-color:#ecfdf5;color:#059669;border:1px solid #a7f3d0;padding:8px 14px;font-size:12px;font-weight:700;border-radius:6px;">Activar</button>
+         </form>`;
+
+    const fotoDNIBtn = c.foto_documento
+      ? `<button onclick="abrirFoto('/img/licencias/${esc(c.foto_documento)}')" style="margin-top:6px;background:#f1f5f9;border:1px solid #cbd5e1;border-radius:6px;padding:5px 10px;font-size:11px;font-weight:700;color:#2563eb;cursor:pointer;">📄 Ver DNI</button>`
+      : `<span style="font-size:11px;color:#94a3b8;">Sin foto</span>`;
+
+    const fotoLicBtn = c.licencia?.imagen
+      ? `<button onclick="abrirFoto('/img/licencias/${esc(c.licencia.imagen)}')" style="margin-top:6px;background:#f1f5f9;border:1px solid #cbd5e1;border-radius:6px;padding:5px 10px;font-size:11px;font-weight:700;color:#2563eb;cursor:pointer;">🪪 Ver Licencia</button>`
+      : `<span style="font-size:11px;color:#94a3b8;">Sin foto</span>`;
+
+    const asigHTML = c.asignacion
+      ? `<div style="display:flex;align-items:center;gap:16px;">
+           <div style="background:#f8fafc;border:1px solid #cbd5e1;border-radius:8px;padding:10px 16px;text-align:center;">
+             <span style="display:block;font-size:11px;font-weight:700;color:#64748b;margin-bottom:4px;">PATENTE</span>
+             <span style="font-family:var(--font-mono);font-size:18px;font-weight:800;color:#0f172a;">${esc(c.asignacion.patente)}</span>
+           </div>
+           <div>
+             <span style="display:block;font-size:14px;font-weight:700;color:#0f172a;">${esc(c.asignacion.marca)} ${esc(c.asignacion.modelo)}</span>
+             <span style="display:block;font-size:12px;color:#64748b;">Asignado el: ${c.asignacion.fecha_salida ? new Date(c.asignacion.fecha_salida).toLocaleDateString('es-AR') : '—'}</span>
+           </div>
+         </div>`
+      : `<p style="color:#64748b;font-size:13px;">No tiene ningún vehículo asignado actualmente.</p>`;
+
+    const licEstadoText = v.diff < 0 ? 'Licencia Vencida' : (v.diff <= 90 ? 'Próxima a vencer' : 'Licencia Vigente');
+    const licAlertClass = v.cls === 'badge--danger' ? 'alert-item--danger' : (v.cls === 'badge--warning' ? 'alert-item--warning' : '');
+
+    document.getElementById('detalle-container').innerHTML = `
+      <article class="vehicle-profile" style="padding:24px;position:relative;">
+        <div style="display:flex;justify-content:space-between;align-items:flex-start;flex-wrap:wrap;gap:16px;border-bottom:1px solid #e2e8f0;padding-bottom:16px;margin-bottom:20px;">
+          <div style="display:flex;align-items:center;gap:16px;">
+            ${avatarHTML}
+            <div>
+              <h2 style="margin:0;font-size:24px;font-weight:800;color:#0f172a;">${esc(c.nombre)} ${esc(c.apellido)}</h2>
+              <span class="badge ${getEstadoClass(c.estado)}" style="font-size:11px;margin-top:4px;">${esc(c.estado)}</span>
+            </div>
+          </div>
+          <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center;">
+            <button onclick="window.print()" style="background-color:#f1f5f9;color:#334155;border:1px solid #cbd5e1;padding:8px 14px;font-size:12px;font-weight:700;border-radius:6px;">Imprimir</button>
+            <a href="/Choferes/${c.id_chofer}/editar" style="background-color:#eff6ff;color:#2563eb;border:1px solid #bfdbfe;padding:8px 14px;font-size:12px;font-weight:700;border-radius:6px;text-decoration:none;">Editar</a>
+            ${estadoBtn}
+          </div>
+        </div>
+
+        <div class="vehicle-profile__specs" style="grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:20px;">
+          <dl class="vehicle-profile__spec-group">
+            <div class="vehicle-profile__spec-row">
+              <dt class="vehicle-profile__spec-label">Documento (DNI)</dt>
+              <dd class="vehicle-profile__spec-value" style="font-family:var(--font-mono);font-size:15px;">${esc(c.dni)}</dd>
+            </div>
+            <div class="vehicle-profile__spec-row">
+              <dt class="vehicle-profile__spec-label">Teléfono de Contacto</dt>
+              <dd class="vehicle-profile__spec-value">${esc(c.telefono || 'No registrado')}</dd>
+            </div>
+          </dl>
+          <dl class="vehicle-profile__spec-group">
+            <div class="vehicle-profile__spec-row">
+              <dt class="vehicle-profile__spec-label">N° Licencia</dt>
+              <dd class="vehicle-profile__spec-value" style="font-family:var(--font-mono);">${esc(c.licencia?.numero || '—')}</dd>
+            </div>
+            <div class="vehicle-profile__spec-row">
+              <dt class="vehicle-profile__spec-label">Categoría(s)</dt>
+              <dd class="vehicle-profile__spec-value" style="font-weight:800;color:#2563eb;">${esc(c.licencia?.categoria || '—')}</dd>
+            </div>
+          </dl>
+          <dl class="vehicle-profile__spec-group">
+            <div class="vehicle-profile__spec-row">
+              <dt class="vehicle-profile__spec-label">Carnet oficial de la provincia</dt>
+              <dd class="vehicle-profile__spec-value"><span class="badge ${c.tiene_carnet_oficial ? 'badge--success' : 'badge--warning'}">${c.tiene_carnet_oficial ? 'Sí, tiene carnet' : 'No tiene'}</span></dd>
+            </div>
+            <div class="vehicle-profile__spec-row">
+              <dt class="vehicle-profile__spec-label">DNI cargado</dt>
+              <dd class="vehicle-profile__spec-value"><span class="badge ${dniArchivos(c).length >= 2 ? 'badge--success' : 'badge--danger'}">${dniArchivos(c).length >= 2 ? dniArchivos(c).length + ' archivos' : 'Incompleto (' + dniArchivos(c).length + ' de 2)'}</span></dd>
+            </div>
+          </dl>
+        </div>
+
+        <div style="display:flex;gap:10px;margin-top:16px;flex-wrap:wrap;align-items:center;">
+          ${botonesDocumentos(c)}
+          ${c.licencia?.imagen
+            ? `<button onclick="abrirFoto('/img/licencias/${esc(c.licencia.imagen)}')" style="background:#f1f5f9;border:1px solid #cbd5e1;border-radius:6px;padding:7px 14px;font-size:12px;font-weight:700;color:#2563eb;cursor:pointer;">🪪 Ver Licencia</button>`
+            : `<span style="font-size:11px;color:#94a3b8;padding:7px 0;">Sin foto de Licencia</span>`
+          }
+          <a href="/Choferes/${c.id_chofer}/editar#documentacion" style="font-size:12px;font-weight:700;color:#2563eb;text-decoration:none;">Gestionar documentación →</a>
+        </div>
+      </article>
+
+      <div class="detail-columns">
+        <div class="detail-main-column">
+          <section class="data-card">
+            <header class="data-card__header">
+              <svg class="data-card__icon" viewBox="0 0 20 20" fill="currentColor"><path d="M8 16.5a1.5 1.5 0 11-3 0 1.5 1.5 0 013 0zM15 16.5a1.5 1.5 0 11-3 0 1.5 1.5 0 013 0z"/><path d="M3 4a1 1 0 00-1 1v10a1 1 0 001 1h1.05a2.5 2.5 0 014.9 0H10a1 1 0 001-1V5a1 1 0 00-1-1H3zM14 7a1 1 0 00-1 1v6.05A2.5 2.5 0 0115.95 16H17a1 1 0 001-1v-5a1 1 0 00-.293-.707l-2-2A1 1 0 0015 7h-1z"/></svg>
+              <h3 class="data-card__title">Vehículo Asignado Actual</h3>
+            </header>
+            <div style="padding:20px;">${asigHTML}</div>
+          </section>
+        </div>
+        <aside class="detail-side-column">
+          <section class="alerts-card">
+            <header class="data-card__header">
+              <svg class="data-card__icon" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M10 1.944A11.954 11.954 0 012.166 5C2.056 5.649 2 6.319 2 7c0 5.225 3.34 9.67 8 11.317C14.66 16.67 18 12.225 18 7c0-.682-.057-1.35-.166-2.001A11.954 11.954 0 0110 1.944zM11 14a1 1 0 11-2 0 1 1 0 012 0zm0-7a1 1 0 10-2 0v3a1 1 0 102 0V7z" clip-rule="evenodd"/></svg>
+              <h3 class="data-card__title">Estado de Licencia</h3>
+            </header>
+            <ul class="alert-list">
+              <li class="alert-item ${licAlertClass}" style="${v.cls === 'badge--success' ? 'background:#f8fafc;' : ''}">
+                <div style="flex:1;">
+                  <span class="alert-item__label" style="color:${v.colorText};">${licEstadoText}</span>
+                  <span class="alert-item__desc">Vencimiento: ${v.format}${v.diff > 0 ? ` (${v.diff} días restantes)` : ''}</span>
+                </div>
+              </li>
+            </ul>
+          </section>
+        </aside>
+      </div>
+    `;
+  }
+
+  /* ── BÚSQUEDA EN TIEMPO REAL (todos los choferes vía API) ── */
+  let searchTimeout = null;
+  const searchInput = document.getElementById('searchInput');
+
+  async function buscarChoferes(termino) {
+    try {
+      const res = await fetch(`/Choferes/api/todos?buscar=${encodeURIComponent(termino)}`);
+      const data = await res.json();
+      // Normalizar estructura igual que la inicial
+      todosLosChoferes = data.map(c => ({
+        id_chofer: c.id_chofer,
+        nombre: c.nombre,
+        apellido: c.apellido,
+        dni: c.dni,
+        telefono: c.telefono || '',
+        email: c.email || '',
+        direccion: c.direccion || '',
+        turno: c.turno || '',
+        estado: c.estado,
+        foto_documento: c.foto_documento || null,
+        tiene_carnet_oficial: !!c.tiene_carnet_oficial,
+        documentos: (c.documentos || []).map(d => ({ id: d.id_documento, categoria: d.categoria, nombre: d.nombre_original || d.archivo })),
+        imagen: c.imagen || null,
+        motivoBaja: c.motivoBaja || '',
+        licencia: c.licencias && c.licencias.length > 0 ? {
+          numero: c.licencias[0].numero,
+          categoria: c.licencias[0].categoria,
+          fecha_vencimiento: c.licencias[0].fecha_vencimiento,
+          imagen: c.licencias[0].imagen || null
+        } : null,
+        asignacion: c.asignaciones && c.asignaciones.length > 0 ? {
+          patente: c.asignaciones[0].vehiculo?.patente || '',
+          marca: c.asignaciones[0].vehiculo?.marca || '',
+          modelo: c.asignaciones[0].vehiculo?.modelo || '',
+          fecha_salida: c.asignaciones[0].fecha_salida || ''
+        } : null
+      }));
+      renderLista(todosLosChoferes);
+    } catch(e) {
+      console.error('Error buscando choferes:', e);
+    }
+  }
+
+  if (searchInput) {
+    searchInput.addEventListener('input', function() {
+      clearTimeout(searchTimeout);
+      searchTimeout = setTimeout(() => buscarChoferes(this.value.trim()), 300);
+    });
+  }
+
+  /* ── MOBILE ── */
+  function isMobileView() { return window.innerWidth < 900; }
+
+  const backBtn = document.getElementById('detail-back-btn');
+  if (backBtn) {
+    backBtn.addEventListener('click', function() {
+      document.getElementById('vehicle-list-panel').classList.remove('vehicle-list-panel--hidden');
+      document.getElementById('vehicle-detail').classList.remove('vehicle-detail--visible');
+    });
+  }
+
+  window.addEventListener('resize', function() {
+    if (!isMobileView()) {
+      document.getElementById('vehicle-list-panel').classList.remove('vehicle-list-panel--hidden');
+      document.getElementById('vehicle-detail').classList.remove('vehicle-detail--visible');
+    }
+  });
+
+  /* ── RENDER INICIAL ── */
+  renderLista(todosLosChoferes);
+</script>
+
+<%- include('./partials/visor') %>
+</body>
+</html>

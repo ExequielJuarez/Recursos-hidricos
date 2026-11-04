@@ -1,0 +1,103 @@
+<div class="data-table-wrapper">
+    <table class="data-table">
+        <thead class="data-table__head">
+            <tr>
+                <th class="data-table__th">Tipo</th>
+                <th class="data-table__th">Descripción</th>
+                <th class="data-table__th">Entidad</th>
+                <th class="data-table__th">Fecha</th>
+                <th class="data-table__th">Prioridad</th>
+                <th class="data-table__th">Estado</th>
+                <th class="data-table__th" style="text-align: right;">Acciones</th>
+            </tr>
+        </thead>
+        <tbody class="data-table__body">
+            <% if (alertas.length === 0) { %>
+                <tr>
+                    <td colspan="7" class="data-table__td" style="text-align: center; padding: 40px; color: var(--color-text-muted);">
+                        No hay alertas que coincidan con los filtros aplicados.
+                    </td>
+                </tr>
+            <% } %>
+
+            <% alertas.forEach(alerta => { %>
+                <tr class="data-table__row alerta-row" data-id="<%= alerta.id_alerta %>" style="<%= alerta.leida ? 'opacity: 0.7;' : 'background-color: #f8fafc;' %>">
+
+                    <td class="data-table__td" data-label="Tipo">
+                        <%
+                        const ICONOS = { licencia_vencida: '⚠️', licencia_proxima: '🕐', mantenimiento_pendiente: '🔧', mantenimiento_proximo: '⏳', mantenimiento_vencido: '🚨', mantenimiento_finalizado: '✅', documentacion_vencida: '📄', vehiculo_fuera_servicio: '🚫', herramienta_devuelta: '🔙', prestamo_vencido: '📋', asignacion_vencida: '⏰', stock_bajo: '📦', siniestro_activo: '💥', critica: '🚨', informativa: 'ℹ️' };
+                        const LABELS = { licencia_vencida: 'Licencia vencida', licencia_proxima: 'Licencia próxima', mantenimiento_pendiente: 'Mant. pendiente', mantenimiento_proximo: 'Mant. próximo', mantenimiento_vencido: 'Mant. vencido', mantenimiento_finalizado: 'Mant. finalizado', documentacion_vencida: 'Doc. vencida', vehiculo_fuera_servicio: 'Fuera de servicio', herramienta_devuelta: 'Devolución', prestamo_vencido: 'Préstamo vencido', asignacion_vencida: 'Asignación vencida', stock_bajo: 'Stock bajo', siniestro_activo: 'Siniestro Activo', critica: 'Crítica', informativa: 'Informativa' };
+                        %>
+                        <span style="font-size: 16px; margin-right: 6px;"><%= ICONOS[alerta.tipo] || 'ℹ️' %></span>
+                        <strong style="color: var(--color-text-primary);"><%= LABELS[alerta.tipo] || alerta.tipo %></strong>
+                    </td>
+
+                    <td class="data-table__td" data-label="Descripción" style="max-width: 300px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">
+                        <span style="font-weight: <%= alerta.leida ? '400' : '600' %>; color: var(--color-text-secondary);">
+                            <%= alerta.mensaje %>
+                        </span>
+                    </td>
+
+                    <td class="data-table__td" data-label="Entidad">
+                        <span class="badge" style="background: #e2e8f0; color: #475569;"><%= alerta.entidad_nombre || '—' %></span>
+                    </td>
+
+                    <td class="data-table__td" data-label="Fecha">
+                        <%= alerta.createdAt ? new Date(alerta.createdAt).toLocaleDateString('es-AR') : '—' %>
+                    </td>
+
+                    <td class="data-table__td" data-label="Prioridad">
+                        <span class="badge <%= alerta.prioridad === 'alta' ? 'badge--danger' : (alerta.prioridad === 'media' ? 'badge--warning' : 'badge--info') %>">
+                            <%= alerta.prioridad.charAt(0).toUpperCase() + alerta.prioridad.slice(1) %>
+                        </span>
+                    </td>
+
+                    <td class="data-table__td" data-label="Estado">
+                        <span class="badge <%= alerta.leida ? 'badge--success' : 'badge--warning' %>">
+                            <%= alerta.leida ? 'Leída' : 'Nueva' %>
+                        </span>
+                    </td>
+
+                    <td class="data-table__td" data-label="Acciones" style="text-align: right;">
+                        <div style="display: flex; gap: 8px; justify-content: flex-end;">
+                            <% if (!alerta.leida) { %>
+                                <button class="btn-marcar-leida" data-id="<%= alerta.id_alerta %>" style="background: #eff6ff; border: 1px solid #bfdbfe; color: #2563eb; padding: 6px 12px; border-radius: 6px; font-size: 12px; font-weight: 700; cursor: pointer; transition: 0.2s;">✓ Marcar Leída</button>
+                            <% } %>
+                            <a href="<%= alerta.tipo === 'siniestro_activo' ? '/Siniestros' : '/Alertas/' + alerta.id_alerta %>" style="background: var(--color-bg); border: 1px solid var(--color-border); color: var(--color-text-primary); padding: 6px 12px; border-radius: 6px; font-size: 12px; font-weight: 700; text-decoration: none; transition: 0.2s;">Abrir</a>
+                        </div>
+                    </td>
+
+                </tr>
+            <% }) %>
+        </tbody>
+    </table>
+</div>
+
+<div class="pagination">
+    <div class="page-info">
+        Mostrando página <%= paginaActual %> de <%= totalPaginas %> (<%= totalRegistros %> registros)
+    </div>
+    <div class="page-buttons">
+        <% const base = '/Alertas?' + (queryString ? queryString + '&' : ''); %>
+
+        <% if (paginaActual > 1) { %>
+            <a href="<%= base %>pagina=<%= paginaActual - 1 %>" class="page-btn">Anterior</a>
+        <% } else { %>
+            <button class="page-btn" disabled>Anterior</button>
+        <% } %>
+
+        <% for (let i = 1; i <= totalPaginas; i++) { %>
+            <% if (i === paginaActual) { %>
+                <button class="page-btn page-btn--active"><%= i %></button>
+            <% } else { %>
+                <a href="<%= base %>pagina=<%= i %>" class="page-btn"><%= i %></a>
+            <% } %>
+        <% } %>
+
+        <% if (paginaActual < totalPaginas) { %>
+            <a href="<%= base %>pagina=<%= paginaActual + 1 %>" class="page-btn">Siguiente</a>
+        <% } else { %>
+            <button class="page-btn" disabled>Siguiente</button>
+        <% } %>
+    </div>
+</div>

@@ -1,0 +1,62 @@
+<%#
+  Documentación adjunta (PDF y fotos) de un vehículo o un chofer.
+  Parámetros: entidad ('vehiculo' | 'chofer'), idEntidad, gruposDocumentos [{clave, etiqueta, archivos[]}],
+              documentosLegado (opcional) [{etiqueta, url, nombre}]
+%>
+<style>
+  .doc-card { background:#fff; border:1px solid var(--color-border, #e2e8f0); border-radius:12px; padding:0; margin-bottom:20px; overflow:hidden; }
+  .doc-card__head { display:flex; align-items:center; gap:10px; padding:16px 20px; border-bottom:1px solid #e2e8f0; }
+  .doc-card__title { font-size:15px; font-weight:800; color:#0f172a; margin:0; }
+  .doc-card__body { padding:16px 20px; }
+  .doc-grupo { margin-bottom:14px; }
+  .doc-grupo__titulo { display:flex; align-items:center; gap:8px; font-size:12px; font-weight:800; text-transform:uppercase; letter-spacing:.05em; color:#64748b; margin-bottom:6px; }
+  .doc-grupo__cuenta { background:#eff6ff; color:#2563eb; border-radius:10px; padding:1px 8px; font-size:11px; }
+  .doc-grupo__vacio { font-size:13px; color:#94a3b8; }
+  .doc-archivo { display:inline-flex; align-items:center; gap:6px; margin:0 8px 6px 0; border:1px solid #cbd5e1; border-radius:8px; background:#f8fafc; padding:4px 4px 4px 10px; font-size:12px; font-weight:700; color:#2563eb; }
+  .doc-archivo button.doc-ver { background:none; border:none; padding:0; cursor:pointer; font:inherit; color:inherit; text-align:left; max-width:230px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+  .doc-archivo form { margin:0; }
+  .doc-archivo .doc-x { background:#fef2f2; color:#dc2626; border:1px solid #fecaca; border-radius:6px; padding:2px 7px; cursor:pointer; font-size:12px; font-weight:800; }
+  .doc-agregar { border-top:1px dashed #cbd5e1; margin-top:8px; padding-top:14px; display:flex; flex-wrap:wrap; gap:10px; align-items:center; }
+  .doc-agregar select, .doc-agregar input[type=file] { padding:8px 10px; border:1px solid #cbd5e1; border-radius:8px; font-size:13px; background:#fff; font-family:inherit; }
+  .doc-agregar button { background:#2563eb; color:#fff; border:none; border-radius:8px; padding:9px 16px; font-size:13px; font-weight:700; cursor:pointer; }
+</style>
+
+<section class="doc-card" id="documentacion">
+  <header class="doc-card__head">
+    <svg width="20" height="20" viewBox="0 0 20 20" fill="currentColor" style="color:#2563eb;"><path fill-rule="evenodd" d="M4 4a2 2 0 012-2h4.586A2 2 0 0112 2.586L15.414 6A2 2 0 0116 7.414V16a2 2 0 01-2 2H6a2 2 0 01-2-2V4zm2 6a1 1 0 011-1h6a1 1 0 110 2H7a1 1 0 01-1-1zm1 3a1 1 0 100 2h6a1 1 0 100-2H7z" clip-rule="evenodd"/></svg>
+    <h3 class="doc-card__title">Documentación adjunta</h3>
+  </header>
+  <div class="doc-card__body">
+    <% const legado = typeof documentosLegado !== 'undefined' ? documentosLegado : []; %>
+    <% gruposDocumentos.forEach(g => { %>
+      <% const extras = legado.filter(l => l.clave === g.clave); %>
+      <div class="doc-grupo">
+        <div class="doc-grupo__titulo"><%= g.etiqueta %> <span class="doc-grupo__cuenta"><%= g.archivos.length + extras.length %></span></div>
+        <% if (g.archivos.length + extras.length === 0) { %>
+          <span class="doc-grupo__vacio">Sin archivos cargados.</span>
+        <% } %>
+        <% extras.forEach(l => { %>
+          <span class="doc-archivo"><button type="button" class="doc-ver" data-visor="<%= l.url %>" data-nombre="<%= l.nombre %>">📎 <%= l.nombre %></button></span>
+        <% }) %>
+        <% g.archivos.forEach(d => { %>
+          <span class="doc-archivo">
+            <button type="button" class="doc-ver" data-visor="/Documentos/<%= d.id_documento %>" data-nombre="<%= d.nombre_original || d.archivo %>" title="Ver"><%= /\.pdf$/i.test(d.archivo) ? '📄' : '🖼️' %> <%= d.nombre_original || d.archivo %></button>
+            <form action="/Documentos/<%= d.id_documento %>/eliminar" method="POST" onsubmit="return confirm('¿Eliminar este archivo? No se puede deshacer.')"><button class="doc-x" type="submit" title="Eliminar">✕</button></form>
+          </span>
+        <% }) %>
+      </div>
+    <% }) %>
+
+    <form class="doc-agregar" action="/<%= entidad === 'vehiculo' ? 'Vehicles' : 'Choferes' %>/<%= idEntidad %>/documentos" method="POST" enctype="multipart/form-data">
+      <select name="categoria" required aria-label="Tipo de documento">
+        <option value="">Tipo de documento…</option>
+        <% gruposDocumentos.forEach(g => { %><option value="<%= g.clave %>"><%= g.etiqueta %></option><% }) %>
+      </select>
+      <input type="file" name="archivos" accept=".pdf,.jpg,.jpeg,.png,.webp" multiple required aria-label="Archivos">
+      <button type="submit">+ Agregar archivos</button>
+      <span style="font-size:11px;color:#94a3b8;">PDF, JPG, PNG o WEBP · hasta 8 MB cada uno</span>
+    </form>
+  </div>
+</section>
+
+<%- include('./visor') %>

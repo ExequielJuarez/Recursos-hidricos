@@ -1,0 +1,448 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Inventario de Herramientas - Gestión Industrial</title>
+  <link rel="stylesheet" href="/css/ListadoVehiculos.css" />
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500;600;700&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet" />
+  <style>
+    /* ── FIX: Aseguramos el layout fijo y scroll independiente ── */
+    .app-wrapper {
+        height: 100vh;
+        overflow: hidden;
+    }
+    .main-content {
+        flex: 1;
+        display: flex;
+        overflow: hidden;
+        height: calc(100vh - var(--topbar-height, 56px));
+        padding: 0;
+    }
+    .vehicle-list-panel {
+        display: flex;
+        flex-direction: column;
+        overflow: hidden;
+    }
+    .vehicle-detail {
+        flex: 1;
+        overflow-y: auto;
+    }
+    
+    /* FIX: Le quitamos el sticky para que no tape las tablas inferiores */
+    .vehicle-profile {
+        background-color: #ffffff;
+    }
+
+    /* Diseño del botón Volver (Solo visible en celulares) */
+    #detail-back-btn {
+      background-color: #f8fafc;
+      color: #475569;
+      border: 1px solid #cbd5e1;
+      padding: 8px 14px;
+      font-size: 13px;
+      font-weight: 600;
+      border-radius: 8px;
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      transition: 0.2s;
+    }
+    #detail-back-btn:hover { background-color: #e2e8f0; color: #0f172a; }
+    #detail-back-btn svg { width: 16px; height: 16px; }
+
+    @media (min-width: 900px) {
+      #detail-back-btn { display: none !important; }
+    }
+
+    @media (max-width: 900px) {
+      .app-wrapper { height: auto; overflow: visible; }
+      .main-content { height: auto; overflow: visible; flex-direction: column !important; }
+
+      .vehicle-list-panel { 
+          width: 100% !important; 
+          border-right: none !important; 
+          flex: 1 1 auto !important;
+          min-height: 70vh !important; 
+      }
+      .vehicle-detail { display: none; width: 100% !important; flex: 1 1 auto !important; }
+      
+      .vehicle-list-panel--hidden { display: none !important; }
+      .vehicle-detail--visible { display: block !important; }
+    }
+
+    @media print {
+      #sidebar, .app-header, .vehicle-list-panel, .vehicle-profile__actions, .alerts-card, .data-card__see-all, .topbar { display: none !important; }
+      .app-wrapper { margin: 0 !important; padding: 0 !important; }
+      .vehicle-detail { width: 100% !important; padding: 0 !important; background: #fff !important; }
+      .vehicle-profile { box-shadow: none !important; border: 1px solid #000 !important; }
+    }
+  </style>
+</head>
+<body>
+
+  <%- include('./partials/sidebar') %>
+
+  <div class="app-wrapper" id="app-wrapper">
+
+    <%- include('./partials/topbar') %>
+
+    <%
+      const getBadgeClass = (estado) => {
+        const e = (estado || '').toLowerCase();
+        if (e.includes('disponible')) return 'badge--success';
+        if (e.includes('uso')) return 'badge--info';
+        if (e.includes('mantenimiento') || e.includes('reparación')) return 'badge--warning';
+        if (e.includes('baja') || e.includes('perdida') || e.includes('roto')) return 'badge--danger';
+        return 'badge--success'; 
+      };
+    %>
+
+    <main class="main-content" id="main-content">
+
+      <section class="vehicle-list-panel" id="vehicle-list-panel" aria-label="Listado de herramientas">
+
+        <div class="vehicle-list-panel__top">
+          <h2 class="vehicle-list-panel__title">Inventario de Herramientas</h2>
+        </div>
+
+        <div class="vehicle-list-panel__search-bar">
+          <input class="vehicle-list-panel__search-input" type="search" placeholder="Buscar código o nombre..." aria-label="Buscar herramienta" />
+          <button class="vehicle-list-panel__search-btn" aria-label="Buscar">
+            <svg viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M8 4a4 4 0 100 8 4 4 0 000-8zM2 8a6 6 0 1110.89 3.476l4.817 4.817a1 1 0 01-1.414 1.414l-4.816-4.816A6 6 0 012 8z" clip-rule="evenodd"/></svg>
+          </button>
+        </div>
+
+        <ul class="vehicle-list" aria-label="Herramientas" style="flex: 1; overflow-y: auto;">
+
+          <% if (herramientas && herramientas.length > 0) { %>
+            <% herramientas.forEach(herramienta => { %>
+            
+            <% /* LÓGICA CORREGIDA PARA PINTAR EL ACTIVO CON STRING() */ %>
+            <% const isActive = (typeof herramientaSeleccionada !== 'undefined' && herramientaSeleccionada && String(herramientaSeleccionada.id_herramienta) === String(herramienta.id_herramienta)) ? 'vehicle-card--active' : ''; %>
+
+            <li class="vehicle-card <%= isActive %>" style="padding-left: 20px;">
+              <a href="/Tools/<%= herramienta.id_herramienta %>" class="vehicle-card__link">
+                <div class="vehicle-card__info" style="padding-left: 0;">
+                  <span class="vehicle-card__plate"><%= herramienta.codigo_activo %></span>
+                  <span class="vehicle-card__model"><%= herramienta.nombre %> - <%= herramienta.sector %></span>
+          
+                  <div class="vehicle-card__meta" style="flex-direction: row; align-items: center; gap: 10px; margin-top: 6px;">
+                    <span class="badge <%= getBadgeClass(herramienta.estado) %>"><%= herramienta.estado %></span>
+                    <span class="vehicle-card__km" style="font-weight: 600; color: #0f172a;">Stock: <%= herramienta.stock %></span>
+                  </div>
+                </div>
+              </a>
+            </li>
+
+            <% }) %>
+          <% } else { %>
+        
+            <div style="padding: 30px 20px; text-align: center; color: #64748b;">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" style="width: 40px; height: 40px; margin: 0 auto 10px; opacity: 0.5;"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 13V6a2 2 0 00-2-2H6a2 2 0 00-2 2v7m16 0v5a2 2 0 01-2 2H6a2 2 0 01-2-2v-5m16 0h-2.586a1 1 0 00-.707.293l-2.414 2.414a1 1 0 01-.707.293h-3.172a1 1 0 01-.707-.293l-2.414-2.414A1 1 0 006.586 13H4"></path></svg>
+              <p style="font-weight: 500;">No hay herramientas registradas.</p>
+            </div>
+          <% } %>
+
+        </ul>
+
+      </section>
+
+      <section class="vehicle-detail" id="vehicle-detail" aria-label="Detalle de la herramienta">
+
+        <nav class="vehicle-detail__breadcrumb" aria-label="Ruta de navegación" style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; padding: 20px 24px 0 24px;">
+          <button class="vehicle-detail__back-btn" id="detail-back-btn">
+            <svg viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M9.707 16.707a1 1 0 01-1.414 0l-6-6a1 1 0 010-1.414l6-6a1 1 0 011.414 1.414L5.414 9H17a1 1 0 110 2H5.414l4.293 4.293a1 1 0 010 1.414z" clip-rule="evenodd"/></svg>
+            Volver
+          </button>
+
+          <% if (herramientaSeleccionada) { %>
+            <div style="display: flex; gap: 10px;">
+              <% if (herramientaSeleccionada.estado !== 'En uso') { %>
+                <a href="/Tools/Prestamo/<%= herramientaSeleccionada.id_herramienta %>" style="background-color: #0f172a; color: white; text-decoration: none; padding: 8px 16px; font-size: 13px; font-weight: 700; border-radius: 8px; transition: background 0.2s;">
+                  Registrar Préstamo
+                </a>
+              <% } else { %>
+                <form action="/Tools/Devolucion" method="POST" style="margin: 0;">
+                  <input type="hidden" name="id_herramienta" value="<%= herramientaSeleccionada.id_herramienta %>">
+                  <button type="submit" style="background-color: #059669; color: white; border: none; padding: 8px 16px; border-radius: 8px; font-weight: 700; font-size: 13px; cursor: pointer; transition: background-color 0.2s;" onmouseover="this.style.backgroundColor='#047857'" onmouseout="this.style.backgroundColor='#059669'">
+                    ✓ Marcar Devuelto
+                  </button>
+                </form>
+              <% } %>
+            </div>
+          <% } %>
+        </nav>
+
+        <% if (herramientaSeleccionada) { %>
+        <article class="vehicle-profile" style="position: relative; padding: 24px;">
+
+          <div class="vehicle-profile__content" style="width: 100%;">
+            
+            <div style="position: absolute; top: 24px; right: 24px; display: flex; gap: 8px; flex-wrap: wrap;">
+              <button onclick="window.print()" style="background-color: #f1f5f9; color: #334155; border: 1px solid #cbd5e1; padding: 6px 12px; font-size: 12px; font-weight: 600; border-radius: 6px; cursor: pointer; display: flex; align-items: center; transition: 0.2s;">
+                <svg viewBox="0 0 20 20" fill="currentColor" style="width: 14px; height: 14px; margin-right: 5px;"><path fill-rule="evenodd" d="M5 4v3H4a2 2 0 00-2 2v3a2 2 0 002 2h1v2a2 2 0 002 2h6a2 2 0 002-2v-2h1a2 2 0 002-2V9a2 2 0 00-2-2h-1V4a2 2 0 00-2-2H7a2 2 0 00-2 2zm8 0H7v3h6V4zm0 8H7v4h6v-4z" clip-rule="evenodd"/></svg>
+                Imprimir
+              </button>
+
+              <a href="/Tools/Editar/<%= herramientaSeleccionada.id_herramienta %>" style="background-color: #eff6ff; color: #2563eb; border: 1px solid #bfdbfe; padding: 6px 12px; font-size: 12px; font-weight: 600; border-radius: 6px; cursor: pointer; text-decoration: none; display: flex; align-items: center; transition: 0.2s;">
+                <svg viewBox="0 0 20 20" fill="currentColor" style="width: 14px; height: 14px; margin-right: 5px;"><path d="M13.586 3.586a2 2 0 112.828 2.828l-.793.793-2.828-2.828.793-.793zM11.379 5.793L3 14.172V17h2.828l8.38-8.379-2.83-2.828z"/></svg>
+                Editar
+              </a>
+
+              <form action="/Tools/Eliminar/<%= herramientaSeleccionada.id_herramienta %>" method="POST" style="margin: 0;" onsubmit="return confirm('¿Estás seguro de que deseas eliminar permanentemente esta herramienta?');">
+                <button type="submit" style="background-color: #fef2f2; color: #dc2626; border: 1px solid #fecaca; padding: 6px 12px; font-size: 12px; font-weight: 600; border-radius: 6px; cursor: pointer; display: flex; align-items: center; transition: 0.2s;">
+                  <svg viewBox="0 0 20 20" fill="currentColor" style="width: 14px; height: 14px; margin-right: 5px;"><path fill-rule="evenodd" d="M9 2a1 1 0 00-.894.553L7.382 4H4a1 1 0 000 2v10a2 2 0 002 2h8a2 2 0 002-2V6a1 1 0 100-2h-3.382l-.724-1.447A1 1 0 0011 2H9zM7 8a1 1 0 012 0v6a1 1 0 11-2 0V8zm5-1a1 1 0 00-1 1v6a1 1 0 102 0V8a1 1 0 00-1-1z" clip-rule="evenodd"/></svg>
+                  Eliminar
+                </button>
+              </form>
+            </div>
+
+            <div class="vehicle-profile__header" style="margin-bottom: 24px;">
+              <h2 class="vehicle-profile__plate" style="font-size: 28px;">
+                <%= herramientaSeleccionada.codigo_activo %>
+              </h2>
+              <span class="badge <%= getBadgeClass(herramientaSeleccionada.estado) %>" style="font-size: 13px;">
+                <%= herramientaSeleccionada.estado %>
+              </span>
+            </div>
+
+            <div class="vehicle-profile__specs" style="grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 20px;">
+
+              <dl class="vehicle-profile__spec-group">
+                <div class="vehicle-profile__spec-row">
+                  <dt class="vehicle-profile__spec-label">Nombre / Modelo</dt>
+                  <dd class="vehicle-profile__spec-value" style="font-size: 15px;"><%= herramientaSeleccionada.nombre %></dd>
+                </div>
+                <div class="vehicle-profile__spec-row">
+                  <dt class="vehicle-profile__spec-label">Sector Destino</dt>
+                  <dd class="vehicle-profile__spec-value"><%= herramientaSeleccionada.sector %></dd>
+                </div>
+                <div class="vehicle-profile__spec-row">
+                  <dt class="vehicle-profile__spec-label">Stock Físico</dt>
+                  <dd class="vehicle-profile__spec-value" style="color: #0f172a; font-weight: 700;"><%= herramientaSeleccionada.stock %> unidades</dd>
+                </div>
+              </dl>
+
+              <dl class="vehicle-profile__spec-group">
+                <div class="vehicle-profile__spec-row">
+                  <dt class="vehicle-profile__spec-label">Combustible / Energía</dt>
+                  <dd class="vehicle-profile__spec-value"><%= herramientaSeleccionada.combustible_energia || 'N/A' %></dd>
+                </div>
+                <div class="vehicle-profile__spec-row">
+                  <dt class="vehicle-profile__spec-label">Fecha de Ingreso</dt>
+                  <dd class="vehicle-profile__spec-value"><%= herramientaSeleccionada.fecha_alta ? fmtFecha(herramientaSeleccionada.fecha_alta) : '—' %></dd>
+                </div>
+                <div class="vehicle-profile__spec-row">
+                  <dt class="vehicle-profile__spec-label">Responsable Actual</dt>
+                  <dd class="vehicle-profile__spec-value" style="color: #2563eb; font-weight: 600;">
+                     <%= herramientaSeleccionada.estado === 'En uso' && herramientaSeleccionada.prestamos && herramientaSeleccionada.prestamos[0] ? herramientaSeleccionada.prestamos[0].nombre_operario : 'En Pañol' %>
+                  </dd>
+                </div>
+              </dl>
+
+              <dl class="vehicle-profile__spec-group" style="grid-column: 1 / -1; border-top: 1px dashed #cbd5e1; padding-top: 16px;">
+                <div class="vehicle-profile__spec-row">
+                  <dt class="vehicle-profile__spec-label">Observaciones</dt>
+                  <dd class="vehicle-profile__spec-value" style="font-weight: 400; color: #475569;"><%= herramientaSeleccionada.observaciones || 'Sin observaciones detalladas en la ficha técnica.' %></dd>
+                </div>
+              </dl>
+
+            </div>
+          </div>
+        </article>
+
+        <div class="detail-columns" style="padding: 0 24px 24px 24px;">
+          <div class="detail-main-column">
+            <section class="data-card" aria-label="Préstamos y uso recientes">
+              <header class="data-card__header">
+                <svg class="data-card__icon" viewBox="0 0 20 20" fill="currentColor"><path d="M8 16.5a1.5 1.5 0 11-3 0 1.5 1.5 0 013 0zM15 16.5a1.5 1.5 0 11-3 0 1.5 1.5 0 013 0z"/><path d="M3 4a1 1 0 00-1 1v10a1 1 0 001 1h1.05a2.5 2.5 0 014.9 0H10a1 1 0 001-1V5a1 1 0 00-1-1H3z"/></svg>
+                <h3 class="data-card__title">Últimos Préstamos Registrados</h3>
+              </header>
+              <div class="data-table-wrapper">
+                <table class="data-table">
+                  <thead class="data-table__head">
+                    <tr>
+                      <th class="data-table__th">Fecha Salida</th>
+                      <th class="data-table__th">Fecha Devolución</th>
+                      <th class="data-table__th">Operario Responsable</th>
+                      <th class="data-table__th">Destino / Sector</th>
+                      <th class="data-table__th">Estado</th>
+                    </tr>
+                  </thead>
+                  <tbody class="data-table__body">
+                    <% if (herramientaSeleccionada.prestamos && herramientaSeleccionada.prestamos.length > 0) { %>
+                      <% herramientaSeleccionada.prestamos.slice(0, 5).forEach(p => { %>
+                        <tr class="data-table__row">
+                          <td class="data-table__td" data-label="Salida">
+                            <%= new Date(p.fecha_salida).toLocaleDateString('es-AR') %>
+                          </td>
+                          <td class="data-table__td" data-label="Devolución">
+                            <%= p.fecha_devolucion_real ? new Date(p.fecha_devolucion_real).toLocaleDateString('es-AR') : (p.fecha_devolucion_estimada ? new Date(p.fecha_devolucion_estimada).toLocaleDateString('es-AR') : '—') %>
+                          </td>
+                          <td class="data-table__td" data-label="Operario" style="font-weight: 600;">
+                            <%= p.nombre_operario %>
+                          </td>
+                          <td class="data-table__td" data-label="Destino">
+                            <%= p.sector_destino %>
+                          </td>
+                          <td class="data-table__td" data-label="Estado">
+                            <span class="badge <%= p.estado_prestamo === 'Activo' ? 'badge--warning' : 'badge--success' %>">
+                              <%= p.estado_prestamo %>
+                            </span>
+                          </td>
+                        </tr>
+                      <% }) %>
+                    <% } else { %>
+                      <tr>
+                        <td colspan="5" style="text-align: center; padding: 30px; color: #64748b;">
+                          No hay historial de préstamos para este activo.
+                        </td>
+                      </tr>
+                    <% } %>
+                  </tbody>
+                </table>
+              </div>
+              <a href="/Tools/Prestamos" class="data-card__see-all">
+                Ir al Panel General de Préstamos
+                <svg viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M7.293 14.707a1 1 0 010-1.414L10.586 10 7.293 6.707a1 1 0 011.414-1.414l4 4a1 1 0 010 1.414l-4 4a1 1 0 01-1.414 0z" clip-rule="evenodd"/></svg>
+              </a>
+            </section>
+          </div>
+
+          <aside class="detail-side-column" aria-label="Alertas e información adicional">
+            <section class="alerts-card" aria-label="Alertas de la herramienta">
+              <header class="data-card__header">
+                <svg class="data-card__icon" viewBox="0 0 20 20" fill="currentColor" style="color: #d97706;"><path d="M10 2a6 6 0 00-6 6v3.586l-.707.707A1 1 0 004 14h12a1 1 0 00.707-1.707L16 11.586V8a6 6 0 00-6-6zM10 18a3 3 0 01-3-3h6a3 3 0 01-3 3z"/></svg>
+                <h3 class="data-card__title" style="color: #b45309;">Alertas de Stock</h3>
+              </header>
+              <ul class="alert-list">
+                <% if (herramientaSeleccionada.stock <= 2 && herramientaSeleccionada.stock > 0) { %>
+                  <li class="alert-item alert-item--warning">
+                    <div class="alert-item__content">
+                      <svg class="alert-item__icon" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clip-rule="evenodd"/></svg>
+                      <div class="alert-item__text">
+                        <strong class="alert-item__label" style="color: #92400e;">Stock Bajo</strong>
+                        <span class="alert-item__desc">Quedan solo <%= herramientaSeleccionada.stock %> unidades disponibles en pañol.</span>
+                      </div>
+                    </div>
+                  </li>
+                <% } else if (herramientaSeleccionada.stock === 0) { %>
+                  <li class="alert-item alert-item--danger">
+                    <div class="alert-item__content">
+                      <svg class="alert-item__icon" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z" clip-rule="evenodd"/></svg>
+                      <div class="alert-item__text">
+                        <strong class="alert-item__label" style="color: #991b1b;">Sin Stock Físico</strong>
+                        <span class="alert-item__desc">No hay unidades disponibles para préstamo.</span>
+                      </div>
+                    </div>
+                  </li>
+                <% } else { %>
+                  <div style="padding: 20px; text-align: center; color: #64748b; font-size: 13px;">
+                    <span style="font-size: 24px; display: block; margin-bottom: 5px;">✅</span>
+                    Stock saludable
+                  </div>
+                <% } %>
+              </ul>
+            </section>
+          </aside>
+        </div>
+
+        <% } else { %>
+          <div style="display: flex; flex-direction: column; align-items: center; justify-content: center; height: 50vh; color: #94a3b8;">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" style="width: 60px; height: 60px; margin-bottom: 16px; opacity: 0.5;"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"></path><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path></svg>
+            <h3 style="font-size: 18px; color: #475569; margin-bottom: 8px;">Ninguna herramienta seleccionada</h3>
+            <p>Hacé clic en una herramienta del panel izquierdo para ver su ficha técnica.</p>
+          </div>
+        <% } %>
+
+      </section>
+    </main>
+
+  </div>
+
+  <script src="/js/sidebar.js"></script>
+  <script>
+    /* ── FIX BOTÓN HAMBURGUESA BLINDADO ── */
+    document.addEventListener('DOMContentLoaded', () => {
+      const topbar = document.querySelector('.topbar') || document.querySelector('.app-header');
+      if (!topbar) return;
+      const btnHamburguesa = topbar.querySelector('button') || document.getElementById('menu-toggle');
+      const sidebar = document.getElementById('mi-sidebar-blindado');
+      const overlay = document.getElementById('sb-overlay-blindado');
+      if (btnHamburguesa && sidebar && overlay) {
+        const nuevoBtn = btnHamburguesa.cloneNode(true);
+        btnHamburguesa.parentNode.replaceChild(nuevoBtn, btnHamburguesa);
+        nuevoBtn.addEventListener('click', (e) => {
+          e.preventDefault(); e.stopPropagation();
+          sidebar.classList.toggle('abierto'); overlay.classList.toggle('activo');
+        });
+      }
+    });
+
+    // ── FIX MASTER-DETAIL (Página con recarga en celulares) ──
+    const listPanel  = document.getElementById('vehicle-list-panel');
+    const detailPanel = document.getElementById('vehicle-detail');
+    const backBtn    = document.getElementById('detail-back-btn');
+    
+    function isMobileView() { return window.innerWidth < 900; }
+
+    // MAGIA: Leemos si el servidor ya mandó una herramienta seleccionada
+    const haySeleccion = <%= (typeof herramientaSeleccionada !== 'undefined' && herramientaSeleccionada) ? 'true' : 'false' %>;
+
+    // Si entramos a la página, hay herramienta, y es un celu, forzamos mostrar el panel derecho automáticamente
+    if (haySeleccion && isMobileView()) {
+      if (listPanel) listPanel.classList.add('vehicle-list-panel--hidden');
+      if (detailPanel) {
+        detailPanel.classList.add('vehicle-detail--visible');
+        detailPanel.scrollTop = 0;
+      }
+    }
+
+    document.querySelectorAll('.vehicle-card').forEach(card => {
+      card.addEventListener('click', function () {
+        document.querySelectorAll('.vehicle-card').forEach(c => c.classList.remove('vehicle-card--active'));
+        this.classList.add('vehicle-card--active');
+      });
+    });
+
+    if(backBtn) {
+      backBtn.addEventListener('click', function () {
+        // Al tocar "Volver", ocultamos la ficha y mostramos la lista sin recargar la página
+        listPanel.classList.remove('vehicle-list-panel--hidden');
+        detailPanel.classList.remove('vehicle-detail--visible');
+      });
+    }
+
+    window.addEventListener('resize', function () {
+      if (!isMobileView()) {
+        listPanel.classList.remove('vehicle-list-panel--hidden');
+        detailPanel.classList.remove('vehicle-detail--visible');
+      } else if (haySeleccion) {
+        listPanel.classList.add('vehicle-list-panel--hidden');
+        detailPanel.classList.add('vehicle-detail--visible');
+      }
+    });
+
+    const searchInput = document.querySelector('.vehicle-list-panel__search-input');
+    const toolCards = document.querySelectorAll('.vehicle-card');
+
+    if (searchInput) {
+      searchInput.addEventListener('input', function(e) {
+        const searchTerm = e.target.value.toLowerCase().trim();
+        toolCards.forEach(card => {
+          const code = card.querySelector('.vehicle-card__plate')?.textContent.toLowerCase() || '';
+          const name = card.querySelector('.vehicle-card__model')?.textContent.toLowerCase() || '';
+          if (code.includes(searchTerm) || name.includes(searchTerm)) {
+            card.style.display = ''; 
+          } else {
+            card.style.display = 'none'; 
+          }
+        });
+      });
+    }
+  </script>
+
+</body>
+</html>

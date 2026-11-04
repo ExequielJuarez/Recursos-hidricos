@@ -1,0 +1,772 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Mantenimientos - Gestión de Flota</title>
+    <link rel="stylesheet" href="/css/ListadoVehiculos.css">
+    <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500;600;700&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
+    
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+
+    <style>
+        /* ── FIX: Aseguramos el layout fijo y scroll independiente ── */
+        .app-wrapper {
+            height: 100vh;
+            overflow: hidden;
+        }
+        .main-content {
+            flex: 1;
+            display: flex;
+            overflow: hidden;
+            height: calc(100vh - var(--topbar-height, 56px));
+        }
+        .vehicle-list-panel {
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+        }
+        .vehicle-detail {
+            flex: 1;
+            overflow-y: auto;
+        }
+        /* FIX: Le quitamos el sticky para que no tape las tablas inferiores */
+        .vehicle-profile {
+            background-color: #ffffff;
+        }
+
+        .detail-maint-content { display: none; }
+        .detail-maint-content.active { display: flex; flex-direction: column; gap: 24px; }
+        .cost-box { background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 8px; padding: 16px; text-align: center; }
+        .cost-box__label { font-size: 11px; font-weight: 700; color: #64748b; text-transform: uppercase; margin-bottom: 4px; display: block; }
+        .cost-box__value { font-size: 20px; font-weight: 800; color: #0f172a; font-family: var(--font-mono); display: block; }
+
+        /* ── LÓGICA RESPONSIVE Y BOTÓN VOLVER (CELULARES) ── */
+        #detail-back-btn {
+          background-color: #f8fafc;
+          color: #475569;
+          border: 1px solid #cbd5e1;
+          padding: 8px 14px;
+          font-size: 13px;
+          font-weight: 700;
+          border-radius: 8px;
+          cursor: pointer;
+          display: inline-flex;
+          align-items: center;
+          gap: 6px;
+          transition: 0.2s;
+          margin-bottom: 20px;
+        }
+        #detail-back-btn:hover { background-color: #e2e8f0; color: #0f172a; }
+        #detail-back-btn svg { width: 16px; height: 16px; }
+
+        @media screen and (min-width: 900px) {
+          #detail-back-btn { display: none !important; }
+        }
+
+        @media screen and (max-width: 900px) {
+          /* Deshacemos el fijado en celulares */
+          .app-wrapper { height: auto; overflow: visible; }
+          .main-content { height: auto; overflow: visible; flex-direction: column !important; }
+          
+          /* ── FIX: EVITAMOS QUE LA LISTA SE APLASTE ── */
+          .vehicle-list-panel { 
+              width: 100% !important;
+              border-right: none !important; 
+              flex: 1 1 auto !important;
+              min-height: 70vh !important;
+          }
+          .vehicle-detail { display: none; width: 100% !important; flex: 1 1 auto !important; }
+          
+          .vehicle-list-panel--hidden { display: none !important; }
+          .vehicle-detail--visible { display: block !important; }
+        }
+
+        /* ══════════════════════════════════════════════════════════
+           NUEVO: Historial / Ficha de mantenimientos por vehículo
+           ══════════════════════════════════════════════════════════ */
+        .informe-section {
+            background-color: var(--color-surface, #fff);
+            border: 1px solid var(--color-border, #cbd5e1);
+            border-radius: var(--radius-lg, 12px);
+            margin-top: 24px;
+            overflow: hidden;
+            box-shadow: var(--shadow-sm, 0 1px 2px rgb(0 0 0 / 0.05));
+        }
+        .informe-section__header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            flex-wrap: wrap;
+            gap: 10px;
+            padding: 16px 20px;
+            border-bottom: 1px solid var(--color-border-light, #e2e8f0);
+            background: #f8fafc;
+        }
+        .informe-section__title { font-size: 15px; font-weight: 700; color: var(--color-text-primary, #0f172a); }
+        .informe-section__body { padding: 20px; }
+        .informe-actions { display: flex; gap: 10px; flex-wrap: wrap; }
+        .btn-informe {
+            background-color: var(--color-primary, #0f172a);
+            color: #fff;
+            border: none;
+            padding: 8px 14px;
+            font-size: 12px;
+            font-weight: 700;
+            border-radius: 6px;
+            cursor: pointer;
+            transition: 0.2s;
+        }
+        .btn-informe:hover { opacity: 0.9; }
+        .btn-informe--secondary {
+            background-color: #f1f5f9;
+            color: var(--color-text-secondary, #334155);
+            border: 1px solid var(--color-border, #cbd5e1);
+        }
+        .informe-empty { padding: 8px 4px; text-align: center; color: var(--color-text-muted, #64748b); font-size: 13px; }
+
+        .ficha-anio { margin-bottom: 24px; border: 1px solid var(--color-border, #cbd5e1); border-radius: 6px; overflow: hidden; }
+        .ficha-anio:last-child { margin-bottom: 0; }
+        .ficha-anio__header {
+            background-color: var(--color-primary, #0f172a);
+            color: #fff;
+            padding: 8px 14px;
+            font-size: 13px;
+            font-weight: 700;
+            letter-spacing: 0.02em;
+        }
+        .ficha-tabla { width: 100%; border-collapse: collapse; }
+        .ficha-tabla th, .ficha-tabla td {
+            border: 1px solid var(--color-border, #cbd5e1);
+            padding: 8px 10px;
+            font-size: 12px;
+            text-align: left;
+            vertical-align: top;
+        }
+        .ficha-tabla th {
+            background: #f1f5f9;
+            font-weight: 700;
+            color: var(--color-text-secondary, #334155);
+            text-transform: uppercase;
+            font-size: 10px;
+            letter-spacing: 0.04em;
+        }
+        .ficha-tabla tbody tr:nth-child(even) { background: #f8fafc; }
+
+        /* ══════════════════════════════════════════════════════════
+           IMPRESIÓN DEL REMITO — arregla el recorte por los overflow:hidden
+           del layout fijo, y oculta controles de UI que no van en el papel
+           ══════════════════════════════════════════════════════════ */
+        @media print {
+            #sidebar,
+            .sidebar,
+            .app-header,
+            .vehicle-list-panel,
+            .topbar,
+            #detail-back-btn,
+            #btn-exportar,
+            #empty-state,
+            nav[aria-label="Navegación móvil"],
+            .no-print {
+                display: none !important;
+            }
+
+            html, body {
+                height: auto !important;
+                overflow: visible !important;
+            }
+
+            .app-wrapper {
+                height: auto !important;
+                overflow: visible !important;
+                margin: 0 !important;
+                padding: 0 !important;
+            }
+
+            .main-content {
+                display: block !important;
+                height: auto !important;
+                overflow: visible !important;
+            }
+
+            .vehicle-detail {
+                display: block !important;
+                width: 100% !important;
+                height: auto !important;
+                overflow: visible !important;
+                padding: 0 !important;
+                background: #fff !important;
+                position: static !important;
+            }
+
+            /* Solo se imprime la orden que está activa/visible en pantalla */
+            .detail-maint-content { display: none !important; }
+            .detail-maint-content.active {
+                display: flex !important;
+                flex-direction: column !important;
+                gap: 20px !important;
+            }
+
+            .vehicle-profile {
+                box-shadow: none !important;
+                border: 1px solid #000 !important;
+                page-break-inside: avoid;
+            }
+
+            .detail-columns {
+                display: block !important;
+            }
+            .detail-main-column,
+            .detail-side-column {
+                width: 100% !important;
+                margin-bottom: 16px;
+            }
+
+            .data-card,
+            .alerts-card,
+            .info-card,
+            .cost-box {
+                box-shadow: none !important;
+                border: 1px solid #cbd5e1 !important;
+                page-break-inside: avoid;
+            }
+
+            /* El informe/ficha del vehículo NO sale en el remito normal */
+            .informe-section { display: none !important; }
+
+            /* ── Modo "Imprimir informe": se activa con la clase en <body> ── */
+            body.modo-impresion-informe .vehicle-profile,
+            body.modo-impresion-informe .detail-columns {
+                display: none !important;
+            }
+            body.modo-impresion-informe .informe-section {
+                display: block !important;
+                margin-top: 0 !important;
+                border: 1px solid #000 !important;
+                box-shadow: none !important;
+            }
+            body.modo-impresion-informe .ficha-anio {
+                page-break-inside: avoid;
+                border: 1px solid #000 !important;
+            }
+            body.modo-impresion-informe .ficha-anio__header {
+                background: #000 !important;
+                -webkit-print-color-adjust: exact;
+                print-color-adjust: exact;
+            }
+        }
+    </style>
+</head>
+<body>
+
+    <%- include('./partials/sidebar') %>
+
+  <div class="app-wrapper" id="app-wrapper">
+
+    <%- include('./partials/topbar') %>
+
+    <%
+      const getEstadoMaint = (est) => {
+        const e = (est || '').toLowerCase();
+        if (e.includes('realizado') || e.includes('finalizado')) return 'badge--success';
+        if (e.includes('programado') || e.includes('pendiente')) return 'badge--warning';
+        if (e.includes('proceso')) return 'badge--info';
+        if (e.includes('cancelado')) return 'badge--danger';
+        return 'badge--info';
+      };
+    %>
+
+        <main class="main-content">
+
+            <section class="vehicle-list-panel" id="vehicle-list-panel">
+                <div class="vehicle-list-panel__top" style="display: flex; justify-content: space-between; align-items: center;">
+                    <h2 class="vehicle-list-panel__title">Mantenimientos</h2>
+                    <a href="/Mantenimientos/carga" style="background-color: #2563eb; color: white; border-radius: 6px; padding: 6px 12px; font-size: 12px; font-weight: 700; text-decoration: none; transition: 0.2s;">
+                        + Nuevo
+                    </a>
+                </div>
+
+                <div class="vehicle-list-panel__search-bar" style="flex-direction: column; align-items: stretch; gap: 10px;">
+          
+                  <input class="vehicle-list-panel__search-input" id="filtro-busqueda" type="search" placeholder="Patente, servicio...">
+                    
+                    <details style="background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 6px; padding: 8px 12px; cursor: pointer;">
+                        <summary style="font-size: 12px; font-weight: 700; color: #475569; outline: none;">Filtros Avanzados</summary>
+                        <div style="display: flex; flex-direction: column; gap: 8px; margin-top: 10px;">
+                            <div style="display: flex; gap: 8px;">
+                                <input type="date" id="filtro-desde" style="width: 50%; padding: 6px; font-size: 11px; border-radius: 4px; border: 1px solid #cbd5e1;">
+                                <input type="date" id="filtro-hasta" style="width: 50%; padding: 6px; font-size: 11px; border-radius: 4px; border: 1px solid #cbd5e1;">
+                            </div>
+                            <input type="text" id="filtro-servicio" placeholder="Tipo (Ej: Aceite)" style="width: 100%; padding: 6px; font-size: 12px; border-radius: 4px; border: 1px solid #cbd5e1;">
+                            <select id="filtro-estado" style="width: 100%; padding: 6px; font-size: 12px; border-radius: 4px; border: 1px solid #cbd5e1;">
+                                <option value="">Todos los Estados</option>
+                                <option value="Realizado">Realizado</option>
+                                <option value="Programado">Programado</option>
+                                <option value="En proceso">En proceso</option>
+                                <option value="Cancelado">Cancelado</option>
+                            </select>
+                            <div style="display: flex; gap: 5px;">
+                                <button type="button" id="btn-limpiar" style="flex: 1; background: #e2e8f0; color: #475569; padding: 6px; font-size: 11px; border-radius: 4px; font-weight: 700;">Limpiar</button>
+                            </div>
+                        </div>
+                    </details>
+                </div>
+
+                <ul class="vehicle-list" id="maint-list" style="flex: 1; overflow-y: auto;">
+                    <% if (mantenimientos && mantenimientos.length > 0) { %>
+                        <% mantenimientos.forEach((m, index) => { %>
+                            <li class="vehicle-card maint-item" 
+                                data-index="<%= index %>"
+                                data-fecha="<%= m.fecha_inicio %>"
+                                data-vehiculo="<%= m.vehiculo?.marca %> <%= m.vehiculo?.modelo %>"
+                                data-patente="<%= m.vehiculo?.patente %>"
+                                data-servicio="<%= m.tipo_servicio %>"
+                                data-estado="<%= m.estado %>"
+                                style="padding: 12px 16px;">
+                                
+                                <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 4px; flex-wrap: wrap; gap: 6px;">
+                                    <span class="vehicle-card__plate" style="font-size: 14px; font-weight: 800;"><%= m.vehiculo?.patente || 'S/P' %></span>
+                                    <span class="badge <%= getEstadoMaint(m.estado) %>" style="font-size: 9px; padding: 2px 6px; white-space: nowrap;"><%= m.estado %></span>
+                                </div>
+                                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 4px;">
+                                    <span class="vehicle-card__model" style="font-size: 12px; margin: 0; font-weight: 600; color: #2563eb;"><%= m.tipo_servicio %></span>
+                                </div>
+                                <div style="display: flex; justify-content: space-between; align-items: center;">
+                                    <span style="font-size: 11px; color: #64748b;"><%= fmtFecha(m.fecha_inicio) %></span>
+                                    <span style="font-size: 12px; font-weight: 800; color: #0f172a; font-family: var(--font-mono);"><%= m.estado === 'Programado' || m.estado === 'Cancelado' ? '—' : fmtMoneda(m.costo_total) %></span>
+                                </div>
+                            </li>
+                        <% }) %>
+                    <% } else { %>
+                        <div style="padding: 30px 20px; text-align: center; color: #64748b;">
+                            <p style="font-weight: 500;">No hay mantenimientos.</p>
+                        </div>
+                    <% } %>
+                </ul>
+
+                <div class="vehicle-list-panel__footer" style="padding: 12px; display: flex; flex-direction: column; gap: 8px;">
+                    <p class="info" style="font-size: 11px; color: #64748b; font-weight: 600; text-align: center;">Mostrando registros</p>
+                    <div class="paginacion" style="justify-content: center;">
+                        <button class="cambiar pagination__btn" id="btn-prev">«</button>
+                        <div id="paginas-container" style="display: flex; gap: 4px;"></div>
+                        <button class="cambiar pagination__btn" id="btn-next">»</button>
+                    </div>
+                </div>
+            </section>
+
+            <section class="vehicle-detail" id="vehicle-detail">
+          
+                <nav aria-label="Navegación móvil" style="padding: 20px 24px 0 24px;">
+                  <button id="detail-back-btn">
+                    <svg viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M9.707 16.707a1 1 0 01-1.414 0l-6-6a1 1 0 010-1.414l6-6a1 1 0 011.414 1.414L5.414 9H17a1 1 0 110 2H5.414l4.293 4.293a1 1 0 010 1.414z" clip-rule="evenodd"/></svg>
+                    Volver al listado
+                  </button>
+                </nav>
+
+                <div id="empty-state" style="display: flex; flex-direction: column; align-items: center; justify-content: center; height: 50vh; color: #94a3b8;">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" style="width: 60px; height: 60px; margin-bottom: 16px; opacity: 0.5;"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"></path><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path></svg>
+                    <p>Hacé clic en una orden para ver los detalles del servicio.</p>
+                </div>
+
+                <div style="position: absolute; top: 24px; right: 24px; display: flex; gap: 8px; z-index: 10;">
+                    <button class="boton-secundario no-print" id="btn-exportar" style="background-color: #0f172a; color: white; border: none; padding: 8px 14px; font-size: 12px; font-weight: 700; border-radius: 6px; cursor: pointer; transition: 0.2s;">
+                        Exportar Filtro a Excel
+                    </button>
+                </div>
+
+                <% if (mantenimientos && mantenimientos.length > 0) { %>
+                    <% mantenimientos.forEach((m, index) => { %>
+                        <div class="detail-maint-content" id="detail-<%= index %>">
+                            
+                            <article class="vehicle-profile" style="padding: 24px;">
+                                <div style="display: flex; justify-content: space-between; align-items: flex-start; flex-wrap: wrap; gap: 16px; border-bottom: 1px solid #e2e8f0; padding-bottom: 16px; margin-bottom: 20px;">
+                                    <div>
+                                        <h2 style="margin:0; font-size: 24px; font-weight: 800; color: #0f172a; display: flex; align-items: center; gap: 10px;">
+                                            Orden: <%= m.tipo_servicio %>
+                                            <span class="badge <%= getEstadoMaint(m.estado) %>" style="font-size: 11px;"><%= m.estado %></span>
+                                        </h2>
+                                        <p style="margin: 4px 0 0; color: #64748b; font-size: 13px;"><%= m.estado === 'Programado' || m.estado === 'Cancelado' ? 'Programado el' : 'Fecha de ingreso:' %> <%= fmtFecha(m.fecha_inicio) %></p>
+                                    </div>
+                                    <button onclick="window.print()" class="no-print" style="background-color: #f1f5f9; color: #334155; border: 1px solid #cbd5e1; padding: 8px 14px; font-size: 12px; font-weight: 700; border-radius: 6px; display: flex; align-items: center; transition: 0.2s;">
+                                        <svg viewBox="0 0 20 20" fill="currentColor" style="width: 14px; height: 14px; margin-right: 5px;"><path fill-rule="evenodd" d="M5 4v3H4a2 2 0 00-2 2v3a2 2 0 002 2h1v2a2 2 0 002 2h6a2 2 0 002-2v-2h1a2 2 0 002-2V9a2 2 0 00-2-2h-1V4a2 2 0 00-2-2H7a2 2 0 00-2 2zm8 0H7v3h6V4zm0 8H7v4h6v-4z" clip-rule="evenodd"/></svg>
+                                        Imprimir Remito
+                                    </button>
+                                </div>
+
+                                <div class="vehicle-profile__specs" style="grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 20px;">
+                                    <dl class="vehicle-profile__spec-group">
+                                        <div class="vehicle-profile__spec-row">
+                                            <dt class="vehicle-profile__spec-label">Vehículo Afectado</dt>
+                                            <dd class="vehicle-profile__spec-value" style="font-size: 15px;"><%= m.vehiculo?.marca %> <%= m.vehiculo?.modelo %></dd>
+                                        </div>
+                                        <div class="vehicle-profile__spec-row">
+                                            <dt class="vehicle-profile__spec-label">Patente</dt>
+                                            <dd class="vehicle-profile__spec-value" style="font-family: var(--font-mono); font-size: 16px; font-weight: 800; color: #2563eb;"><%= m.vehiculo?.patente || '—' %></dd>
+                                        </div>
+                                    </dl>
+                                    <dl class="vehicle-profile__spec-group">
+                                        <div class="vehicle-profile__spec-row">
+                                            <dt class="vehicle-profile__spec-label"><%= m.estado === 'Programado' || m.estado === 'Cancelado' ? (unidadDe(m.vehiculo) === 'hs' ? 'Horas del service programado' : 'Km del service programado') : (unidadDe(m.vehiculo) === 'hs' ? 'Horas al realizar servicio' : 'Km al realizar servicio') %></dt>
+                                            <dd class="vehicle-profile__spec-value" style="font-family: var(--font-mono);"><%= fmtUso(m.km_servicio, m.vehiculo) %></dd>
+                                        </div>
+                                        <% if (m.estado !== 'Programado' && m.estado !== 'Cancelado') { %>
+                                        <div class="vehicle-profile__spec-row">
+                                            <dt class="vehicle-profile__spec-label">Sugerencia Próximo Servicio</dt>
+                                            <dd class="vehicle-profile__spec-value" style="color: #d97706; font-weight: 700;">
+                                                <% if (m.proximo_servicio_km) { %> A los <%= fmtUso(m.proximo_servicio_km, m.vehiculo) %> <% } else { %> No especificado <% } %>
+                                            </dd>
+                                        </div>
+                                        <% } %>
+                                    </dl>
+                                </div>
+                            </article>
+
+                            <div class="detail-columns">
+                                <div class="detail-main-column">
+                                    <section class="data-card">
+                                        <header class="data-card__header">
+                                            <svg class="data-card__icon" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M4 4a2 2 0 012-2h4.586A2 2 0 0112 2.586L15.414 6A2 2 0 0116 7.414V16a2 2 0 01-2 2H6a2 2 0 01-2-2V4zm2 6a1 1 0 011-1h6a1 1 0 110 2H7a1 1 0 01-1-1zm1 3a1 1 0 100 2h6a1 1 0 100-2H7z" clip-rule="evenodd"/></svg>
+                                            <h3 class="data-card__title">Detalle del Trabajo</h3>
+                                        </header>
+                                        <div style="padding: 20px;">
+                                            <p style="font-size: 14px; color: #334155; line-height: 1.6; margin-bottom: 16px;">
+                                                <%= m.descripcion || m.trabajo_realizado || 'No se detallaron tareas específicas para esta orden.' %>
+                                            </p>
+                                            <div style="background: #fef8f2; border: 1px solid #fde68a; border-radius: 8px; padding: 12px;">
+                                                <span style="display: block; font-size: 11px; font-weight: 700; color: #92400e; text-transform: uppercase; margin-bottom: 4px;">Observaciones del Mecánico</span>
+                                                <span style="font-size: 13px; color: #78350f;"><%= m.observaciones || 'Sin observaciones.' %></span>
+                                            </div>
+                                        </div>
+                                    </section>
+                                </div>
+
+                                <aside class="detail-side-column">
+                                    <% if (m.estado !== 'Programado' && m.estado !== 'Cancelado') { %>
+                                    <section class="data-card">
+                                        <header class="data-card__header">
+                                            <svg class="data-card__icon" viewBox="0 0 20 20" fill="currentColor"><path d="M4 4a2 2 0 00-2 2v1h16V6a2 2 0 00-2-2H4z"/><path fill-rule="evenodd" d="M18 9H2v5a2 2 0 002 2h12a2 2 0 002-2V9zM4 13a1 1 0 011-1h1a1 1 0 110 2H5a1 1 0 01-1-1zm5-1a1 1 0 100 2h1a1 1 0 100-2H9z" clip-rule="evenodd"/></svg>
+                                            <h3 class="data-card__title">Resumen Financiero</h3>
+                                        </header>
+                                        <div style="padding: 16px; display: flex; flex-direction: column; gap: 12px;">
+                                            <div class="cost-box">
+                                                <span class="cost-box__label">Costo de Repuestos</span>
+                                                <span class="cost-box__value" style="color: #64748b;"><%= fmtMoneda(m.costo_repuestos) %></span>
+                                            </div>
+                                            <div class="cost-box">
+                                                <span class="cost-box__label">Mano de Obra</span>
+                                                <span class="cost-box__value" style="color: #64748b;"><%= fmtMoneda(m.mano_obra) %></span>
+                                            </div>
+                                            <div class="cost-box" style="background: #eff6ff; border-color: #bfdbfe;">
+                                                <span class="cost-box__label" style="color: #1e40af;">Total Facturado</span>
+                                                <span class="cost-box__value" style="color: #1d4ed8; font-size: 24px;"><%= fmtMoneda(m.costo_total) %></span>
+                                            </div>
+                                        </div>
+                                    </section>
+
+                                    <% } %>
+
+                                    <% if (m.estado === 'En proceso' || m.estado === 'Programado') { %>
+                                    <section class="data-card no-print">
+                                        <header class="data-card__header">
+                                            <svg class="data-card__icon" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"/></svg>
+                                            <h3 class="data-card__title"><%= m.estado === 'Programado' ? 'Gestionar Service Programado' : 'Finalizar Orden' %></h3>
+                                        </header>
+                                        <div style="padding: 16px; display: flex; flex-direction: column; gap: 10px;">
+                                        <% if (m.estado === 'Programado') { %>
+                                        <form action="/Mantenimientos/<%= m.id_mantenimiento %>/estado" method="POST" style="margin:0;">
+                                            <input type="hidden" name="estado" value="En proceso">
+                                            <button type="submit" style="width:100%; background-color: #d97706; color: white; border: none; padding: 10px; font-size: 13px; font-weight: 700; border-radius: 6px; cursor: pointer;">
+                                                 Iniciar (el vehículo entra al taller)
+                                            </button>
+                                        </form>
+                                        <% } %>
+                                        <form action="/Mantenimientos/<%= m.id_mantenimiento %>/estado" method="POST" style="margin:0;">
+                                            <input type="hidden" name="estado" value="Realizado">
+                                            <button type="submit" style="width:100%; background-color: #16a34a; color: white; border: none; padding: 10px; font-size: 13px; font-weight: 700; border-radius: 6px; cursor: pointer;">
+                                                 Marcar como Realizado
+                                            </button>
+                                        </form>
+                                        <% if (m.estado === 'Programado') { %>
+                                        <form action="/Mantenimientos/<%= m.id_mantenimiento %>/estado" method="POST" style="margin:0;" onsubmit="return confirm('¿Cancelar este service programado?');">
+                                            <input type="hidden" name="estado" value="Cancelado">
+                                            <button type="submit" style="width:100%; background-color: #fef2f2; color: #dc2626; border: 1px solid #fecaca; padding: 10px; font-size: 13px; font-weight: 700; border-radius: 6px; cursor: pointer;">
+                                                 Cancelar programación
+                                            </button>
+                                        </form>
+                                        <% } %>
+                                        </div>
+                                    </section>
+                                    <% } %>
+                                </aside>
+                            </div>
+
+                            <!-- ══════════════════════════════════════════════
+                                 NUEVO: Historial / Ficha de mantenimientos del vehículo
+                                 Va abajo de todo, dentro de cada orden seleccionada
+                                 ══════════════════════════════════════════════ -->
+                            <section class="informe-section">
+                                <div class="informe-section__header">
+                                    <span class="informe-section__title">Historial de Mantenimientos del Vehículo</span>
+                                    <div class="informe-actions no-print">
+                                        <button type="button"
+                                                class="btn-informe btn-generar-informe"
+                                                data-patente="<%= m.vehiculo?.patente %>"
+                                                data-target="informe-resultado-<%= index %>">
+                                            Generar informe últimos 3 años
+                                        </button>
+                                        <button type="button" class="btn-informe btn-informe--secondary btn-imprimir-informe" style="display: none;">
+                                            Imprimir informe
+                                        </button>
+                                    </div>
+                                </div>
+                                <div class="informe-section__body">
+                                    <div class="informe-resultado" id="informe-resultado-<%= index %>">
+                                        <p class="informe-empty">Tocá "Generar informe últimos 3 años" para ver el historial de este vehículo.</p>
+                                    </div>
+                                </div>
+                            </section>
+                        </div>
+                    <% }) %>
+                <% } %>
+
+            </section>
+        </main>
+    </div>
+
+    <!-- Datos de mantenimientos embebidos para armar el informe sin pegarle al servidor de nuevo -->
+    <script>
+      window.__mantenimientosData = <%- safeJson((mantenimientos || []).map(m => ({
+            patente: m.vehiculo ? m.vehiculo.patente : null,
+            fecha: m.fecha_inicio,
+            tipo_servicio: m.tipo_servicio,
+            descripcion: m.descripcion,
+            observaciones: m.observaciones,
+            km_servicio: m.km_servicio,
+            estado: m.estado
+      }))).replace(/</g, '\u003c') %>;
+    </script>
+
+    <script src="/js/sidebar.js"></script>
+    <script>
+    /* ── FIX BOTÓN HAMBURGUESA BLINDADO ── */
+    document.addEventListener('DOMContentLoaded', () => {
+      const topbar = document.querySelector('.topbar') || document.querySelector('.app-header');
+      if (!topbar) return;
+      const btnHamburguesa = topbar.querySelector('button') || document.getElementById('menu-toggle');
+      const sidebar = document.getElementById('mi-sidebar-blindado');
+      const overlay = document.getElementById('sb-overlay-blindado');
+      if (btnHamburguesa && sidebar && overlay) {
+        const nuevoBtn = btnHamburguesa.cloneNode(true);
+        btnHamburguesa.parentNode.replaceChild(nuevoBtn, btnHamburguesa);
+        nuevoBtn.addEventListener('click', (e) => {
+          e.preventDefault(); e.stopPropagation();
+          sidebar.classList.toggle('abierto'); overlay.classList.toggle('activo');
+        });
+      }
+    });
+
+    // ── Lógica FRONT-END (Master-Detail y Mobile) ─────────────────
+    const maintItems  = document.querySelectorAll('.maint-item');
+    const emptyState  = document.getElementById('empty-state');
+    const allDetails  = document.querySelectorAll('.detail-maint-content');
+    const listPanel   = document.querySelector('.vehicle-list-panel');
+    const detailPanel = document.getElementById('vehicle-detail');
+    const backBtn     = document.getElementById('detail-back-btn');
+
+    function isMobileView() { return window.innerWidth < 900; }
+
+    maintItems.forEach(item => {
+        item.addEventListener('click', function() {
+            maintItems.forEach(c => c.classList.remove('vehicle-card--active'));
+            this.classList.add('vehicle-card--active');
+
+            if (emptyState) emptyState.style.display = 'none';
+            allDetails.forEach(d => d.classList.remove('active'));
+
+            const targetId = 'detail-' + this.dataset.index;
+            document.getElementById(targetId).classList.add('active');
+
+            if (isMobileView()) {
+                listPanel.classList.add('vehicle-list-panel--hidden');
+                detailPanel.classList.add('vehicle-detail--visible');
+                detailPanel.scrollTop = 0;
+            }
+        });
+    });
+
+    if (backBtn) {
+        backBtn.addEventListener('click', function () {
+            listPanel.classList.remove('vehicle-list-panel--hidden');
+            detailPanel.classList.remove('vehicle-detail--visible');
+        });
+    }
+
+    window.addEventListener('resize', function () {
+        if (!isMobileView()) {
+            listPanel.classList.remove('vehicle-list-panel--hidden');
+            detailPanel.classList.remove('vehicle-detail--visible');
+        }
+    });
+
+    // ── Filtros Front-End a Prueba de Fallos ──────────────────────────────────
+    const filtroBusqueda = document.getElementById("filtro-busqueda");
+    const filtroDesde    = document.getElementById("filtro-desde");
+    const filtroHasta    = document.getElementById("filtro-hasta");
+    const filtroServicio = document.getElementById("filtro-servicio");
+    const filtroEstado   = document.getElementById("filtro-estado");
+    const btnLimpiar     = document.getElementById("btn-limpiar");
+    let filasFiltradas = Array.from(maintItems);
+
+    function aplicarFiltros() {
+        const busqueda = (filtroBusqueda.value || "").toLowerCase().trim();
+        const desde    = filtroDesde.value;
+        const hasta    = filtroHasta.value;
+        const servicio = (filtroServicio.value || "").toLowerCase().trim();
+        const estado   = filtroEstado.value;
+
+        filasFiltradas = Array.from(maintItems).filter(fila => {
+            const patente      = (fila.dataset.patente || "").toLowerCase();
+            const vehiculo     = (fila.dataset.vehiculo || "").toLowerCase();
+            const tipoServicio = (fila.dataset.servicio || "").toLowerCase();
+            const estadoFila   = (fila.dataset.estado || "");
+            const fecha        = (fila.dataset.fecha || "");
+
+            if (busqueda && !patente.includes(busqueda) && !vehiculo.includes(busqueda) && !tipoServicio.includes(busqueda)) return false;
+            if (servicio && !tipoServicio.includes(servicio)) return false;
+            if (estado   && estadoFila !== estado)            return false;
+            if (desde    && fecha < desde)                    return false;
+            if (hasta    && fecha > hasta)                    return false;
+            return true;
+        });
+
+        maintItems.forEach(f => f.style.display = 'none');
+        filasFiltradas.forEach(f => f.style.display = '');
+    }
+
+    [filtroBusqueda, filtroDesde, filtroHasta, filtroServicio, filtroEstado].forEach(el => {
+        if(el) el.addEventListener('input', aplicarFiltros);
+    });
+
+    if(btnLimpiar) {
+        btnLimpiar.addEventListener('click', () => {
+            filtroBusqueda.value = ""; filtroDesde.value = ""; filtroHasta.value = ""; filtroServicio.value = ""; filtroEstado.value = "";
+            aplicarFiltros();
+        });
+    }
+
+    // ── Preselección por URL ──
+    const params = new URLSearchParams(window.location.search);
+    if (params.get('patente')) {
+        filtroBusqueda.value = params.get('patente');
+        aplicarFiltros();
+    }
+
+    // ── Lógica de Exportación a Excel ─────────────────────────
+    const btnExportar = document.getElementById('btn-exportar');
+    if(btnExportar) {
+        btnExportar.addEventListener('click', function(e) {
+            e.preventDefault();
+            if(typeof XLSX === 'undefined') { alert("Cargando componentes..."); return; }
+
+            let datosExcel = [['Fecha', 'Vehículo', 'Patente', 'Servicio', 'Estado']];
+            filasFiltradas.forEach(fila => {
+                datosExcel.push([
+                    fila.dataset.fecha || '', 
+                    fila.dataset.vehiculo || '', 
+                    fila.dataset.patente || '', 
+                    fila.dataset.servicio || '', 
+                    fila.dataset.estado || ''
+                ]);
+            });
+
+            const ws = XLSX.utils.aoa_to_sheet(datosExcel);
+            const wb = XLSX.utils.book_new();
+            XLSX.utils.book_append_sheet(wb, ws, "Mantenimientos");
+            XLSX.writeFile(wb, 'Reporte_Mantenimientos.xlsx');
+        });
+    }
+
+    // ── NUEVO: Historial / Ficha de mantenimientos por vehículo (últimos 3 años) ──
+    function escapeHtml(texto) {
+        if (texto === null || texto === undefined) return '';
+        return String(texto)
+            .replace(/&/g, '&amp;')
+            .replace(/</g, '&lt;')
+            .replace(/>/g, '&gt;');
+    }
+
+    function generarInformeVehiculo(patente, contenedor) {
+        if (!contenedor || !Array.isArray(window.__mantenimientosData)) return;
+
+        const hoy = new Date();
+        const limite = new Date(hoy.getFullYear() - 3, hoy.getMonth(), hoy.getDate());
+
+        const registros = window.__mantenimientosData.filter(m => {
+            if (!m.patente || m.patente !== patente) return false;
+            const f = new Date(m.fecha);
+            return !isNaN(f) && f >= limite;
+        });
+
+        if (registros.length === 0) {
+            contenedor.innerHTML = '<p class="informe-empty">No se encontraron mantenimientos en los últimos 3 años para este vehículo.</p>';
+            return;
+        }
+
+        const porAnio = {};
+        registros.forEach(m => {
+            const anio = new Date(m.fecha).getFullYear();
+            if (!porAnio[anio]) porAnio[anio] = [];
+            porAnio[anio].push(m);
+        });
+
+        const anios = Object.keys(porAnio).sort((a, b) => b - a);
+
+        let html = '';
+        anios.forEach(anio => {
+            const filas = porAnio[anio].slice().sort((a, b) => new Date(b.fecha) - new Date(a.fecha));
+            html += '<div class="ficha-anio">';
+            html += '<div class="ficha-anio__header">Ficha de Mantenimientos — Año ' + anio + '</div>';
+            html += '<table class="ficha-tabla"><thead><tr>' +
+                        '<th>Fecha</th><th>Repuesto / Servicio</th><th>Descripción</th><th>Km</th><th>Estado</th>' +
+                    '</tr></thead><tbody>';
+            filas.forEach(m => {
+                const pf = String(m.fecha || '').split('-');
+                const fechaFmt = pf.length === 3 ? Number(pf[2]) + '/' + Number(pf[1]) + '/' + pf[0] : '-';
+                html += '<tr>' +
+                    '<td>' + escapeHtml(fechaFmt) + '</td>' +
+                    '<td>' + escapeHtml(m.tipo_servicio || '-') + '</td>' +
+                    '<td>' + escapeHtml(m.descripcion || m.observaciones || '-') + '</td>' +
+                    '<td>' + escapeHtml((m.km_servicio || 0) + ' km') + '</td>' +
+                    '<td>' + escapeHtml(m.estado || '-') + '</td>' +
+                    '</tr>';
+            });
+            html += '</tbody></table></div>';
+        });
+
+        contenedor.innerHTML = html;
+    }
+
+    document.querySelectorAll('.btn-generar-informe').forEach(btn => {
+        btn.addEventListener('click', function () {
+            const patente = this.dataset.patente;
+            const contenedor = document.getElementById(this.dataset.target);
+            generarInformeVehiculo(patente, contenedor);
+
+            const btnImprimir = this.parentElement.querySelector('.btn-imprimir-informe');
+            if (btnImprimir) btnImprimir.style.display = 'inline-flex';
+        });
+    });
+
+    document.querySelectorAll('.btn-imprimir-informe').forEach(btn => {
+        btn.addEventListener('click', function () {
+            document.body.classList.add('modo-impresion-informe');
+            window.print();
+        });
+    });
+
+    window.addEventListener('afterprint', function () {
+        document.body.classList.remove('modo-impresion-informe');
+    });
+    </script>
+</body>
+</html>

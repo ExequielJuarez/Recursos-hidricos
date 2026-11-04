@@ -1,0 +1,173 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Nuevo Usuario - Gestión de Flota</title>
+    <link rel="stylesheet" href="/css/ListadoVehiculos.css"> 
+    <link rel="stylesheet" href="/css/CargaFichaVehiculo.css"> 
+    <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        .permisos-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(180px, 1fr)); gap: 12px; margin-top: 12px; }
+        .permiso-label { display: flex; align-items: center; gap: 10px; background: #f8fafc; border: 1px solid #e2e8f0; padding: 12px; border-radius: 8px; cursor: pointer; font-size: 13px; font-weight: 600; color: var(--color-text-secondary); transition: 0.2s; }
+        .permiso-label:hover { border-color: var(--color-blue); background: #eff6ff; }
+        .permiso-label input { width: 16px; height: 16px; accent-color: var(--color-blue); cursor: pointer;}
+
+        /* ── ADAPTACIÓN MÓVIL Y BOTÓN VOLVER ── */
+        #mobile-back-btn {
+          background-color: #f8fafc; color: #475569; border: 1px solid #cbd5e1; padding: 8px 14px; font-size: 13px; font-weight: 700; border-radius: 8px; cursor: pointer; display: inline-flex; align-items: center; gap: 6px; transition: 0.2s; margin-bottom: 20px; text-decoration: none;
+        }
+        #mobile-back-btn:hover { background-color: #e2e8f0; color: #0f172a; }
+        #mobile-back-btn svg { width: 16px; height: 16px; }
+
+        @media (min-width: 900px) {
+          #mobile-back-btn { display: none !important; }
+        }
+
+        @media (max-width: 900px) {
+          .form-row { flex-direction: column !important; gap: 0 !important; }
+          .acciones { flex-direction: column-reverse !important; width: 100% !important; gap: 12px !important; }
+          .acciones button, .acciones a { width: 100% !important; text-align: center; padding: 14px !important; font-size: 14px !important; justify-content: center; }
+          .page-header { margin-bottom: 16px !important; }
+          .form-group { max-width: 100% !important; }
+        }
+    </style>
+</head>
+<body>
+
+    <%- include('./partials/sidebar') %>
+
+  <div class="app-wrapper" id="app-wrapper">
+
+    <%- include('./partials/topbar') %>
+        <main class="main-content">
+            
+            <a href="/Usuarios" id="mobile-back-btn">
+                <svg viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M9.707 16.707a1 1 0 01-1.414 0l-6-6a1 1 0 010-1.414l6-6a1 1 0 011.414 1.414L5.414 9H17a1 1 0 110 2H5.414l4.293 4.293a1 1 0 010 1.414z" clip-rule="evenodd"/></svg>
+                Volver a Usuarios
+            </a>
+
+            <div class="page-header">
+                <h2 class="page-title">Nuevo Usuario</h2>
+                <p class="page-subtitle">Registrá un empleado y asignale un nivel de acceso.</p>
+            </div>
+
+            <form action="/Usuarios/Carga" method="POST" class="form">
+
+                <section class="form-section">
+                    <h3>Datos Personales</h3>
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label for="nombre">Nombre <span class="req">*</span></label>
+                            <input type="text" id="nombre" name="nombre" value="<%= usuario.nombre || '' %>" required>
+                        </div>
+                        <div class="form-group">
+                            <label for="apellido">Apellido <span class="req">*</span></label>
+                            <input type="text" id="apellido" name="apellido" value="<%= usuario.apellido || '' %>" required>
+                        </div>
+                    </div>
+                </section>
+
+                <section class="form-section">
+                    <h3>Credenciales de Acceso</h3>
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label for="nombre_usuario">Nombre de Usuario (Login) <span class="req">*</span></label>
+                            <input type="text" id="nombre_usuario" name="nombre_usuario" value="<%= usuario.nombre_usuario || '' %>" required autocomplete="off">
+                        </div>
+                        <div class="form-group">
+                            <label for="contrasena">Contraseña Temporal <span class="req">*</span></label>
+                            <input type="password" id="contrasena" name="contrasena" required minlength="8" placeholder="Mínimo 8 caracteres" autocomplete="new-password">
+                        </div>
+                    </div>
+                    <div class="form-group" style="max-width: 300px;">
+                        <label for="id_rol">Rol del Usuario <span class="req">*</span></label>
+                        <select id="id_rol" name="id_rol" required>
+                            <% roles.forEach(rol => { %>
+                                <option value="<%= rol.id_rol %>" data-permisos="<%= rol.permisos || '' %>" <%= usuario.id_rol == rol.id_rol ? 'selected' : '' %>><%= rol.nombre %></option>
+                            <% }) %>
+                        </select>
+                    </div>
+                </section>
+
+                <section class="form-section" id="contenedor-permisos">
+                    <h3>Permisos de Módulos</h3>
+                    <div id="cartel-admin" style="display: none; background: #eff6ff; border: 1px solid #bfdbfe; color: #1e40af; padding: 16px; border-radius: 8px; font-weight: 600; font-size: 13px;">
+                        ℹ️ El rol de Administrador tiene acceso total a todos los módulos del sistema por defecto.
+                    </div>
+                    
+                    <div id="lista-permisos">
+                        <p style="font-size: 13px; color: var(--color-text-muted); margin-bottom: 8px;">Seleccioná a qué secciones de la barra lateral tendrá acceso este usuario:</p>
+                        <div class="permisos-grid">
+                            <label class="permiso-label"><input type="checkbox" name="vistas" value="Vehicles" <%= permisosUser.includes('Vehicles') ? 'checked' : '' %>> Vehículos / Flota</label>
+                            <label class="permiso-label"><input type="checkbox" name="vistas" value="Choferes" <%= permisosUser.includes('Choferes') ? 'checked' : '' %>> Choferes</label>
+                            <label class="permiso-label"><input type="checkbox" name="vistas" value="Mantenimientos" <%= permisosUser.includes('Mantenimientos') ? 'checked' : '' %>> Mantenimientos</label>
+                            <label class="permiso-label"><input type="checkbox" name="vistas" value="Tools" <%= permisosUser.includes('Tools') ? 'checked' : '' %>> Herramientas</label>
+                            <label class="permiso-label"><input type="checkbox" name="vistas" value="Alertas" <%= permisosUser.includes('Alertas') ? 'checked' : '' %>> Alertas</label>
+                            <label class="permiso-label"><input type="checkbox" name="vistas" value="Reportes" <%= permisosUser.includes('Reportes') ? 'checked' : '' %>> Reportes BI</label>
+                            <label class="permiso-label"><input type="checkbox" name="vistas" value="Siniestros" <%= permisosUser.includes('Siniestros') ? 'checked' : '' %>> Siniestros</label>
+                            
+                            <% if (typeof usuarioLogueado !== 'undefined' && usuarioLogueado.rol === 'Administrador') { %>
+                                <label class="permiso-label" style="border-color: #fecaca; background: #fef2f2; color: #991b1b;"><input type="checkbox" name="vistas" value="Usuarios" <%= permisosUser.includes('Usuarios') ? 'checked' : '' %>> Usuarios</label>
+                                <label class="permiso-label" style="border-color: #fecaca; background: #fef2f2; color: #991b1b;"><input type="checkbox" name="vistas" value="Roles" <%= permisosUser.includes('Roles') ? 'checked' : '' %>> Roles</label>
+                                <label class="permiso-label" style="border-color: #fecaca; background: #fef2f2; color: #991b1b;"><input type="checkbox" name="vistas" value="Auditoria" <%= permisosUser.includes('Auditoria') ? 'checked' : '' %>> Auditoría</label>
+                            <% } %>
+                        </div>
+                    </div>
+                </section>
+
+                <div class="acciones">
+                    <a href="/Usuarios" class="boton-secundario">Cancelar</a>
+                    <button type="submit" class="boton-primario">Guardar Usuario</button>
+                </div>
+
+            </form>
+        </main>
+    </div>
+
+    <script src="/js/sidebar.js"></script>
+    <script>
+        /* ── FIX BOTÓN HAMBURGUESA BLINDADO ── */
+        document.addEventListener('DOMContentLoaded', () => {
+          const topbar = document.querySelector('.topbar') || document.querySelector('.app-header');
+          if (!topbar) return;
+          const btnHamburguesa = topbar.querySelector('button') || document.getElementById('menu-toggle');
+          const sidebar = document.getElementById('mi-sidebar-blindado');
+          const overlay = document.getElementById('sb-overlay-blindado');
+          if (btnHamburguesa && sidebar && overlay) {
+            const nuevoBtn = btnHamburguesa.cloneNode(true);
+            btnHamburguesa.parentNode.replaceChild(nuevoBtn, btnHamburguesa);
+            nuevoBtn.addEventListener('click', (e) => {
+              e.preventDefault(); e.stopPropagation();
+              sidebar.classList.toggle('abierto'); overlay.classList.toggle('activo');
+            });
+          }
+        });
+
+        const rolSelect = document.getElementById('id_rol');
+        const listaPermisos = document.getElementById('lista-permisos');
+        const cartelAdmin = document.getElementById('cartel-admin');
+
+        if (rolSelect && listaPermisos && cartelAdmin) {
+            function togglePermisos() {
+                // Asumiendo que ID 1 es Administrador
+                if (rolSelect.value === '1') {
+                    listaPermisos.style.display = 'none';
+                    cartelAdmin.style.display = 'block';
+                } else {
+                    listaPermisos.style.display = 'block';
+                    cartelAdmin.style.display = 'none';
+                }
+            }
+            // Al cambiar el rol se marcan los permisos que ese rol trae por defecto
+            // (si se dejan así, el usuario hereda los del rol y sigue sus cambios futuros)
+            rolSelect.addEventListener('change', function () {
+                const permisosRol = (rolSelect.options[rolSelect.selectedIndex].dataset.permisos || '').split(',').map(x => x.trim());
+                document.querySelectorAll('input[name="vistas"]').forEach(cb => { cb.checked = permisosRol.includes(cb.value); });
+            });
+            rolSelect.addEventListener('change', togglePermisos);
+            togglePermisos(); 
+        }
+    </script>
+</body>
+</html>

@@ -1,0 +1,377 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Cargar Mantenimiento - Gestión de Flota</title>
+  <link rel="stylesheet" href="/css/ListadoVehiculos.css" />
+  <link rel="stylesheet" href="/css/CargaFichaVehiculo.css" />
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500;600;700&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet" />
+  <style>
+    .btn-quitar-repuesto {
+      color: #dc2626; font-weight: bold; font-size: 24px; cursor: pointer; border: none; background: transparent; transition: 0.2s; display: flex; align-items: center; justify-content: center; line-height: 1;
+    }
+    .btn-quitar-repuesto:hover { color: #991b1b; }
+
+    #mobile-back-btn {
+      background-color: #f8fafc; color: #475569; border: 1px solid #cbd5e1; padding: 8px 14px; font-size: 13px; font-weight: 700; border-radius: 8px; cursor: pointer; display: inline-flex; align-items: center; gap: 6px; transition: 0.2s; margin-bottom: 20px; text-decoration: none;
+    }
+    #mobile-back-btn:hover { background-color: #e2e8f0; color: #0f172a; }
+    #mobile-back-btn svg { width: 16px; height: 16px; }
+
+    @media (min-width: 900px) { #mobile-back-btn { display: none !important; } }
+
+    @media (max-width: 900px) {
+      .form-row { flex-direction: column !important; gap: 0 !important; }
+      .acciones { flex-direction: column-reverse !important; width: 100% !important; gap: 12px !important; }
+      .acciones button, .acciones a { width: 100% !important; text-align: center; padding: 14px !important; font-size: 14px !important; }
+      .page-header { margin-bottom: 16px !important; }
+      .repuesto-fila { grid-template-columns: 1fr !important; gap: 10px !important; padding-bottom: 16px; border-bottom: 1px dashed #cbd5e1; }
+      .repuesto-fila select { width: 100%; }
+      .btn-quitar-repuesto { width: 100%; background: #fef2f2 !important; border: 1px solid #fecaca !important; border-radius: 6px; padding: 10px; font-size: 14px !important; gap: 6px; }
+      .btn-quitar-repuesto::after { content: " Quitar repuesto"; }
+    }
+  </style>
+</head>
+<body>
+
+  <%- include('./partials/sidebar') %>
+
+  <div class="app-wrapper" id="app-wrapper">
+
+    <%- include('./partials/topbar') %>
+
+    <main class="main-content">
+
+      <a href="/Mantenimientos" id="mobile-back-btn">
+        <svg viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M9.707 16.707a1 1 0 01-1.414 0l-6-6a1 1 0 010-1.414l6-6a1 1 0 011.414 1.414L5.414 9H17a1 1 0 110 2H5.414l4.293 4.293a1 1 0 010 1.414z" clip-rule="evenodd"/></svg>
+        Volver a Mantenimientos
+      </a>
+
+      <div class="page-header">
+        <h2 class="page-title">Registrar Orden de Mantenimiento</h2>
+        <p class="page-subtitle">Ingresá los detalles del servicio, los repuestos utilizados y los costos asociados.</p>
+      </div>
+
+      <form class="form" action="/CargaMantenimiento" method="post" id="form-mantenimiento">
+        
+        <input type="hidden" name="costo_repuestos" id="costo_repuestos" value="0">
+
+        <section class="form-section">
+          <h3>1. ¿Qué tipo de orden vas a cargar?</h3>
+          <div class="form-group">
+            <label>Estado de la Orden <span class="req">*</span></label>
+            <select name="estado" id="estado" required>
+              <option value="">Seleccioná el estado de la orden</option>
+              <option value="Programado">Programado (próximo service por kilometraje)</option>
+              <option value="En proceso">En proceso (el vehículo está en el taller ahora)</option>
+              <option value="Realizado">Realizado (service ya hecho / registro histórico)</option>
+            </select>
+            <span id="ayuda-estado" style="font-size:12px; color:var(--color-text-muted); margin-top:4px; display:block;">El formulario se adapta según el estado elegido.</span>
+          </div>
+        </section>
+
+        <section class="form-section bloque-estado" data-estados="Programado En proceso Realizado" style="display:none;">
+          <h3>2. Vehículo y Servicio</h3>
+
+          <div class="form-row">
+            <div class="form-group">
+              <label>Vehículo <span class="req">*</span></label>
+              <select name="id_vehiculo" id="id_vehiculo" required>
+                <option value="">Seleccione un vehículo</option>
+                <% if (typeof vehiculos !== 'undefined' && vehiculos.length > 0) { %>
+                  <% vehiculos.forEach(v => { %>
+                    <option value="<%= v.id_vehiculo %>" data-km="<%= v.km_actual %>" data-unidad="<%= unidadDe(v) %>" 
+                      <%= (typeof id_vehiculo_preseleccionado !== 'undefined' && String(id_vehiculo_preseleccionado) === String(v.id_vehiculo)) ? 'selected' : '' %>>
+                      <%= v.patente %> - <%= v.marca %> <%= v.modelo %> (<%= fmtUso(v.km_actual, v) %>)
+                    </option>
+                  <% }) %>
+                <% } %>
+              </select>
+              <span id="km-actual-hint" style="font-size:13px; font-weight:700; color:#1d4ed8; margin-top:6px; display:block;"></span>
+            </div>
+            <div class="form-group">
+              <label>Tipo de Servicio <span class="req">*</span></label>
+              <input type="text" name="tipo_servicio" placeholder="Ej: Cambio de aceite y filtros" required>
+            </div>
+          </div>
+        </section>
+
+        <!-- ───── SOLO PROGRAMADO: se maneja por kilometraje, sin fecha ───── -->
+        <section class="form-section bloque-estado" data-estados="Programado" style="display:none;">
+          <h3>3. Service Programado por Kilometraje</h3>
+          <div class="form-row">
+            <div class="form-group">
+              <label><span class="u-txt" data-km="Km actual del vehículo" data-hs="Horas de uso actuales del vehículo">Km actual del vehículo</span></label>
+              <input type="text" id="km-actual-prog" readonly placeholder="Elegí un vehículo" style="background:#f8fafc; font-weight:800;">
+            </div>
+            <div class="form-group">
+              <label><span class="u-txt" data-km="Km del service programado" data-hs="Horas del service programado">Km del service programado</span> <span class="req">*</span></label>
+              <input type="number" name="km_programado" id="km_programado" min="0" placeholder="Ej: 60000" required>
+              <span id="km-falta-hint" style="font-size:12px; color:var(--color-text-muted); margin-top:4px; display:block;"></span>
+            </div>
+          </div>
+          <div class="form-group">
+            <label>Detalle del service a realizar (opcional)</label>
+            <textarea name="descripcion" placeholder="Ej: Cambio de aceite, filtros y revisión de frenos" style="min-height: 70px;"></textarea>
+          </div>
+          <p style="font-size:12px; color:#92400e; background:#fffbeb; border:1px solid #fde68a; border-radius:6px; padding:10px 12px; margin:0;">
+            El sistema te va a avisar con una alerta cuando el vehículo se acerque a este kilometraje (a 5.000 km u horas, y con prioridad alta a 2.000).
+          </p>
+        </section>
+
+        <!-- ───── EN PROCESO / REALIZADO ───── -->
+        <section class="form-section bloque-estado" data-estados="En proceso Realizado" style="display:none;">
+          <h3>3. Fecha y Seguimiento de Kilometraje</h3>
+          <div class="form-row">
+            <div class="form-group">
+              <label id="label-fecha">Fecha del Servicio <span class="req">*</span></label>
+              <input type="date" name="fecha_inicio" id="fecha_inicio" required>
+            </div>
+            <div class="form-group">
+              <label><span class="u-txt" data-km="Km al momento del servicio" data-hs="Horas de uso al momento del servicio">Km al momento del servicio</span> <span class="req">*</span></label>
+              <input type="number" name="km_servicio" id="km_servicio" min="0" placeholder="Ej: 85000" required>
+              <span id="aviso-historico" style="display:none; font-size:12px; color:#92400e; margin-top:4px;">Es un registro histórico: se guarda en el historial sin modificar el km actual del vehículo.</span>
+            </div>
+          </div>
+          <div class="form-row">
+            <div class="form-group">
+              <label><span class="u-txt" data-km="Km del próximo service (opcional)" data-hs="Horas del próximo service (opcional)">Km del próximo service (opcional)</span></label>
+              <input type="number" name="proximo_servicio_km" id="proximo_servicio_km" min="0" placeholder="Ej: 95000">
+              <span style="font-size:12px; color:var(--color-text-muted); margin-top:4px; display:block;">Con este dato el sistema genera la alerta del próximo service.</span>
+            </div>
+          </div>
+        </section>
+
+        <section class="form-section bloque-estado" data-estados="En proceso Realizado" style="display:none;">
+          <h3>4. Detalle del Trabajo</h3>
+          <div class="form-group">
+            <label>Descripción de tareas realizadas <span class="req">*</span></label>
+            <textarea name="descripcion" placeholder="Detallá los trabajos hechos por el mecánico..." required style="min-height: 80px;"></textarea>
+          </div>
+          <div class="form-group">
+            <label>Observaciones o Diagnósticos</label>
+            <textarea name="observaciones" placeholder="Notas sobre desgastes futuros, anomalías detectadas..." style="min-height: 60px;"></textarea>
+          </div>
+          <h4 style="margin: 18px 0 8px; font-size: 13px; color: #475569;">Datos administrativos <span style="font-weight:400; color:#94a3b8;">(opcionales · también se completan después desde Historial Administrativo)</span></h4>
+          <div class="form-row">
+            <div class="form-group"><label>N° de Remito</label><input type="text" name="nro_remito" maxlength="50" placeholder="Ej: 0001-00004567"></div>
+            <div class="form-group"><label>N° de Factura</label><input type="text" name="nro_factura" maxlength="50" placeholder="Ej: A-0003-00012345"></div>
+          </div>
+          <div class="form-row">
+            <div class="form-group"><label>Casa proveedora</label><input type="text" name="proveedor" maxlength="150" placeholder="Ej: Repuestos del Sur S.A."></div>
+            <div class="form-group"><label>N° de Pedido</label><input type="text" name="nro_pedido" maxlength="50"></div>
+          </div>
+          <div class="form-group"><label>N° de Expediente</label><input type="text" name="nro_expediente" maxlength="50" placeholder="Ej: 4012-123456/2026"></div>
+        </section>
+
+        <section class="form-section bloque-estado" data-estados="En proceso Realizado" style="display:none;">
+          <h3>5. Desglose de Costos y Repuestos</h3>
+          
+          <div style="background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 8px; padding: 16px; margin-bottom: 20px;">
+            
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; flex-wrap: wrap; gap: 8px;">
+              <label style="font-size: 12px; font-weight: 800; color: #475569; text-transform: uppercase; margin: 0;">Lista de Repuestos Usados</label>
+              <a href="/Repuestos/Gestionar" style="font-size: 11px; color: #2563eb; text-decoration: none; font-weight: 700; display: flex; align-items: center; gap: 4px;">
+                <svg viewBox="0 0 20 20" fill="currentColor" style="width: 14px; height: 14px;"><path fill-rule="evenodd" d="M11.49 3.17c-.38-1.56-2.6-1.56-2.98 0a1.532 1.532 0 01-2.286.948c-1.372-.836-2.942.734-2.106 2.106.54.886.061 2.042-.947 2.287-1.561.379-1.561 2.6 0 2.978a1.532 1.532 0 01.947 2.287c-.836 1.372.734 2.942 2.106 2.106a1.532 1.532 0 012.287.947c.379 1.561 2.6 1.561 2.978 0a1.533 1.533 0 012.287-.947c1.372.836 2.942-.734 2.106-2.106a1.533 1.533 0 01.947-2.287c1.561-.379 1.561-2.6 0-2.978a1.532 1.532 0 01-.947-2.287c.836-1.372-.734-2.942-2.106-2.106a1.532 1.532 0 01-2.287-.947zM10 13a3 3 0 100-6 3 3 0 000 6z" clip-rule="evenodd"/></svg>
+                Gestionar Catálogo
+              </a>
+            </div>
+
+            <div id="contenedor-repuestos"></div>
+            
+            <button type="button" id="btn-add-repuesto" style="color: #2563eb; font-weight: 700; font-size: 12px; padding: 6px 0; cursor: pointer; border: none; background: transparent;">+ Agregar repuesto usado</button>
+          </div>
+
+          <div class="form-row">
+            <div class="form-group">
+              <label>Mano de Obra ($)</label>
+              <input type="number" name="mano_obra" id="mano_obra" placeholder="0.00" step="0.01" class="costo-calc">
+            </div>
+            <div class="form-group" style="background: #eff6ff; padding: 16px; border-radius: 8px; border: 1px solid #bfdbfe;">
+              <label style="color: #1e40af;">Costo Total ($) *Automático</label>
+              <input type="number" name="costo_total" id="costo_total" placeholder="0.00" step="0.01" style="font-weight: 800; font-size: 18px; color: #1d4ed8; background: transparent; border: none; padding: 0; box-shadow: none;" readonly>
+            </div>
+          </div>
+        </section>
+
+        <div class="acciones">
+          <a href="/Mantenimientos" class="boton-secundario">Cancelar</a>
+          <button type="submit" class="boton-primario">Guardar Orden</button>
+        </div>
+      </form>
+    </main>
+  </div>
+
+  <script src="/js/sidebar.js"></script>
+  <script>
+    document.addEventListener('DOMContentLoaded', () => {
+      const topbar = document.querySelector('.topbar') || document.querySelector('.app-header');
+      if (!topbar) return;
+      const btnHamburguesa = topbar.querySelector('button') || document.getElementById('menu-toggle');
+      const sidebar = document.getElementById('mi-sidebar-blindado');
+      const overlay = document.getElementById('sb-overlay-blindado');
+      if (btnHamburguesa && sidebar && overlay) {
+        const nuevoBtn = btnHamburguesa.cloneNode(true);
+        btnHamburguesa.parentNode.replaceChild(nuevoBtn, btnHamburguesa);
+        nuevoBtn.addEventListener('click', (e) => {
+          e.preventDefault(); e.stopPropagation();
+          sidebar.classList.toggle('abierto'); overlay.classList.toggle('activo');
+        });
+      }
+    });
+
+    const fechaInput = document.getElementById('fecha_inicio');
+    const hoyLocal = new Date(Date.now() - new Date().getTimezoneOffset() * 60000).toISOString().split('T')[0];
+    if (!fechaInput.value) fechaInput.value = hoyLocal;
+    fechaInput.max = hoyLocal;
+
+    const selectEstado = document.getElementById('estado');
+    const selectVehiculo = document.getElementById('id_vehiculo');
+    const kmServicioInput = document.getElementById('km_servicio');
+    const kmProgramadoInput = document.getElementById('km_programado');
+    const kmHint = document.getElementById('km-actual-hint');
+    const kmActualProg = document.getElementById('km-actual-prog');
+    const kmFaltaHint = document.getElementById('km-falta-hint');
+
+    const unidadSeleccionada = () => {
+      const opt = selectVehiculo.options[selectVehiculo.selectedIndex];
+      return opt && opt.value && opt.dataset.unidad === 'hs' ? 'hs' : 'km';
+    };
+
+    const kmActualSeleccionado = () => {
+      const opt = selectVehiculo.options[selectVehiculo.selectedIndex];
+      return opt && opt.value ? Number(opt.dataset.km) : null;
+    };
+
+    // Muestra sólo los bloques que corresponden al estado elegido y deshabilita el resto
+    // (los campos deshabilitados no se validan ni se envían)
+    function aplicarEstado() {
+      const estado = selectEstado.value;
+      document.querySelectorAll('.bloque-estado').forEach(bloque => {
+        const visible = estado !== '' && bloque.dataset.estados.split(' ').includes(estado);
+        bloque.style.display = visible ? '' : 'none';
+        bloque.querySelectorAll('input, select, textarea').forEach(campo => { campo.disabled = !visible; });
+      });
+      const label = document.getElementById('label-fecha');
+      if (label) label.innerHTML = (estado === 'En proceso' ? 'Fecha de ingreso al taller' : 'Fecha del Servicio') + ' <span class="req">*</span>';
+      actualizarKmHint();
+    }
+
+    function actualizarKmHint() {
+      const unidad = unidadSeleccionada();
+      document.querySelectorAll('.u-txt').forEach(el => { el.textContent = el.dataset[unidad]; });
+      const km = kmActualSeleccionado();
+      if (km === null) {
+        kmHint.textContent = '';
+        kmActualProg.value = '';
+        kmFaltaHint.textContent = '';
+        return;
+      }
+      kmHint.textContent = `${unidad === 'hs' ? 'Horas de uso actuales' : 'Km actual del vehículo'}: ${km.toLocaleString('es-AR')} ${unidad}`;
+      kmActualProg.value = `${km.toLocaleString('es-AR')} ${unidad}`;
+      kmProgramadoInput.min = km + 1;
+      if (selectEstado.value !== 'Programado' && !kmServicioInput.value) kmServicioInput.value = km;
+      actualizarFalta();
+    }
+
+    function actualizarFalta() {
+      const km = kmActualSeleccionado();
+      const prog = Number(kmProgramadoInput.value);
+      if (km !== null && kmProgramadoInput.value && prog > km) {
+        kmFaltaHint.textContent = `Faltan ${(prog - km).toLocaleString('es-AR')} ${unidadSeleccionada()} para este service.`;
+      } else {
+        kmFaltaHint.textContent = '';
+      }
+    }
+
+    selectEstado.addEventListener('change', aplicarEstado);
+    selectVehiculo.addEventListener('change', () => { kmServicioInput.value = ''; actualizarKmHint(); });
+    kmProgramadoInput.addEventListener('input', actualizarFalta);
+    kmServicioInput.addEventListener('input', () => {
+      const km = kmActualSeleccionado();
+      const historico = selectEstado.value === 'Realizado' && km !== null && kmServicioInput.value !== '' && Number(kmServicioInput.value) < km;
+      document.getElementById('aviso-historico').style.display = historico ? 'block' : 'none';
+    });
+    aplicarEstado();
+
+    // ── LÓGICA DE REPUESTOS DINÁMICOS Y SEGURA ──
+    document.getElementById('btn-add-repuesto').addEventListener('click', () => {
+      const template = `
+        <div class="repuesto-fila" style="display: grid; grid-template-columns: 2fr 1fr 1fr 40px; gap: 10px; margin-bottom: 10px; align-items: center;">
+          <select name="id_repuesto" style="padding: 8px; border-radius: 4px; border: 1px solid #cbd5e1; font-size: 13px;" class="select-repuesto" required>
+            <option value="" data-precio="0" disabled selected>-- Seleccione repuesto --</option>
+            <% if (typeof repuestos !== 'undefined' && repuestos.length > 0) { %>
+              <% repuestos.forEach(r => { %>
+                <option value="<%= r.id_repuesto || r.id %>" data-precio="<%= r.costo_unitario || 0 %>" <%= r.stock <= 0 ? 'disabled' : '' %>><%= r.nombre %> (Stock: <%= r.stock %>)</option>
+              <% }) %>
+            <% } %>
+          </select>
+          <input type="number" name="cantidad" placeholder="Cant." min="1" value="1" style="padding: 8px; border-radius: 4px; border: 1px solid #cbd5e1; font-size: 13px;" required>
+          <input type="number" name="costo_unitario" placeholder="Costo $" step="0.01" style="padding: 8px; border-radius: 4px; border: 1px solid #cbd5e1; font-size: 13px;" class="costo-calc" required>
+          <button type="button" class="btn-quitar-repuesto" onclick="this.parentElement.remove(); calcularTotal();">×</button>
+        </div>
+      `;
+      document.getElementById('contenedor-repuestos').insertAdjacentHTML('beforeend', template);
+      
+      const fila = document.getElementById('contenedor-repuestos').lastElementChild;
+      fila.querySelector('.select-repuesto').addEventListener('change', autocompletarPrecio);
+      fila.querySelectorAll('.costo-calc, input[name="cantidad"]').forEach(inp => inp.addEventListener('input', calcularTotal));
+    });
+
+    function autocompletarPrecio(e) {
+      const select = e.target;
+      const option = select.options[select.selectedIndex];
+      const precio = option.dataset.precio;
+      const inputCosto = select.closest('.repuesto-fila').querySelector('input[name="costo_unitario"]');
+      if (precio && parseFloat(precio) > 0) {
+        inputCosto.value = precio;
+      }
+      calcularTotal();
+    }
+
+    function calcularTotal() {
+      let totalRepuestos = 0;
+      document.querySelectorAll('.repuesto-fila').forEach(fila => {
+        const cant = parseFloat(fila.querySelector('input[name="cantidad"]').value) || 0;
+        const costo = parseFloat(fila.querySelector('input[name="costo_unitario"]').value) || 0;
+        totalRepuestos += (cant * costo);
+      });
+      
+      const manoObra = parseFloat(document.getElementById('mano_obra').value) || 0;
+      const totalGeneral = totalRepuestos + manoObra;
+      
+      document.getElementById('costo_total').value = totalGeneral.toFixed(2);
+      document.getElementById('costo_repuestos').value = totalRepuestos.toFixed(2);
+    }
+
+    document.getElementById('mano_obra').addEventListener('input', calcularTotal);
+
+    document.getElementById('form-mantenimiento').addEventListener('submit', function (e) {
+      const estado = selectEstado.value;
+      const kmActual = kmActualSeleccionado() || 0;
+      const errores = [];
+
+      if (estado === 'Programado') {
+        const prog = parseFloat(kmProgramadoInput.value) || 0;
+        if (prog <= kmActual) errores.push(`El km del service programado debe ser mayor al km actual del vehículo (${kmActual}).`);
+      } else {
+        const kmServicio = parseFloat(kmServicioInput.value) || 0;
+        const proximoKm = parseFloat(document.getElementById('proximo_servicio_km').value) || 0;
+        // Un servicio ya realizado puede ser un registro viejo (km menor al actual); uno en proceso, no
+        if (estado === 'En proceso' && kmServicio < kmActual) errores.push(`El Km del servicio no puede ser menor al actual (${kmActual}).`);
+        if (document.getElementById('proximo_servicio_km').value && proximoKm <= kmServicio) {
+          errores.push(`El Próximo Km debe ser mayor al del servicio actual (${kmServicio}).`);
+        }
+      }
+
+      if (errores.length > 0) {
+        e.preventDefault();
+        alert("⚠️ ATENCIÓN:\n\n" + errores.join("\n\n"));
+      } else {
+        calcularTotal();
+      }
+    });
+  </script>
+</body>
+</html>

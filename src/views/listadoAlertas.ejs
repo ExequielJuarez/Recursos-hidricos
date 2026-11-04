@@ -1,0 +1,425 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Alertas e Inteligencia Operativa - Gestión de Flota</title>
+    <link rel="stylesheet" href="/css/ListadoVehiculos.css">
+    <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500;600;700;800&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    
+    <style>
+        .stats-grid { display: flex; flex-wrap: wrap; gap: 16px; margin-bottom: 24px; }
+        .stat-card { background: var(--color-surface); border: 1px solid var(--color-border); border-radius: var(--radius-lg); padding: 20px; display: flex; align-items: center; justify-content: space-between; flex: 1; min-width: 220px; cursor: pointer; transition: 0.2s; box-shadow: var(--shadow-sm); text-decoration: none; color: inherit;}
+        .stat-card:hover { border-color: var(--color-primary); transform: translateY(-2px); box-shadow: var(--shadow-md); }
+        .stat-card--danger { background: #fef2f2; border-color: #fecaca; }
+        .stat-card--danger:hover { border-color: #ef4444; }
+        .stat-card--warning { background: #fffbeb; border-color: #fde68a; }
+        .stat-card--warning:hover { border-color: #f59e0b; }
+        .stat-title { font-size: 14px; font-weight: 600; color: var(--color-text-secondary); }
+        .stat-card--danger .stat-title { color: #991b1b; }
+        .stat-card--warning .stat-title { color: #92400e; }
+        .stat-number { font-size: 28px; font-weight: 800; color: var(--color-primary); font-family: var(--font-sans); }
+        .stat-card--danger .stat-number { color: #dc2626; background: #fee2e2; padding: 4px 12px; border-radius: 20px; font-size: 20px; }
+        .stat-card--warning .stat-number { color: #d97706; background: #fef3c7; padding: 4px 12px; border-radius: 20px; font-size: 20px; }
+        .stat-card--active { border-color: var(--color-primary) !important; box-shadow: 0 0 0 2px rgba(37,99,235,0.15); }
+
+        .dashboard-charts { display: grid; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); gap: 24px; margin-bottom: 32px; }
+        .chart-card { background: var(--color-surface); border: 1px solid var(--color-border); border-radius: var(--radius-lg); padding: 24px; box-shadow: var(--shadow-sm); display: flex; flex-direction: column; align-items: center; }
+        .chart-card h3 { font-size: 16px; color: var(--color-primary); margin: 0 0 20px 0; font-weight: 800; align-self: flex-start; border-bottom: 1px solid var(--color-border-light); padding-bottom: 12px; width: 100%;}
+        .chart-container { position: relative; height: 220px; width: 100%; }
+
+        .filtro-container { background: var(--color-surface); padding: 20px; border-radius: var(--radius-lg); box-shadow: var(--shadow-sm); margin-bottom: 24px; display: flex; gap: 15px; align-items: flex-end; flex-wrap: wrap; border: 1px solid var(--color-border);}
+        .filtro-group { display: flex; flex-direction: column; gap: 6px; flex: 1; min-width: 160px; }
+        .filtro-group label { font-size: 11px; font-weight: 700; color: var(--color-text-muted); text-transform: uppercase; letter-spacing: 0.05em;}
+        .filtro-input { padding: 10px 14px; border: 1px solid var(--color-border); border-radius: var(--radius-md); font-family: var(--font-sans); font-size: 13px; color: var(--color-text-primary); outline: none; transition: 0.2s; background: white;}
+        .filtro-input:focus { border-color: var(--color-blue); box-shadow: 0 0 0 3px rgba(37,99,235,0.1); }
+        .btn-limpiar { background-color: var(--color-bg); color: var(--color-text-secondary); padding: 10px 20px; border-radius: var(--radius-md); font-weight: 700; font-size: 13px; border: 1px solid var(--color-border); cursor: pointer; height: 42px; transition: 0.2s; text-decoration: none; display: inline-flex; align-items: center; justify-content: center;}
+        .btn-limpiar:hover { background-color: #e2e8f0; color: var(--color-primary);}
+
+        .pagination { display: flex; justify-content: center; align-items: center; padding: 20px; border-top: 1px solid var(--color-border-light); }
+        .page-info { font-size: 13px; color: var(--color-text-muted); font-weight: 500; }
+
+        /* ── ADAPTACIÓN MÓVIL ── */
+        @media (max-width: 900px) {
+    /* Fix principal */
+    .app-wrapper { margin-left: 0 !important; }
+    .topbar__menu-toggle { display: flex !important; }
+    .topbar__mobile-brand { display: flex !important; }
+    .topbar__user-name-wrapper { display: none; }
+
+    /* Main */
+    .main-content { padding: 16px !important; max-width: 100% !important; }
+
+    /* Stat cards en columna */
+    .stats-grid { flex-direction: column; }
+    .stat-card { min-width: unset; width: 100%; }
+
+    /* Gráficos en columna */
+    .dashboard-charts { grid-template-columns: 1fr; }
+    .chart-container { height: 200px; }
+
+    /* Filtros */
+    .filtro-container { flex-direction: column; align-items: stretch; padding: 14px; }
+    .filtro-group { width: 100%; min-width: unset; }
+    .filtro-acciones { display: flex !important; flex-direction: column; width: 100%; gap: 8px; margin-top: 4px; }
+    .btn-limpiar { width: 100% !important; height: auto; padding: 12px; box-sizing: border-box; }
+
+    /* Tabla */
+    .data-table-wrapper { overflow-x: auto !important; -webkit-overflow-scrolling: touch; }
+    .data-table { min-width: 900px; }
+}
+    </style>
+</head>
+<body>
+
+    <%- include('./partials/sidebar') %>
+
+    <div class="app-wrapper" id="app-wrapper">
+
+        <%- include('./partials/topbar') %>
+
+        <main class="main-content" style="display: block; overflow-y: auto; padding: 40px; max-width: 1200px; margin: 0 auto;">
+
+            <div class="page-header">
+                <h2 class="page-title">Alertas y Estado Operacional</h2>
+                <p class="page-subtitle">Control y seguimiento de notificaciones automáticas del sistema.</p>
+            </div>
+
+            <div class="stats-grid">
+                <button class="stat-card" data-filtro-tipo="licencia_vencida">
+                    <span class="stat-title">Licencias Vencidas</span>
+                    <span class="stat-number"><%= resumen.licVencidas || 0 %></span>
+                </button>
+                <button class="stat-card" data-filtro-tipo="licencia_proxima">
+                    <span class="stat-title">Próximas a vencer</span>
+                    <span class="stat-number"><%= resumen.licProximas || 0 %></span>
+                </button>
+                <button class="stat-card" data-filtro-tipo="documentacion_vencida">
+                    <span class="stat-title">Docs. Vencida (RTO/Seg)</span>
+                    <span class="stat-number"><%= resumen.docsVencidas || 0 %></span>
+                </button>
+                <button class="stat-card stat-card--warning" data-filtro-tipo="mantenimiento_proximo">
+                    <span class="stat-title">Mantenimiento Próximo</span>
+                    <span class="stat-number"><%= resumen.mantProximos || 0 %></span>
+                </button>
+                <!-- <button class="stat-card stat-card--danger" data-filtro-tipo="siniestro_activo">
+                    <span class="stat-title">Siniestros en Proceso</span>
+                    <span class="stat-number"><%= resumen.siniestrosActivos || 0 %></span>
+                </button> -->
+            </div>
+
+            <div class="dashboard-charts">
+                <div class="chart-card">
+                    <h3>Estado General de vehiculos</h3>
+                    <div class="chart-container">
+                        <canvas id="chartVehiculos"></canvas>
+                    </div>
+                </div>
+                <div class="chart-card">
+                    <h3>Disponibilidad de Choferes</h3>
+                    <div class="chart-container">
+                        <canvas id="chartChoferes"></canvas>
+                    </div>
+                </div>
+            </div>
+
+            <div class="filtro-container">
+                <div class="filtro-group" style="flex: 2;">
+                    <label>Buscar</label>
+                    <input class="filtro-input" id="filtro-buscar" type="search" placeholder="Chofer, vehículo...">
+                </div>
+                <div class="filtro-group">
+                    <label>Fecha desde</label>
+                    <input class="filtro-input" id="filtro-fecha-desde" type="date">
+                </div>
+                <div class="filtro-group">
+                    <label>Fecha hasta</label>
+                    <input class="filtro-input" id="filtro-fecha-hasta" type="date">
+                </div>
+                <div class="filtro-group">
+                    <label>Tipo de alerta</label>
+                    <select id="filtro-tipo" class="filtro-input">
+                        <option value="">Todos</option>
+                        <option value="licencia_vencida">Licencia vencida</option>
+                        <option value="licencia_proxima">Licencia próxima</option>
+                        <option value="documentacion_vencida">Documentación vencida</option>
+                        <option value="mantenimiento_proximo">Mantenimiento próximo</option>
+                        <option value="mantenimiento_vencido">Mantenimiento vencido</option>
+                        <option value="mantenimiento_pendiente">Mantenimiento pendiente</option>
+                        <option value="siniestro_activo">Siniestro Activo</option>
+                        <option value="prestamo_vencido">Préstamo vencido</option>
+                        <option value="asignacion_vencida">Asignación vencida</option>
+                        <option value="stock_bajo">Stock bajo de repuestos</option>
+                        <option value="vehiculo_fuera_servicio">Fuera de servicio</option>
+                    </select>
+                </div>
+                <div class="filtro-group" style="min-width: 100px;">
+                    <label>Estado</label>
+                    <select id="filtro-estado" class="filtro-input">
+                        <option value="">Todas</option>
+                        <option value="no_leida">No leídas</option>
+                        <option value="leida">Leídas</option>
+                    </select>
+                </div>
+                <div class="filtro-acciones" style="display: flex; gap: 10px;">
+                    <button type="button" id="btn-limpiar" class="btn-limpiar">Limpiar</button>
+                </div>
+            </div>
+
+            <div class="data-card">
+                <div class="data-table-wrapper">
+                    <table class="data-table">
+                        <thead class="data-table__head">
+                            <tr>
+                                <th class="data-table__th">Tipo</th>
+                                <th class="data-table__th">Descripción</th>
+                                <th class="data-table__th">Entidad</th>
+                                <th class="data-table__th">Fecha</th>
+                                <th class="data-table__th">Prioridad</th>
+                                <th class="data-table__th">Estado</th>
+                                <th class="data-table__th" style="text-align: right;">Acciones</th>
+                            </tr>
+                        </thead>
+                        <tbody class="data-table__body" id="alertas-tbody">
+                            <% if (alertas.length === 0) { %>
+                                <tr id="fila-vacia-inicial">
+                                    <td colspan="7" class="data-table__td" style="text-align: center; padding: 40px; color: var(--color-text-muted);">
+                                        No hay alertas registradas.
+                                    </td>
+                                </tr>
+                            <% } %>
+
+                            <% alertas.forEach(alerta => { %>
+                                <%
+                                const fechaISO = alerta.createdAt ? aISO(alerta.createdAt) : '';
+                                const textoBusqueda = ((alerta.mensaje || '') + ' ' + (alerta.entidad_nombre || '')).toLowerCase();
+                                %>
+                                <tr class="data-table__row alerta-row"
+                                    data-id="<%= alerta.id_alerta %>"
+                                    data-tipo="<%= alerta.tipo %>"
+                                    data-estado="<%= alerta.leida ? 'leida' : 'no_leida' %>"
+                                    data-fecha="<%= fechaISO %>"
+                                    data-buscar="<%= textoBusqueda %>"
+                                    style="<%= alerta.leida ? 'opacity: 0.7;' : 'background-color: #f8fafc;' %>">
+                                    
+                                    <td class="data-table__td" data-label="Tipo">
+                                        <%
+                                        const ICONOS = { licencia_vencida: '⚠️', licencia_proxima: '🕐', mantenimiento_pendiente: '🔧', mantenimiento_finalizado: '✅', mantenimiento_proximo: '⏳', mantenimiento_vencido: '🛠️', documentacion_vencida: '📄', vehiculo_fuera_servicio: '🚫', herramienta_devuelta: '🔙', prestamo_vencido: '📋', asignacion_vencida: '⏰', stock_bajo: '📦', siniestro_activo: '💥', critica: '🚨', informativa: 'ℹ️' };
+                                        const LABELS = { licencia_vencida: 'Licencia vencida', licencia_proxima: 'Licencia próxima', mantenimiento_pendiente: 'Mant. pendiente', mantenimiento_finalizado: 'Mant. finalizado', mantenimiento_proximo: 'Mant. próximo', mantenimiento_vencido: 'Mant. vencido', documentacion_vencida: 'Doc. vencida', vehiculo_fuera_servicio: 'Fuera de servicio', herramienta_devuelta: 'Devolución', prestamo_vencido: 'Préstamo vencido', asignacion_vencida: 'Asignación vencida', stock_bajo: 'Stock bajo', siniestro_activo: 'Siniestro Activo', critica: 'Crítica', informativa: 'Informativa' };
+                                        %>
+                                        <span style="font-size: 16px; margin-right: 6px;"><%= ICONOS[alerta.tipo] || 'ℹ️' %></span>
+                                        <strong style="color: var(--color-text-primary);"><%= LABELS[alerta.tipo] || alerta.tipo %></strong>
+                                    </td>
+
+                                    <td class="data-table__td" data-label="Descripción" style="max-width: 300px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">
+                                        <span style="font-weight: <%= alerta.leida ? '400' : '600' %>; color: var(--color-text-secondary);">
+                                            <%= alerta.mensaje %>
+                                        </span>
+                                    </td>
+
+                                    <td class="data-table__td" data-label="Entidad">
+                                        <span class="badge" style="background: #e2e8f0; color: #475569;"><%= alerta.entidad_nombre || '—' %></span>
+                                    </td>
+
+                                    <td class="data-table__td" data-label="Fecha">
+                                        <%= alerta.createdAt ? new Date(alerta.createdAt).toLocaleDateString('es-AR') : '—' %>
+                                    </td>
+
+                                    <td class="data-table__td" data-label="Prioridad">
+                                        <span class="badge <%= alerta.prioridad === 'alta' ? 'badge--danger' : (alerta.prioridad === 'media' ? 'badge--warning' : 'badge--info') %>">
+                                            <%= alerta.prioridad.charAt(0).toUpperCase() + alerta.prioridad.slice(1) %>
+                                        </span>
+                                    </td>
+
+                                    <td class="data-table__td" data-label="Estado">
+                                        <span class="badge <%= alerta.leida ? 'badge--success' : 'badge--warning' %>">
+                                            <%= alerta.leida ? 'Leída' : 'Nueva' %>
+                                        </span>
+                                    </td>
+
+                                    <td class="data-table__td" data-label="Acciones" style="text-align: right;">
+                                        <div style="display: flex; gap: 8px; justify-content: flex-end;">
+                                            <% if (!alerta.leida) { %>
+                                                <button class="btn-marcar-leida" data-id="<%= alerta.id_alerta %>" style="background: #eff6ff; border: 1px solid #bfdbfe; color: #2563eb; padding: 6px 12px; border-radius: 6px; font-size: 12px; font-weight: 700; cursor: pointer; transition: 0.2s;">✓ Marcar Leída</button>
+                                            <% } %>
+                                            <a href="<%= alerta.tipo === 'siniestro_activo' ? '/Siniestros' : '/Alertas/' + alerta.id_alerta %>" style="background: var(--color-bg); border: 1px solid var(--color-border); color: var(--color-text-primary); padding: 6px 12px; border-radius: 6px; font-size: 12px; font-weight: 700; text-decoration: none; transition: 0.2s;">Abrir</a>
+                                        </div>
+                                    </td>
+
+                                </tr>
+                            <% }) %>
+                        </tbody>
+                    </table>
+                    <div id="sin-resultados" style="display: none; text-align: center; padding: 40px; color: var(--color-text-muted);">
+                        No hay alertas que coincidan con los filtros aplicados.
+                    </div>
+                </div>
+
+                <div class="pagination">
+                    <div class="page-info" id="contador-resultados">
+                        Mostrando <%= alertas.length %> de <%= alertas.length %> registros
+                    </div>
+                </div>
+            </div>
+
+        </main>
+    </div>
+
+    <script src="/js/sidebar.js"></script>
+    
+    <script>
+        /* ── FIX BOTÓN HAMBURGUESA BLINDADO ── */
+        document.addEventListener('DOMContentLoaded', () => {
+          const topbar = document.querySelector('.topbar') || document.querySelector('.app-header');
+          if (!topbar) return;
+          const btnHamburguesa = topbar.querySelector('button') || document.getElementById('menu-toggle');
+          const sidebar = document.getElementById('mi-sidebar-blindado');
+          const overlay = document.getElementById('sb-overlay-blindado');
+          if (btnHamburguesa && sidebar && overlay) {
+            const nuevoBtn = btnHamburguesa.cloneNode(true);
+            btnHamburguesa.parentNode.replaceChild(nuevoBtn, btnHamburguesa);
+            nuevoBtn.addEventListener('click', (e) => {
+              e.preventDefault(); e.stopPropagation();
+              sidebar.classList.toggle('abierto'); overlay.classList.toggle('activo');
+            });
+          }
+        });
+
+        const statsVehiculos = <%- safeJson(estadisticas.vehiculos) %>;
+        const statsChoferes = <%- safeJson(estadisticas.choferes) %>;
+
+        // Gráficos con tipografía corporativa
+        Chart.defaults.font.family = "'DM Sans', sans-serif";
+        const ctxVehiculos = document.getElementById('chartVehiculos').getContext('2d');
+        new Chart(ctxVehiculos, {
+            type: 'doughnut',
+            data: {
+                labels: ['Disponibles', 'En Uso', 'En Taller', 'Baja'],
+                datasets: [{
+                    data: [statsVehiculos.disponible, statsVehiculos.uso, statsVehiculos.mantenimiento, statsVehiculos.baja],
+                    backgroundColor: ['#10b981', '#3b82f6', '#f59e0b', '#ef4444'],
+                    borderWidth: 0, hoverOffset: 4
+                }]
+            },
+            options: { responsive: true, maintainAspectRatio: false, cutout: '75%', plugins: { legend: { position: 'right', labels: { usePointStyle: true, boxWidth: 8 } } } }
+        });
+
+        const ctxChoferes = document.getElementById('chartChoferes').getContext('2d');
+        new Chart(ctxChoferes, {
+            type: 'doughnut',
+            data: {
+                labels: ['Activos', 'Inactivos / Licencia'],
+                datasets: [{
+                    data: [statsChoferes.activo, statsChoferes.inactivo],
+                    backgroundColor: ['#0f172a', '#94a3b8'],
+                    borderWidth: 0, hoverOffset: 4
+                }]
+            },
+            options: { responsive: true, maintainAspectRatio: false, cutout: '75%', plugins: { legend: { position: 'right', labels: { usePointStyle: true, boxWidth: 8 } } } }
+        });
+
+        // Marcar leída dinámicamente
+        document.getElementById('alertas-tbody').addEventListener('click', async (e) => {
+            const btn = e.target.closest('.btn-marcar-leida');
+            if (!btn) return;
+
+            const id = btn.dataset.id;
+            const fila = document.querySelector(`.alerta-row[data-id="${id}"]`);
+
+            try {
+                const res = await fetch(`/Alertas/${id}/leer`, { method: 'POST' });
+                if ((await res.json()).ok) {
+                    fila.style.opacity = '0.7';
+                    fila.style.backgroundColor = '';
+                    fila.dataset.estado = 'leida';
+                    const badge = fila.querySelector('td[data-label="Estado"] .badge');
+                    badge.className = 'badge badge--success';
+                    badge.textContent = 'Leída';
+                    btn.remove();
+                }
+            } catch(err) { console.error(err); }
+        });
+
+        // ── Filtros Front-End sin recarga (misma lógica que Mantenimientos) ──
+        const filasAlertas   = Array.from(document.querySelectorAll('.alerta-row'));
+        const filtroBuscar   = document.getElementById('filtro-buscar');
+        const filtroDesde    = document.getElementById('filtro-fecha-desde');
+        const filtroHasta    = document.getElementById('filtro-fecha-hasta');
+        const filtroTipo     = document.getElementById('filtro-tipo');
+        const filtroEstado   = document.getElementById('filtro-estado');
+        const btnLimpiar     = document.getElementById('btn-limpiar');
+        const sinResultados  = document.getElementById('sin-resultados');
+        const contador       = document.getElementById('contador-resultados');
+        const totalAlertas   = filasAlertas.length;
+
+        function aplicarFiltrosAlertas() {
+            const buscar = (filtroBuscar.value || '').toLowerCase().trim();
+            const desde  = filtroDesde.value;
+            const hasta  = filtroHasta.value;
+            const tipo   = filtroTipo.value;
+            const estado = filtroEstado.value;
+
+            let visibles = 0;
+
+            filasAlertas.forEach(fila => {
+                const dTexto  = fila.dataset.buscar || '';
+                const dFecha  = fila.dataset.fecha || '';
+                const dTipo   = fila.dataset.tipo || '';
+                const dEstado = fila.dataset.estado || '';
+
+                let mostrar = true;
+                if (buscar && !dTexto.includes(buscar)) mostrar = false;
+                if (tipo && dTipo !== tipo) mostrar = false;
+                if (estado && dEstado !== estado) mostrar = false;
+                if (desde && dFecha < desde) mostrar = false;
+                if (hasta && dFecha > hasta) mostrar = false;
+
+                fila.style.display = mostrar ? '' : 'none';
+                if (mostrar) visibles++;
+            });
+
+            sinResultados.style.display = (visibles === 0 && totalAlertas > 0) ? 'block' : 'none';
+            contador.textContent = `Mostrando ${visibles} de ${totalAlertas} registros`;
+
+            // Resaltar tarjeta de stat activa según el tipo filtrado
+            document.querySelectorAll('[data-filtro-tipo]').forEach(card => {
+                card.classList.toggle('stat-card--active', card.dataset.filtroTipo === tipo && tipo !== '');
+            });
+        }
+
+        [filtroBuscar, filtroDesde, filtroHasta, filtroTipo, filtroEstado].forEach(el => {
+            if (el) el.addEventListener('input', aplicarFiltrosAlertas);
+        });
+
+        if (btnLimpiar) {
+            btnLimpiar.addEventListener('click', () => {
+                filtroBuscar.value = ''; filtroDesde.value = ''; filtroHasta.value = '';
+                filtroTipo.value = ''; filtroEstado.value = '';
+                aplicarFiltrosAlertas();
+            });
+        }
+
+        // Tarjetas de resumen ahora filtran en vivo, sin navegar
+        document.querySelectorAll('[data-filtro-tipo]').forEach(card => {
+            card.addEventListener('click', () => {
+                filtroTipo.value = card.dataset.filtroTipo;
+                aplicarFiltrosAlertas();
+                document.querySelector('.filtro-container').scrollIntoView({ behavior: 'smooth', block: 'start' });
+            });
+        });
+
+        // ── Preselección por URL (ej: enlaces desde otras vistas /Alertas?tipo=X) ──
+        const paramsAlertas = new URLSearchParams(window.location.search);
+        if (paramsAlertas.get('tipo')) {
+            filtroTipo.value = paramsAlertas.get('tipo');
+            aplicarFiltrosAlertas();
+        }
+        if (paramsAlertas.get('buscar')) {
+            filtroBuscar.value = paramsAlertas.get('buscar');
+            aplicarFiltrosAlertas();
+        }
+    </script>
+
+</body>
+</html>

@@ -1,0 +1,371 @@
+/* ============================================================
+   VARIABLES & RESET (ESTILO EMPRESARIAL SÓLIDO)
+   ============================================================ */
+:root {
+  --color-bg:           #f8fafc;
+  --color-surface:      #ffffff;
+  --color-border:       #cbd5e1;
+  --color-border-light: #e2e8f0;
+
+  --color-sidebar-bg:          #0b1120;
+  --color-sidebar-text:        #94a3b8;
+  --color-sidebar-text-hover:  #ffffff;
+  --color-sidebar-active-bg:   #1e293b;
+  --color-sidebar-active-text: #38bdf8;
+
+  --color-primary:       #0f172a;
+  --color-primary-hover: #1e293b;
+
+  --color-amber:      #d97706;
+  --color-amber-bg:   #fef3c7;
+  --color-amber-text: #92400e;
+
+  --color-green:      #059669;
+  --color-green-bg:   #d1fae5;
+  --color-green-text: #065f46;
+
+  --color-blue:      #2563eb;
+  --color-blue-bg:   #dbeafe;
+  --color-blue-text: #1e40af;
+
+  --color-red:        #dc2626;
+  --color-red-bg:     #fee2e2;
+  --color-red-border: #fca5a5;
+  --color-red-text:   #991b1b;
+
+  --color-text-primary:   #0f172a;
+  --color-text-secondary: #334155;
+  --color-text-muted:     #64748b;
+
+  --sidebar-width:  240px;
+  --topbar-height:  60px;
+
+  --radius-sm:   4px;
+  --radius-md:   8px;
+  --radius-lg:   12px;
+  --radius-full: 9999px;
+
+  --shadow-sm: 0 1px 2px 0 rgb(0 0 0 / 0.05);
+  --shadow-md: 0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1);
+  --shadow-lg: 0 10px 25px -3px rgb(0 0 0 / 0.15), 0 4px 6px -4px rgb(0 0 0 / 0.1);
+
+  --font-sans: 'DM Sans', sans-serif;
+  --font-mono: 'DM Mono', monospace;
+}
+
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+html { scroll-behavior: smooth; }
+
+body {
+  font-family: var(--font-sans);
+  font-size: 14px;
+  background: var(--color-bg);
+  color: var(--color-text-primary);
+  min-height: 100vh;
+  display: flex;
+  line-height: 1.6;
+  -webkit-font-smoothing: antialiased;
+}
+
+a { text-decoration: none; color: inherit; }
+ul, ol { list-style: none; }
+button { cursor: pointer; border: none; background: none; font-family: inherit; font-size: inherit; }
+svg { display: block; flex-shrink: 0; }
+img { display: block; }
+
+/* ============================================================
+   BADGES GLOBALES (SEMÁFORO)
+   ============================================================ */
+.badge {
+  display: inline-flex; align-items: center; padding: 4px 10px; border-radius: var(--radius-md);
+  font-size: 12px; font-weight: 700; letter-spacing: 0.5px; text-transform: uppercase; white-space: nowrap;
+}
+.badge--success, .badge--available, .badge--finished { background-color: var(--color-green-bg); color: var(--color-green-text); border: 1px solid #a7f3d0; }
+.badge--warning, .badge--maintenance, .badge--in-use { background-color: var(--color-amber-bg); color: var(--color-amber-text); border: 1px solid #fde68a; }
+.badge--danger, .badge--out-of-service { background-color: var(--color-red-bg); color: var(--color-red-text); border: 1px solid var(--color-red-border); }
+.badge--info { background-color: var(--color-blue-bg); color: var(--color-blue-text); border: 1px solid #bfdbfe; }
+
+/* ============================================================
+   SIDEBAR & TOPBAR
+   ============================================================ */
+.sidebar-overlay { display: none; position: fixed; inset: 0; background-color: rgba(15, 23, 42, 0.6); z-index: 90; opacity: 0; transition: opacity 0.2s; }
+.sidebar-overlay--visible { opacity: 1; pointer-events: auto; display: block; }
+
+.sidebar {
+  position: fixed; top: 0; left: 0; width: var(--sidebar-width); height: 100vh;
+  background-color: var(--color-sidebar-bg); display: flex; flex-direction: column;
+  overflow-y: auto; z-index: 100; transition: transform 0.3s ease;
+  box-shadow: 4px 0 15px rgba(0,0,0,0.05);
+}
+
+.sidebar__brand {
+  display: flex; 
+  align-items: center; 
+  gap: 12px; 
+  padding: 20px 16px;
+  background-color: #080c17; 
+  border-bottom: 1px solid #1e293b; 
+  flex-shrink: 0;
+
+  /* NUEVO: Efecto Fijo (Sticky) para que no se pierda al bajar */
+  position: sticky;
+  top: 0;
+  z-index: 50;
+}
+.imglogosidebar { width: 100%; height: 45px; object-fit: contain; filter: brightness(1.2); }
+.imglogosidebarcel { width: auto; height: 35px; }
+
+.sidebar__brand-text { display: flex; flex-direction: column; }
+.sidebar__brand-name { font-size: 15px; font-weight: 800; color: #ffffff; letter-spacing: 0.5px; }
+.sidebar__brand-sub { font-size: 12px; font-weight: 500; color: #38bdf8; text-transform: uppercase; letter-spacing: 1px; }
+
+.sidebar__nav { padding: 20px 0; flex: 1; }
+.sidebar__nav-label {
+  display: block; padding: 0 20px 10px; font-size: 11px; font-weight: 700;
+  letter-spacing: 0.1em; text-transform: uppercase; color: #64748b;
+}
+
+.sidebar__menu { display: flex; flex-direction: column; gap: 4px; padding: 0 10px; }
+.sidebar__menu-link {
+  display: flex; align-items: center; gap: 12px; padding: 10px 14px;
+  color: var(--color-sidebar-text); font-size: 14px; font-weight: 600;
+  border-radius: var(--radius-md); transition: all 0.2s ease;
+}
+.sidebar__menu-link:hover { background-color: #1e293b; color: var(--color-sidebar-text-hover); }
+.sidebar__menu-link--active { background-color: var(--color-sidebar-active-bg); color: var(--color-sidebar-active-text); }
+.sidebar__menu-icon { width: 18px; height: 18px; flex-shrink: 0; }
+.sidebar__menu-chevron { width: 16px; height: 16px; margin-left: auto; transition: transform 0.2s; }
+.sidebar__menu-item--open .sidebar__menu-chevron { transform: rotate(180deg); }
+
+.sidebar__submenu { padding-left: 32px; display: none; flex-direction: column; gap: 2px; margin-top: 4px; }
+.sidebar__menu-item--open .sidebar__submenu { display: flex; }
+.sidebar__submenu-link {
+  display: block; padding: 8px 12px; color: var(--color-sidebar-text); font-size: 13.5px; font-weight: 500;
+  border-radius: var(--radius-md); transition: all 0.2s;
+}
+.sidebar__submenu-link:hover { color: var(--color-sidebar-text-hover); background-color: #1e293b; }
+.sidebar__submenu-link--active { color: #38bdf8; font-weight: 700; background-color: rgba(56, 189, 248, 0.1); }
+.sidebar::-webkit-scrollbar { width: 6px; }
+.sidebar::-webkit-scrollbar-thumb { background-color: #334155; border-radius: var(--radius-full); }
+
+/* Altura y desborde estricto para que las cuadrículas no muevan la página entera */
+.app-wrapper { 
+  display: flex; 
+  flex-direction: column; 
+  flex: 1; 
+  margin-left: var(--sidebar-width); 
+  height: 100vh; 
+  overflow: hidden; 
+  transition: margin-left 0.3s ease; 
+}
+
+.topbar {
+  position: sticky; top: 0; z-index: 50; height: var(--topbar-height);
+  background-color: var(--color-surface); border-bottom: 1px solid var(--color-border);
+  display: flex; align-items: center; padding: 0 24px; gap: 12px; box-shadow: var(--shadow-sm);
+}
+
+.topbar__menu-toggle { display: none; width: 40px; height: 40px; align-items: center; justify-content: center; border-radius: var(--radius-md); color: var(--color-text-primary); transition: background 0.2s; }
+.topbar__menu-toggle:hover { background-color: var(--color-bg); }
+.topbar__mobile-brand { display: none; align-items: center; gap: 10px; font-size: 16px; font-weight: 800; color: var(--color-primary); }
+.topbar__actions { display: flex; align-items: center; gap: 16px; margin-left: auto; }
+
+.topbar__notification-btn {
+  position: relative; width: 42px; height: 42px; display: flex; align-items: center; justify-content: center;
+  border-radius: var(--radius-full); background: var(--color-bg); color: var(--color-text-secondary); transition: all 0.2s; border: 1px solid var(--color-border-light);
+}
+.topbar__notification-btn:hover { background-color: var(--color-border-light); color: var(--color-primary); }
+.topbar__notification-btn svg { width: 20px; height: 20px; }
+.topbar__notification-dot {
+  position: absolute; top: -2px; right: -2px; background-color: var(--color-red); color: #fff;
+  font-size: 11px; font-weight: 800; width: 20px; height: 20px; border-radius: var(--radius-full);
+  display: flex; align-items: center; justify-content: center; box-shadow: 0 0 0 2px #fff;
+}
+.topbar__user { display: flex; align-items: center; gap: 12px; padding: 6px 16px; border-radius: var(--radius-md); border: 1px solid var(--color-border-light); background: var(--color-bg); transition: 0.2s; }
+.topbar__user:hover { border-color: var(--color-border); }
+
+/* ============================================================
+   ESTRUCTURA PRINCIPAL (LISTADO + DETALLE)
+   ============================================================ */
+.main-content {
+  flex: 1;
+  display: flex;
+  overflow: hidden;
+  height: calc(100vh - var(--topbar-height));
+}
+
+/* PANEL IZQUIERDO: LISTADO */
+.vehicle-list-panel {
+  width: 320px;
+  flex-shrink: 0;
+  background-color: var(--color-surface);
+  border-right: 1px solid var(--color-border);
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  transition: width 0.2s;
+}
+
+.vehicle-list-panel__top {
+  padding: 20px;
+  border-bottom: 1px solid var(--color-border-light);
+  flex-shrink: 0;
+}
+
+.vehicle-list-panel__title { font-size: 16px; font-weight: 800; color: var(--color-text-primary); margin-bottom: 12px; }
+
+.vehicle-list-panel__export-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  width: 100%;
+  background-color: #0f172a;
+  color: #fff;
+  border: none;
+  padding: 10px 14px;
+  font-size: 12px;
+  font-weight: 700;
+  border-radius: var(--radius-md);
+  transition: 0.2s;
+}
+.vehicle-list-panel__export-btn:hover { background-color: var(--color-primary-hover); }
+.vehicle-list-panel__export-btn svg { width: 14px; height: 14px; }
+
+.vehicle-list-panel__search-bar {
+  display: flex; align-items: center; gap: 8px; padding: 12px 20px;
+  border-bottom: 1px solid var(--color-border-light); flex-shrink: 0; flex-wrap: wrap;
+}
+
+.vehicle-list-panel__search-input {
+  flex: 1; min-width: 150px; border: 1px solid var(--color-border); border-radius: var(--radius-md);
+  padding: 8px 12px; font-size: 13px; font-family: var(--font-sans); color: var(--color-text-primary); outline: none; transition: 0.2s;
+}
+.vehicle-list-panel__search-input:focus { border-color: var(--color-blue); box-shadow: 0 0 0 3px rgba(37,99,235,0.1); }
+
+.vehicle-list-panel__search-btn {
+  width: 36px; height: 36px; flex-shrink: 0; display: flex; align-items: center; justify-content: center;
+  border-radius: var(--radius-md); color: white; background-color: var(--color-primary); transition: 0.2s;
+}
+.vehicle-list-panel__search-btn:hover { background-color: var(--color-primary-hover); }
+.vehicle-list-panel__search-btn svg { width: 16px; height: 16px; }
+
+/* LISTA DE CARDS */
+.vehicle-list { flex: 1; overflow-y: auto; }
+.vehicle-list::-webkit-scrollbar { width: 6px; }
+.vehicle-list::-webkit-scrollbar-thumb { background-color: var(--color-border); border-radius: var(--radius-full); }
+
+.vehicle-card {
+  padding: 16px 20px; border-bottom: 1px solid var(--color-border-light);
+  cursor: pointer; transition: 0.2s; border-left: 4px solid transparent;
+}
+.vehicle-card:hover { background-color: #f8fafc; }
+.vehicle-card--active { background-color: var(--color-blue-bg); border-left-color: var(--color-blue); }
+
+.vehicle-card__link { display: block; text-decoration: none; color: inherit; width: 100%; height: 100%; }
+.vehicle-card__plate { display: block; font-size: 15px; font-weight: 800; color: var(--color-text-primary); margin-bottom: 2px; }
+.vehicle-card__model { display: block; font-size: 13px; color: var(--color-text-secondary); margin-bottom: 8px; }
+.vehicle-card__meta { display: flex; justify-content: space-between; align-items: center; }
+.vehicle-card__km { font-size: 12px; color: var(--color-text-primary); font-weight: 600; }
+
+.vehicle-list-panel__footer { padding: 12px 20px; border-top: 1px solid var(--color-border-light); flex-shrink: 0; text-align: center; }
+.vehicle-list-panel__count { font-size: 12px; color: var(--color-text-muted); margin-bottom: 8px; font-weight: 600; }
+
+.pagination { display: flex; align-items: center; justify-content: center; gap: 6px; }
+.pagination__btn {
+  width: 32px; height: 32px; display: flex; align-items: center; justify-content: center;
+  border-radius: var(--radius-md); font-size: 13px; font-weight: 600; color: var(--color-text-secondary);
+  border: 1px solid var(--color-border); background-color: var(--color-surface); transition: 0.2s;
+}
+.pagination__btn:hover:not(:disabled) { background-color: var(--color-bg); }
+.pagination__btn--active { background-color: var(--color-primary); border-color: var(--color-primary); color: #fff; }
+.pagination__btn:disabled { opacity: 0.4; cursor: not-allowed; }
+
+/* PANEL DERECHO: DETALLES */
+.vehicle-detail { flex: 1; overflow-y: auto; padding: 30px 40px; background: var(--color-bg); }
+.vehicle-detail::-webkit-scrollbar { width: 6px; }
+.vehicle-detail::-webkit-scrollbar-thumb { background-color: var(--color-border); border-radius: var(--radius-full); }
+
+.vehicle-detail__breadcrumb { display: none; } /* Oculto en PC */
+
+/* PROFILE CARD (INFO PRINCIPAL) - FIX: Se quitó el Sticky para que no tape las tablas */
+.vehicle-profile {
+  background-color: var(--color-surface); 
+  border: 1px solid var(--color-border); 
+  border-radius: var(--radius-lg);
+  padding: 30px; 
+  margin-bottom: 24px; 
+  box-shadow: var(--shadow-sm); 
+  width: 100%;
+}
+
+.vehicle-profile__header { display: flex; align-items: center; gap: 16px; margin-bottom: 24px; }
+.vehicle-profile__plate { font-size: 28px; font-weight: 800; color: var(--color-text-primary); letter-spacing: 0.5px; }
+
+.vehicle-profile__specs { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 24px; }
+.vehicle-profile__spec-group { display: flex; flex-direction: column; gap: 12px; }
+.vehicle-profile__spec-row { display: flex; flex-direction: column; gap: 2px; }
+.vehicle-profile__spec-label { font-size: 11px; font-weight: 700; color: var(--color-text-muted); text-transform: uppercase; letter-spacing: 0.05em; }
+.vehicle-profile__spec-value { font-size: 14px; font-weight: 600; color: var(--color-text-primary); }
+
+/* LAYOUT DE TARJETAS INFERIORES */
+.detail-columns { display: grid; grid-template-columns: 1fr 340px; gap: 24px; align-items: start; }
+.detail-main-column { display: flex; flex-direction: column; gap: 24px; }
+.detail-side-column { display: flex; flex-direction: column; gap: 24px; }
+
+.data-card, .alerts-card, .info-card {
+  background-color: var(--color-surface); border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg); overflow: hidden; box-shadow: var(--shadow-sm);
+}
+.data-card__header { display: flex; align-items: center; gap: 10px; padding: 16px 20px; border-bottom: 1px solid var(--color-border-light); background: #f8fafc; }
+.data-card__icon { width: 18px; height: 18px; color: var(--color-primary); }
+.data-card__title { font-size: 15px; font-weight: 700; color: var(--color-text-primary); }
+
+.data-table-wrapper { overflow-x: auto; }
+.data-table { width: 100%; border-collapse: collapse; }
+.data-table__th { padding: 12px 20px; font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em; color: var(--color-text-muted); text-align: left; border-bottom: 1px solid var(--color-border-light); background: #ffffff; }
+.data-table__td { padding: 14px 20px; font-size: 13px; color: var(--color-text-primary); border-bottom: 1px solid var(--color-border-light); }
+.data-table__row:hover { background-color: #f8fafc; }
+
+.data-card__see-all { display: flex; align-items: center; gap: 8px; padding: 16px 20px; font-size: 13px; font-weight: 700; color: var(--color-blue); border-top: 1px solid var(--color-border-light); transition: 0.2s; }
+.data-card__see-all:hover { background-color: #f8fafc; color: var(--color-primary); }
+.data-card__see-all svg { width: 16px; height: 16px; }
+
+/* ALERTAS Y LISTAS */
+.alert-list { display: flex; flex-direction: column; }
+.alert-item { display: flex; align-items: flex-start; gap: 12px; padding: 16px 20px; border-bottom: 1px solid var(--color-border-light); }
+.alert-item--warning { background-color: var(--color-amber-bg); }
+.alert-item--danger { background-color: var(--color-red-bg); }
+.alert-item__icon { width: 20px; height: 20px; flex-shrink: 0; }
+.alert-item--warning .alert-item__icon { color: var(--color-amber); }
+.alert-item--danger .alert-item__icon { color: var(--color-red); }
+.alert-item__label { display: block; font-size: 14px; font-weight: 700; color: var(--color-text-primary); margin-bottom: 2px; }
+.alert-item__desc { display: block; font-size: 13px; color: var(--color-text-secondary); }
+
+.info-list { padding: 16px 20px; display: flex; flex-direction: column; gap: 12px; }
+.info-list__row { display: flex; justify-content: space-between; align-items: baseline; gap: 12px; }
+.info-list__row--block { flex-direction: column; gap: 4px; }
+.info-list__label { font-size: 13px; color: var(--color-text-muted); font-weight: 600; }
+.info-list__value { font-size: 14px; color: var(--color-text-primary); font-weight: 700; }
+
+.app-footer { padding: 16px 24px; border-top: 1px solid var(--color-border); background-color: var(--color-surface); text-align: center; }
+.app-footer__copy { font-size: 13px; color: var(--color-text-muted); font-weight: 500; }
+
+/* ============================================================
+   RESPONSIVE (MÓVIL Y TABLET)
+   ============================================================ */
+@media (max-width: 1200px) {
+  .detail-columns { grid-template-columns: 1fr; }
+}
+
+@media (max-width: 900px) {
+  .main-content { flex-direction: column; height: auto; overflow: visible; }
+  .vehicle-list-panel { width: 100%; height: 40vh; min-height: 300px; border-right: none; border-bottom: 1px solid var(--color-border); }
+  .vehicle-detail { width: 100%; padding: 20px; overflow: visible; }
+  .topbar__menu-toggle { display: flex; }
+  .topbar__mobile-brand { display: flex; }
+  .topbar__user-name-wrapper { display: none; }
+  
+  /* Deshacemos las restricciones en dispositivos móviles */
+  .app-wrapper { height: auto; overflow: visible; }
+}

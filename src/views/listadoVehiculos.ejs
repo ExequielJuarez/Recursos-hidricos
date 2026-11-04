@@ -1,0 +1,600 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Gestión de Flota - Municipalidad</title>
+  <link rel="stylesheet" href="/css/ListadoVehiculos.css" />
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500;600;700&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet" />
+  
+  <style>
+    /* Estilos para impresión */
+    @media print {
+      body * { visibility: hidden !important; }
+      .vehicle-detail, .vehicle-detail * { visibility: visible !important; }
+
+      html, body { height: auto !important; overflow: visible !important; }
+
+      .vehicle-detail {
+        position: absolute !important;
+        top: 0 !important; left: 0 !important;
+        width: 100% !important;
+        padding: 0 !important;
+        margin: 0 !important;
+        background: #fff !important;
+        overflow: visible !important;
+      }
+
+      #detail-back-btn, #vehicle-actions-bar,
+      .alerts-card, .detail-side-column, .data-card__see-all {
+        display: none !important;
+        visibility: hidden !important;
+      }
+
+      .vehicle-profile { box-shadow: none !important; border: 1px solid #000 !important; }
+      .detail-columns { grid-template-columns: 1fr !important; }
+    }
+
+    /* ── FORZAMOS EL COLOR AZUL DE LA SELECCIÓN AQUÍ ── */
+    .vehicle-card {
+      border-left: 4px solid transparent;
+      transition: background-color 0.2s, border-left-color 0.2s;
+    }
+    .vehicle-card--active {
+      background-color: #eff6ff !important; /* Fondo azul clarito */
+      border-left-color: #2563eb !important; /* Borde azul oscuro a la izquierda */
+    }
+
+    /* ── LÓGICA RESPONSIVE Y BOTÓN VOLVER (CELULARES) ── */
+    #detail-back-btn {
+      background-color: #f8fafc;
+      color: #475569;
+      border: 1px solid #cbd5e1;
+      padding: 8px 14px;
+      font-size: 13px;
+      font-weight: 700;
+      border-radius: 8px;
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      transition: 0.2s;
+      margin-bottom: 20px;
+    }
+    #detail-back-btn:hover { background-color: #e2e8f0; color: #0f172a; }
+    #detail-back-btn svg { width: 16px; height: 16px; }
+
+    /* Ocultar botón volver en PC */
+    @media (min-width: 900px) {
+      #detail-back-btn { display: none !important; }
+    }
+
+    /* Comportamiento de las dos columnas en Celular */
+    @media (max-width: 900px) {
+      .main-content { flex-direction: column !important; }
+      
+      /* FIX PARA QUE LA LISTA NO SE APLASTE */
+      .vehicle-list-panel { 
+        width: 100% !important;
+        border-right: none !important; 
+        flex: 1 1 auto !important;
+        min-height: 70vh !important;
+      }
+      .vehicle-detail { display: none; width: 100% !important; flex: 1 1 auto !important; }
+      
+      /* Clases dinámicas que manejará JavaScript */
+      .vehicle-list-panel--hidden { display: none !important; }
+      .vehicle-detail--visible { display: block !important; }
+    }
+  </style>
+</head>
+<body>
+
+  <%- include('./partials/sidebar') %>
+
+  <div class="app-wrapper" id="app-wrapper">
+
+    <%- include('./partials/topbar') %>
+
+    <%
+      const getBadgeClass = (estado) => {
+        const e = (estado || '').toLowerCase();
+        if (e.includes('disponible')) return 'badge--success';
+        if (e.includes('uso')) return 'badge--info';
+        if (e.includes('mantenimiento') || e.includes('reparación')) return 'badge--warning';
+        if (e.includes('siniestro') || e.includes('baja')) return 'badge--danger';
+        return 'badge--success';
+      };
+    %>
+
+    <main class="main-content" id="main-content">
+
+      <section class="vehicle-list-panel" id="vehicle-list-panel">
+        <div class="vehicle-list-panel__top">
+          <h2 class="vehicle-list-panel__title">Listado de Vehículos</h2>
+          <button id="btn-export-csv-listado" class="vehicle-list-panel__export-btn">
+            <svg viewBox="0 0 20 20" fill="currentColor"><path d="M10.75 2.75a.75.75 0 00-1.5 0v8.614L6.295 8.235a.75.75 0 10-1.09 1.03l4.25 4.5a.75.75 0 001.09 0l4.25-4.5a.75.75 0 00-1.09-1.03l-2.955 3.129V2.75z"/><path d="M3.5 12.75a.75.75 0 00-1.5 0v2.5A2.75 2.75 0 004.75 18h10.5A2.75 2.75 0 0018 15.25v-2.5a.75.75 0 00-1.5 0v2.5c0 .69-.56 1.25-1.25 1.25H4.75c-.69 0-1.25-.56-1.25-1.25v-2.5z"/></svg>
+            Exportar Listado CSV
+          </button>
+        </div>
+
+        <div class="vehicle-list-panel__search-bar">
+          <input class="vehicle-list-panel__search-input" type="search" placeholder="Buscar por patente..." />
+          <button class="vehicle-list-panel__search-btn">
+            <svg viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M8 4a4 4 0 100 8 4 4 0 000-8zM2 8a6 6 0 1110.89 3.476l4.817 4.817a1 1 0 01-1.414 1.414l-4.816-4.816A6 6 0 012 8z" clip-rule="evenodd"/></svg>
+          </button>
+        </div>
+
+        <ul class="vehicle-list" style="flex: 1; overflow-y: auto;">
+          <% if (typeof vehiculos !== 'undefined' && vehiculos && vehiculos.length > 0) { %>
+            <% vehiculos.forEach(vehiculo => { %>
+            
+            <% /* LÓGICA DE SERVIDOR INFALIBLE: Comparamos patente contra patente */ %>
+            <% const isActive = (typeof vehiculoSeleccionado !== 'undefined' && vehiculoSeleccionado && vehiculoSeleccionado.patente === vehiculo.patente) ? 'vehicle-card--active' : ''; %>
+            
+            <li class="vehicle-card <%= isActive %>"
+              data-patente="<%= vehiculo.patente %>"
+              data-marca="<%= vehiculo.marca %>"
+              data-modelo="<%= vehiculo.modelo %>"
+              data-anio="<%= vehiculo.anio %>"
+              data-tipo="<%= vehiculo?.TipoVehiculo?.descripcion || '' %>"
+              data-km="<%= vehiculo.km_actual %>"
+              data-estado="<%= vehiculo.estado_actual %>"
+              data-chasis="<%= vehiculo.num_chasis %>"
+              data-motor="<%= vehiculo.num_motor %>"
+              data-transmision="<%= vehiculo.transmision || 'Manual' %>"
+              data-distrito="<%= vehiculo.distrito || 'Centro' %>"
+              data-fecha-alta="<%= vehiculo.fecha_alta ? fmtFecha(vehiculo.fecha_alta) : '' %>"
+              data-cedula-numero="<%= vehiculo.cedula_numero || '' %>"
+              data-cedula-titular="<%= vehiculo.cedula_titular || '' %>"
+              data-seguro-compania="<%= vehiculo.seguro_compania || '' %>"
+              data-seguro-vencimiento="<%= vehiculo.seguro_vencimiento ? fmtFecha(vehiculo.seguro_vencimiento) : '' %>"
+              data-rto-vencimiento="<%= vehiculo.rto_vencimiento ? fmtFecha(vehiculo.rto_vencimiento) : '' %>"
+              style="padding: 12px 16px;">
+              <a href="/Vehicles/<%= vehiculo.id_vehiculo %>" class="vehicle-card__link">
+                <div style="display: flex; justify-content: space-between; align-items: baseline; margin-bottom: 4px;">
+                  <span class="vehicle-card__plate" style="font-size: 14px;"><%= vehiculo.patente %></span>
+                  <span class="vehicle-card__km" style="font-size: 11px;"><%= fmtUso(vehiculo.km_actual, vehiculo) %></span>
+                </div>
+                <span class="vehicle-card__model" style="font-size: 12px; margin-bottom: 8px;"><%= vehiculo.marca %> - <%= vehiculo.modelo %></span>
+                <span class="badge <%= getBadgeClass(vehiculo.estado_actual) %>" style="font-size: 10px; padding: 2px 6px;"><%= vehiculo.estado_actual %></span>
+              </a>
+            </li>
+            <% }) %>
+          <% } else { %>
+            <div style="padding: 30px 20px; text-align: center; color: #64748b;">
+              <p style="font-weight: 500;">No hay vehículos registrados.</p>
+            </div>
+          <% } %>
+        </ul>
+      </section>
+
+      <section class="vehicle-detail" id="vehicle-detail">
+        
+        <% if (typeof vehiculoSeleccionado !== 'undefined' && vehiculoSeleccionado) { %>
+
+        <nav aria-label="Navegación móvil" style="padding: 20px 24px 0 24px;">
+          <button id="detail-back-btn">
+            <svg viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M9.707 16.707a1 1 0 01-1.414 0l-6-6a1 1 0 010-1.414l6-6a1 1 0 011.414 1.414L5.414 9H17a1 1 0 110 2H5.414l4.293 4.293a1 1 0 010 1.414z" clip-rule="evenodd"/></svg>
+            Volver al listado
+          </button>
+        </nav>
+
+        <article class="vehicle-profile" style="padding: 24px; display: flex; flex-direction: column; gap: 20px;">
+
+          <div style="display: flex; justify-content: space-between; align-items: flex-start; width: 100%; flex-wrap: wrap; gap: 16px; border-bottom: 1px solid #e2e8f0; padding-bottom: 16px;">
+            
+            <div style="display: flex; align-items: center; gap: 12px; flex-wrap: wrap;">
+              <h2 class="vehicle-profile__plate" style="margin:0; font-size: 26px; font-weight: 800; color: #0f172a; font-family: var(--font-mono); letter-spacing: 0.5px;"><%= vehiculoSeleccionado.patente %></h2>
+              <span class="badge <%= getBadgeClass(vehiculoSeleccionado.estado_actual) %>" style="font-size: 12px; height: fit-content;">
+                <%= vehiculoSeleccionado.estado_actual %>
+              </span>
+            </div>
+
+            <div id="vehicle-actions-bar" style="display: flex; gap: 8px; flex-wrap: wrap;">
+              <button onclick="window.print()" style="background-color: #f1f5f9; color: #334155; border: 1px solid #cbd5e1; padding: 8px 14px; font-size: 12px; font-weight: 700; border-radius: 6px; display: flex; align-items: center; transition: 0.2s;">
+                <svg viewBox="0 0 20 20" fill="currentColor" style="width: 14px; height: 14px; margin-right: 5px;"><path fill-rule="evenodd" d="M5 4v3H4a2 2 0 00-2 2v3a2 2 0 002 2h1v2a2 2 0 002 2h6a2 2 0 002-2v-2h1a2 2 0 002-2V9a2 2 0 00-2-2h-1V4a2 2 0 00-2-2H7a2 2 0 00-2 2zm8 0H7v3h6V4zm0 8H7v4h6v-4z" clip-rule="evenodd"/></svg>
+                Imprimir
+              </button>
+              <a href="/Vehicles/Editar/<%= vehiculoSeleccionado.id_vehiculo %>" style="background-color: #eff6ff; color: #2563eb; border: 1px solid #bfdbfe; padding: 8px 14px; font-size: 12px; font-weight: 700; border-radius: 6px; text-decoration: none; display: flex; align-items: center; transition: 0.2s;">
+                Editar
+              </a>
+              <a href="/Mantenimientos/carga/<%= vehiculoSeleccionado.id_vehiculo %>" style="background-color: #ecfdf5; color: #059669; border: 1px solid #a7f3d0; padding: 8px 14px; font-size: 12px; font-weight: 700; border-radius: 6px; text-decoration: none; transition: 0.2s;">
+                + Mantenimiento
+              </a>
+              <% if (vehiculoSeleccionado.estado_actual === 'Disponible') { %>
+                <a href="/asignaciones?id_vehiculo=<%= vehiculoSeleccionado.id_vehiculo %>" style="background-color: #2563eb; color: white; padding: 8px 14px; font-size: 12px; font-weight: 700; border-radius: 6px; text-decoration: none; transition: 0.2s;">
+                  Asignar Chofer
+                </a>
+              <% } %>
+            </div>
+
+            <%# ── BOTONES VER DOCUMENTOS (AGREGADO) ── %>
+              <% if (vehiculoSeleccionado.foto_cedula) { %>
+                <button onclick="abrirFotoVehiculo('/img/vehiculos/<%= vehiculoSeleccionado.foto_cedula %>')" style="background-color:#f1f5f9;color:#2563eb;border:1px solid #cbd5e1;padding:8px 14px;font-size:12px;font-weight:700;border-radius:6px;cursor:pointer;">
+                   Ver Cédula
+                </button>
+              <% } %>
+              <% if (vehiculoSeleccionado.foto_titulo) { %>
+                <button onclick="abrirFotoVehiculo('/img/vehiculos/<%= vehiculoSeleccionado.foto_titulo %>')" style="background-color:#f1f5f9;color:#2563eb;border:1px solid #cbd5e1;padding:8px 14px;font-size:12px;font-weight:700;border-radius:6px;cursor:pointer;">
+                   Ver Título
+                </button>
+              <% } %>
+              <% if (vehiculoSeleccionado.foto_rto) { %>
+                <button onclick="abrirFotoVehiculo('/img/vehiculos/<%= vehiculoSeleccionado.foto_rto %>')" style="background-color:#f1f5f9;color:#2563eb;border:1px solid #cbd5e1;padding:8px 14px;font-size:12px;font-weight:700;border-radius:6px;cursor:pointer;">
+                  Ver Seguro
+                </button>
+              <% } %>
+            
+          </div>
+          
+          
+
+          <div class="vehicle-profile__specs" style="grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 20px;">
+            <dl class="vehicle-profile__spec-group">
+              <div class="vehicle-profile__spec-row">
+                <dt class="vehicle-profile__spec-label">Marca / Modelo</dt>
+                <dd class="vehicle-profile__spec-value"><%= vehiculoSeleccionado.marca %> <%= vehiculoSeleccionado.modelo %></dd>
+              </div>
+              <div class="vehicle-profile__spec-row">
+                <dt class="vehicle-profile__spec-label">Tipo</dt>
+                <dd class="vehicle-profile__spec-value"><%= vehiculoSeleccionado?.TipoVehiculo?.descripcion || '—' %></dd>
+              </div>
+              <div class="vehicle-profile__spec-row">
+                <dt class="vehicle-profile__spec-label">Año</dt>
+                <dd class="vehicle-profile__spec-value"><%= vehiculoSeleccionado.anio %></dd>
+              </div>
+              <div class="vehicle-profile__spec-row">
+                <dt class="vehicle-profile__spec-label"><%= unidadDe(vehiculoSeleccionado) === 'hs' ? 'Horas de uso' : 'Km Actual' %></dt>
+                <dd class="vehicle-profile__spec-value" style="font-size: 15px; color: #0f172a; font-weight: 800;"><%= fmtUso(vehiculoSeleccionado.km_actual, vehiculoSeleccionado) %></dd>
+              </div>
+            </dl>
+
+            <dl class="vehicle-profile__spec-group">
+              <div class="vehicle-profile__spec-row">
+                <dt class="vehicle-profile__spec-label">Chasis</dt>
+                <dd class="vehicle-profile__spec-value" style="font-family: var(--font-mono); font-size: 12px;"><%= vehiculoSeleccionado.num_chasis %></dd>
+              </div>
+              <div class="vehicle-profile__spec-row">
+                <dt class="vehicle-profile__spec-label">Motor</dt>
+                <dd class="vehicle-profile__spec-value" style="font-family: var(--font-mono); font-size: 12px;"><%= vehiculoSeleccionado.num_motor %></dd>
+              </div>
+              <div class="vehicle-profile__spec-row">
+                <dt class="vehicle-profile__spec-label">Transmisión</dt>
+                <dd class="vehicle-profile__spec-value"><%= vehiculoSeleccionado.transmision || 'Manual' %></dd>
+              </div>
+              <div class="vehicle-profile__spec-row">
+                <dt class="vehicle-profile__spec-label">Combustible</dt>
+                <dd class="vehicle-profile__spec-value">Diesel</dd>
+              </div>
+            </dl>
+
+            <dl class="vehicle-profile__spec-group">
+              <div class="vehicle-profile__spec-row">
+                <dt class="vehicle-profile__spec-label">Distrito</dt>
+                <dd class="vehicle-profile__spec-value"><%= vehiculoSeleccionado.distrito || 'Centro' %></dd>
+              </div>
+              <div class="vehicle-profile__spec-row">
+                <dt class="vehicle-profile__spec-label">Fecha de Alta</dt>
+                <dd class="vehicle-profile__spec-value"><%= vehiculoSeleccionado.fecha_alta ? fmtFecha(vehiculoSeleccionado.fecha_alta) : '—' %></dd>
+              </div>
+              <div class="vehicle-profile__spec-row">
+                <dt class="vehicle-profile__spec-label">Chofer Asignado</dt>
+                <dd class="vehicle-profile__spec-value" style="color: #2563eb; font-weight: 700;">
+                  <% if (typeof asignacionActiva !== 'undefined' && asignacionActiva && asignacionActiva.Chofer) { %>
+                    <%= asignacionActiva.Chofer.apellido %>, <%= asignacionActiva.Chofer.nombre %>
+                  <% } else { %>
+                    —
+                  <% } %>
+                </dd>
+              </div>
+            </dl>
+          </div>
+
+          <div style="background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 8px; padding: 16px;">
+            <h3 style="font-size: 12px; color: #64748b; margin-bottom: 12px; font-weight: 800; text-transform: uppercase; letter-spacing: 0.05em;">Documentación y Coberturas</h3>
+            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 12px;">
+              <div>
+                <dt class="vehicle-profile__spec-label">Cédula</dt>
+                <dd class="vehicle-profile__spec-value" style="font-family: var(--font-mono); font-size: 12px;"><%= vehiculoSeleccionado.cedula_numero || '—' %></dd>
+              </div>
+              <div>
+                <dt class="vehicle-profile__spec-label">Titular</dt>
+                <dd class="vehicle-profile__spec-value"><%= vehiculoSeleccionado.cedula_titular || '—' %></dd>
+              </div>
+              <div>
+                <dt class="vehicle-profile__spec-label">Seguro</dt>
+                <dd class="vehicle-profile__spec-value"><%= vehiculoSeleccionado.seguro_compania || '—' %></dd>
+              </div>
+              <div>
+                <dt class="vehicle-profile__spec-label">Venc. Seguro</dt>
+                <dd class="vehicle-profile__spec-value"><%= vehiculoSeleccionado.seguro_vencimiento ? fmtFecha(vehiculoSeleccionado.seguro_vencimiento) : '—' %></dd>
+              </div>
+              <div>
+                <dt class="vehicle-profile__spec-label">Venc. RTO</dt>
+                <dd class="vehicle-profile__spec-value"><%= vehiculoSeleccionado.rto_vencimiento ? fmtFecha(vehiculoSeleccionado.rto_vencimiento) : '—' %></dd>
+              </div>
+            </div>
+          </div>
+        </article>
+
+        <div class="detail-columns">
+          <div class="detail-main-column">
+            <section class="data-card">
+              <header class="data-card__header">
+                <svg class="data-card__icon" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M11.49 3.17c-.38-1.56-2.6-1.56-2.98 0a1.532 1.532 0 01-2.286.948c-1.372-.836-2.942.734-2.106 2.106.54.886.061 2.042-.947 2.287-1.561.379-1.561 2.6 0 2.978a1.532 1.532 0 01.947 2.287c-.836 1.372.734 2.942 2.106 2.106a1.532 1.532 0 012.287.947c.379 1.561 2.6 1.561 2.978 0a1.533 1.533 0 012.287-.947c1.372.836 2.942-.734 2.106-2.106a1.533 1.533 0 01.947-2.287c1.561-.379 1.561-2.6 0-2.978a1.532 1.532 0 01-.947-2.287c.836-1.372-.734-2.942-2.106-2.106a1.532 1.532 0 01-2.287-.947zM10 13a3 3 0 100-6 3 3 0 000 6z" clip-rule="evenodd"/></svg>
+                <h3 class="data-card__title">Mantenimientos Recientes</h3>
+                <% if (typeof vehiculoSeleccionado !== 'undefined' && vehiculoSeleccionado) { %>
+                <a href="/Mantenimientos/Historial?vehiculo=<%= vehiculoSeleccionado.id_vehiculo %>" style="margin-left: auto; background-color: #f8fafc; color: #475569; border: 1px solid #cbd5e1; padding: 6px 12px; font-size: 12px; font-weight: 700; border-radius: 6px; text-decoration: none; white-space: nowrap;" title="Remitos, facturas, proveedor, pedido y expediente · exportar a Excel">Historial administrativo</a>
+                <a href="/Vehicles/<%= vehiculoSeleccionado.id_vehiculo %>/mantenimientos" style="margin-left: 8px; background-color: #eff6ff; color: #2563eb; border: 1px solid #bfdbfe; padding: 6px 12px; font-size: 12px; font-weight: 700; border-radius: 6px; text-decoration: none; white-space: nowrap;">
+                  Ver todos<%= typeof totalMantenimientos !== 'undefined' ? ' (' + totalMantenimientos + ')' : '' %> →
+                </a>
+                <% } %>
+              </header>
+              <div class="data-table-wrapper">
+                <table class="data-table">
+                  <thead class="data-table__head">
+                    <tr><th class="data-table__th">Fecha</th><th class="data-table__th">Servicio</th><th class="data-table__th">Costo</th></tr>
+                  </thead>
+                  <tbody class="data-table__body">
+                    <% if (typeof ultimosMantenimientos !== 'undefined' && ultimosMantenimientos && ultimosMantenimientos.length > 0) { %>
+                      <% ultimosMantenimientos.slice(0,3).forEach(m => { %>
+                      <tr class="data-table__row">
+                        <td class="data-table__td" data-label="Fecha"><%= fmtFecha(m.fecha_inicio) %></td>
+                        <td class="data-table__td" data-label="Tipo"><%= m.tipo_servicio %></td>
+                        <td class="data-table__td" data-label="Costo" style="font-weight: 700;"><%= fmtMoneda(m.costo_total) %></td>
+                      </tr>
+                      <% }) %>
+                    <% } else { %>
+                      <tr class="data-table__row"><td class="data-table__td" colspan="3" style="text-align:center; color: #64748b;">Sin mantenimientos</td></tr>
+                    <% } %>
+                  </tbody>
+                </table>
+              </div>
+            </section>
+            
+            <section class="data-card">
+              <header class="data-card__header">
+                <svg class="data-card__icon" viewBox="0 0 20 20" fill="currentColor" style="color: #dc2626;"><path fill-rule="evenodd" d="M10 1.944A11.954 11.954 0 012.166 5C2.056 5.649 2 6.319 2 7c0 5.225 3.34 9.67 8 11.317C14.66 16.67 18 12.225 18 7c0-.682-.057-1.35-.166-2.001A11.954 11.954 0 0110 1.944zM11 14a1 1 0 11-2 0 1 1 0 012 0zm0-7a1 1 0 10-2 0v3a1 1 0 102 0V7z" clip-rule="evenodd"/></svg>
+                <h3 class="data-card__title" style="color: #dc2626;">Siniestros Registrados</h3>
+                <% if (typeof vehiculoSeleccionado !== 'undefined' && vehiculoSeleccionado) { %>
+                <a href="/Vehicles/<%= vehiculoSeleccionado.id_vehiculo %>/siniestros" style="margin-left: auto; background-color: #fef2f2; color: #dc2626; border: 1px solid #fecaca; padding: 6px 12px; font-size: 12px; font-weight: 700; border-radius: 6px; text-decoration: none; white-space: nowrap;">
+                  Ver todos<%= typeof siniestrosVehiculo !== 'undefined' && siniestrosVehiculo ? ' (' + siniestrosVehiculo.length + ')' : '' %> →
+                </a>
+                <% } %>
+              </header>
+              <div class="data-table-wrapper">
+                <table class="data-table">
+                  <thead class="data-table__head">
+                    <tr><th class="data-table__th">Fecha</th><th class="data-table__th">Ubicación</th><th class="data-table__th">Estado</th></tr>
+                  </thead>
+                  <tbody class="data-table__body">
+                    <% if (typeof siniestrosVehiculo !== 'undefined' && siniestrosVehiculo && siniestrosVehiculo.length > 0) { %>
+                      <% siniestrosVehiculo.slice(0,3).forEach(s => { %>
+                      <tr class="data-table__row">
+                        <td class="data-table__td" data-label="Fecha"><%= s.fecha_siniestro ? fmtFecha(s.fecha_siniestro) : '—' %></td>
+                        <td class="data-table__td" data-label="Ubicación"><%= s.ubicacion || '—' %></td>
+                        <td class="data-table__td" data-label="Estado"><span class="badge <%= s.estado === 'RESUELTO' ? 'badge--success' : 'badge--warning' %>"><%= s.estado %></span></td>
+                      </tr>
+                      <% }) %>
+                    <% } else { %>
+                      <tr class="data-table__row"><td class="data-table__td" colspan="3" style="text-align:center; color: #64748b;">Sin siniestros reportados</td></tr>
+                    <% } %>
+                  </tbody>
+                </table>
+              </div>
+            </section>
+
+            <% if (typeof gruposDocumentos !== 'undefined') { %>
+              <%- include('./partials/documentos', { entidad: 'vehiculo', idEntidad: vehiculoSeleccionado.id_vehiculo, gruposDocumentos }) %>
+            <% } %>
+          </div>
+
+          <aside class="detail-side-column">
+            <section class="alerts-card">
+              <header class="data-card__header">
+                <svg class="data-card__icon" viewBox="0 0 20 20" fill="currentColor"><path d="M10 2a6 6 0 00-6 6v3.586l-.707.707A1 1 0 004 14h12a1 1 0 00.707-1.707L16 11.586V8a6 6 0 00-6-6zM10 18a3 3 0 01-3-3h6a3 3 0 01-3 3z"/></svg>
+                <h3 class="data-card__title">Alertas del Vehículo</h3>
+              </header>
+              <ul class="alert-list">
+                <% const ETIQ = { mantenimiento_proximo: 'Service próximo', mantenimiento_vencido: 'Service vencido', documentacion_vencida: 'Documentación', asignacion_vencida: 'Asignación vencida', siniestro_activo: 'Siniestro abierto' }; %>
+                <% (typeof alertasVehiculo !== 'undefined' ? alertasVehiculo : []).forEach(al => { %>
+                  <li class="alert-item <%= al.prioridad === 'alta' ? 'alert-item--danger' : (al.prioridad === 'media' ? 'alert-item--warning' : '') %>">
+                    <div class="alert-item__icon"><svg viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clip-rule="evenodd"/></svg></div>
+                    <div style="flex:1;">
+                      <span class="alert-item__label"><%= ETIQ[al.tipo] || al.tipo %></span>
+                      <span class="alert-item__desc"><%= al.mensaje %></span>
+                    </div>
+                  </li>
+                <% }) %>
+                <% if (!(typeof alertasVehiculo !== 'undefined' && alertasVehiculo.length)) { %>
+                  <li class="alert-item">
+                    <div style="flex:1;">
+                      <span class="alert-item__label">Sin alertas</span>
+                      <span class="alert-item__desc">Este vehículo no tiene alertas activas.</span>
+                    </div>
+                  </li>
+                <% } %>
+              </ul>
+            </section>
+          </aside>
+        </div>
+
+        <% } else { %>
+          <div style="display: flex; flex-direction: column; align-items: center; justify-content: center; height: 50vh; color: #94a3b8;">
+            <p>Hacé clic en un vehículo para ver su ficha técnica.</p>
+          </div>
+        <% } %>
+      </section>
+    </main>
+  </div>
+
+  <script src="/js/sidebar.js"></script>
+
+  <script>
+    /* ── FIX: SCROLL AUTOMÁTICO HACIA LA TARJETA PINTADA ── */
+    document.addEventListener("DOMContentLoaded", () => {
+      const tarjetaActiva = document.querySelector('.vehicle-card--active');
+      if (tarjetaActiva) {
+        setTimeout(() => {
+          tarjetaActiva.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        }, 100);
+      }
+    });
+  </script>
+
+  <script>
+    const searchInput = document.querySelector('.vehicle-list-panel__search-input');
+    const toolCards = document.querySelectorAll('.vehicle-card');
+    
+    if (searchInput) {
+      searchInput.addEventListener('input', function(e) {
+        const searchTerm = e.target.value.toLowerCase().trim();
+        toolCards.forEach(card => {
+          const code = card.querySelector('.vehicle-card__plate')?.textContent.toLowerCase() || '';
+          if (code.includes(searchTerm)) card.style.display = ''; 
+          else card.style.display = 'none'; 
+        });
+      });
+    }
+
+    // ── EXPORTAR LISTADO CSV (con todos los datos, sin chofer asignado) ──
+    const btnExportListado = document.getElementById('btn-export-csv-listado');
+    if (btnExportListado) {
+      btnExportListado.addEventListener('click', function() {
+        const headers = ['Patente','Marca','Modelo','Año','Tipo','Km Actual','Estado','Chasis','Motor','Transmisión','Distrito','Fecha Alta','Cédula Número','Cédula Titular','Seguro Compañía','Vencimiento Seguro','Vencimiento RTO'];
+
+        const escapeCsv = (value) => `"${(value || '').toString().replace(/"/g, '""')}"`;
+
+        const rows = [headers.map(escapeCsv).join(',')];
+
+        toolCards.forEach(card => {
+          const fila = [
+            card.dataset.patente,
+            card.dataset.marca,
+            card.dataset.modelo,
+            card.dataset.anio,
+            card.dataset.tipo,
+            card.dataset.km,
+            card.dataset.estado,
+            card.dataset.chasis,
+            card.dataset.motor,
+            card.dataset.transmision,
+            card.dataset.distrito,
+            card.dataset.fechaAlta,
+            card.dataset.cedulaNumero,
+            card.dataset.cedulaTitular,
+            card.dataset.seguroCompania,
+            card.dataset.seguroVencimiento,
+            card.dataset.rtoVencimiento
+          ].map(escapeCsv).join(',');
+          rows.push(fila);
+        });
+
+        const csvContent = rows.join('\r\n');
+        const blob = new Blob(["\uFEFF" + csvContent], { type: 'text/csv;charset=utf-8;' });
+        const url = URL.createObjectURL(blob);
+        const link = document.createElement('a');
+        link.href = url;
+        link.setAttribute('download', 'Listado_Vehiculos.csv');
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+        URL.revokeObjectURL(url);
+      });
+    }
+
+    // ── MODAL FOTOS VEHÍCULO (AGREGADO) ──
+    const modalVehiculo = document.createElement('div');
+    modalVehiculo.style.cssText = `
+      display:none; position:fixed; inset:0; background:rgba(0,0,0,0.75);
+      z-index:9999; align-items:center; justify-content:center; padding:20px;
+    `;
+    modalVehiculo.innerHTML = `
+      <div style="position:relative; max-width:90vw; max-height:90vh;">
+        <button id="modal-vehiculo-close" style="
+          position:absolute; top:-14px; right:-14px; width:32px; height:32px;
+          background:#fff; border:none; border-radius:50%; font-size:18px;
+          font-weight:800; cursor:pointer; color:#0f172a; line-height:1;
+          box-shadow:0 2px 8px rgba(0,0,0,0.3);
+        ">×</button>
+        <img id="modal-vehiculo-img" src="" alt="Foto"
+          style="max-width:100%; max-height:85vh; border-radius:8px; display:block;">
+      </div>
+    `;
+    document.body.appendChild(modalVehiculo);
+
+    document.getElementById('modal-vehiculo-close').addEventListener('click', () => {
+      modalVehiculo.style.display = 'none';
+    });
+    modalVehiculo.addEventListener('click', (e) => {
+      if (e.target === modalVehiculo) modalVehiculo.style.display = 'none';
+    });
+
+    function abrirFotoVehiculo(src) {
+      if (/\.pdf$/i.test(src)) { window.open(src, '_blank', 'noopener'); return; } // PDF: se abre en otra pestaña
+      document.getElementById('modal-vehiculo-img').src = src;
+      modalVehiculo.style.display = 'flex';
+    }
+
+    // ── LÓGICA DE NAVEGACIÓN MÓVIL (MASTER-DETAIL) ──
+    const listPanel   = document.getElementById('vehicle-list-panel');
+    const detailPanel = document.getElementById('vehicle-detail');
+    const backBtn     = document.getElementById('detail-back-btn');
+    
+    function isMobileView() { return window.innerWidth < 900; }
+
+    const haySeleccion = <%= (typeof vehiculoSeleccionado !== 'undefined' && vehiculoSeleccionado) ? 'true' : 'false' %>;
+
+    if (haySeleccion && isMobileView()) {
+      if (listPanel) listPanel.classList.add('vehicle-list-panel--hidden');
+      if (detailPanel) {
+        detailPanel.classList.add('vehicle-detail--visible');
+        detailPanel.scrollTop = 0;
+      }
+    }
+
+    if(backBtn) {
+      backBtn.addEventListener('click', function () {
+        listPanel.classList.remove('vehicle-list-panel--hidden');
+        detailPanel.classList.remove('vehicle-detail--visible');
+      });
+    }
+
+    window.addEventListener('resize', function () {
+      if (!isMobileView()) {
+        listPanel.classList.remove('vehicle-list-panel--hidden');
+        detailPanel.classList.remove('vehicle-detail--visible');
+      } else if (haySeleccion) {
+        listPanel.classList.add('vehicle-list-panel--hidden');
+        detailPanel.classList.add('vehicle-detail--visible');
+      }
+    });
+  </script>
+  
+  <script>
+    // ── FIX BOTÓN HAMBURGUESA BLINDADO ──
+    document.addEventListener('DOMContentLoaded', () => {
+      const topbar = document.querySelector('.topbar') || document.querySelector('.app-header');
+      if (!topbar) return;
+      
+      const btnHamburguesa = topbar.querySelector('button') || document.getElementById('menu-toggle');
+      
+      const sidebar = document.getElementById('mi-sidebar-blindado');
+      const overlay = document.getElementById('sb-overlay-blindado');
+
+      if (btnHamburguesa && sidebar && overlay) {
+        const nuevoBtn = btnHamburguesa.cloneNode(true);
+        btnHamburguesa.parentNode.replaceChild(nuevoBtn, btnHamburguesa);
+
+        nuevoBtn.addEventListener('click', (e) => {
+          e.preventDefault();
+          e.stopPropagation();
+          sidebar.classList.toggle('abierto');
+          overlay.classList.toggle('activo');
+        });
+      }
+    });
+  </script>
+</body>
+</html>

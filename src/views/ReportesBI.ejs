@@ -1,0 +1,387 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Reportes BI - Gestión de Flota</title>
+    <link rel="stylesheet" href="/css/ListadoVehiculos.css"> 
+    <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500;600;700;800&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
+    
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+    <style>
+        /* Reutilizamos el sistema de diseño del Dashboard de Alertas */
+        .stats-grid { display: flex; flex-wrap: wrap; gap: 16px; margin-bottom: 24px; }
+        .stat-card { background: var(--color-surface, #ffffff); border: 1px solid var(--color-border, #e2e8f0); border-radius: 12px; padding: 24px; display: flex; align-items: center; justify-content: flex-start; gap: 20px; flex: 1; min-width: 250px; box-shadow: 0 1px 3px rgba(0,0,0,0.05); transition: 0.2s;}
+        .stat-card:hover { border-color: #cbd5e1; transform: translateY(-2px); box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1); }
+        .stat-icon { background: #f8fafc; color: #0f172a; padding: 16px; border-radius: 12px; display: flex; align-items: center; justify-content: center; }
+        .stat-icon--danger { background: #fef2f2; color: #dc2626; }
+        .stat-info { display: flex; flex-direction: column; }
+        .stat-title { font-size: 13px; font-weight: 700; color: #64748b; text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 4px; }
+        .stat-number { font-size: 24px; font-weight: 800; color: #0f172a; font-family: 'DM Sans', sans-serif; }
+
+        .filtro-container { background: #ffffff; padding: 20px; border-radius: 12px; box-shadow: 0 1px 3px rgba(0,0,0,0.05); margin-bottom: 24px; display: flex; gap: 15px; align-items: flex-end; flex-wrap: wrap; border: 1px solid #e2e8f0;}
+        .filtro-group { display: flex; flex-direction: column; gap: 6px; flex: 1; min-width: 200px; }
+        .filtro-group label { font-size: 11px; font-weight: 700; color: #64748b; text-transform: uppercase; letter-spacing: 0.05em;}
+        .filtro-input { padding: 10px 14px; border: 1px solid #cbd5e1; border-radius: 8px; font-family: 'DM Sans', sans-serif; font-size: 14px; color: #1e293b; outline: none; transition: 0.2s; background: white;}
+        .filtro-input:focus { border-color: #2563eb; box-shadow: 0 0 0 3px rgba(37,99,235,0.1); }
+        .btn-filtrar { background-color: #0f172a; color: white; padding: 10px 24px; border-radius: 8px; font-weight: 700; font-size: 14px; border: none; cursor: pointer; height: 42px; transition: 0.2s; white-space: nowrap; display: inline-flex; align-items: center; justify-content: center; gap: 6px;}
+        .btn-filtrar:hover { background-color: #334155; }
+
+        .dashboard-charts { display: grid; grid-template-columns: repeat(auto-fit, minmax(400px, 1fr)); gap: 24px; margin-bottom: 32px; }
+        .chart-card { background: #ffffff; border: 1px solid #e2e8f0; border-radius: 12px; padding: 24px; box-shadow: 0 1px 3px rgba(0,0,0,0.05); display: flex; flex-direction: column; align-items: center; }
+        .chart-card h3 { font-size: 16px; color: #0f172a; margin: 0 0 20px 0; font-weight: 800; align-self: flex-start; border-bottom: 1px solid #f1f5f9; padding-bottom: 12px; width: 100%;}
+        .chart-container { position: relative; height: 300px; width: 100%; }
+        .chart-card--full { grid-column: 1 / -1; }
+
+        /* ── ADAPTACIÓN MÓVIL Y BOTÓN VOLVER ── */
+        #mobile-back-btn {
+          background-color: #f8fafc;
+          color: #475569;
+          border: 1px solid #cbd5e1;
+          padding: 8px 14px;
+          font-size: 13px;
+          font-weight: 700;
+          border-radius: 8px;
+          cursor: pointer;
+          display: inline-flex;
+          align-items: center;
+          gap: 6px;
+          transition: 0.2s;
+          margin-bottom: 20px;
+          text-decoration: none;
+        }
+        #mobile-back-btn:hover { background-color: #e2e8f0; color: #0f172a; }
+        #mobile-back-btn svg { width: 16px; height: 16px; }
+
+        @media (min-width: 900px) {
+          #mobile-back-btn { display: none !important; }
+        }
+
+        @media (max-width: 900px) {
+    /* Fix principal */
+    .app-wrapper { margin-left: 0 !important; }
+    .topbar__menu-toggle { display: flex !important; }
+    .topbar__mobile-brand { display: flex !important; }
+    .topbar__user-name-wrapper { display: none; }
+
+    /* Main */
+    .main-content { padding: 16px !important; max-width: 100% !important; }
+
+    /* Stat cards */
+    .stats-grid { flex-direction: column; }
+    .stat-card { min-width: unset; width: 100%; }
+
+    /* Filtros */
+    .filtro-container { flex-direction: column; align-items: stretch; padding: 14px; }
+    .filtro-group { width: 100%; min-width: unset; }
+    .filtro-container > div:last-child { width: 100%; }
+    .btn-filtrar { width: 100% !important; height: auto; padding: 12px; box-sizing: border-box; }
+
+    /* Gráficos */
+    .dashboard-charts { grid-template-columns: 1fr; }
+    .chart-card--full { grid-column: auto; }
+    .chart-container { height: 240px; }
+
+    /* Botón volver ya tiene su lógica, solo ajuste */
+    .page-header { margin-bottom: 16px !important; }
+}
+    </style>
+</head>
+<body>
+
+    <%- include('./partials/sidebar') %>
+
+    <div class="app-wrapper" id="app-wrapper">
+
+        <%- include('./partials/topbar') %>
+
+        <main class="main-content" style="display: block; overflow-y: auto; padding: 40px; max-width: 1200px; margin: 0 auto;">
+
+            <button id="mobile-back-btn" onclick="window.history.back()">
+                <svg viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M9.707 16.707a1 1 0 01-1.414 0l-6-6a1 1 0 010-1.414l6-6a1 1 0 011.414 1.414L5.414 9H17a1 1 0 110 2H5.414l4.293 4.293a1 1 0 010 1.414z" clip-rule="evenodd"/></svg>
+                Volver Atrás
+            </button>
+
+            <div class="page-header" style="margin-bottom: 24px;">
+                <h2 class="page-title" style="font-size: 28px; font-weight: 800; color: #0f172a; margin: 0 0 8px 0;">Reportes y Análisis BI</h2>
+                <p class="page-subtitle" style="color: #64748b; margin: 0; font-size: 15px;">Métricas financieras y operativas de la flota en tiempo real.</p>
+            </div>
+
+            <form method="GET" action="/Reportes">
+                <div class="filtro-container">
+                    <div class="filtro-group">
+                        <label>Fecha Desde</label>
+                        <input class="filtro-input" name="fechaDesde" type="date" value="<%= typeof fechaDesde !== 'undefined' ? fechaDesde : '' %>" required>
+                    </div>
+                    <div class="filtro-group">
+                        <label>Fecha Hasta</label>
+                        <input class="filtro-input" name="fechaHasta" type="date" value="<%= typeof fechaHasta !== 'undefined' ? fechaHasta : '' %>" required>
+                    </div>
+                    <div>
+                        <button type="submit" class="btn-filtrar">
+                            <svg viewBox="0 0 20 20" fill="currentColor" style="width: 16px; height: 16px;"><path fill-rule="evenodd" d="M4 4a2 2 0 012-2h4.586A2 2 0 0112 2.586L15.414 6A2 2 0 0116 7.414V16a2 2 0 01-2 2H6a2 2 0 01-2-2V4zm2 6a1 1 0 011-1h6a1 1 0 110 2H7a1 1 0 01-1-1zm1 3a1 1 0 100 2h6a1 1 0 100-2H7z" clip-rule="evenodd"/></svg>
+                            Generar Reporte
+                        </button>
+                    </div>
+                </div>
+            </form>
+
+            <div class="stats-grid">
+                
+                <div class="stat-card">
+                    <div class="stat-icon stat-icon--danger">
+                        <svg viewBox="0 0 24 24" width="28" height="28" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <line x1="12" y1="1" x2="12" y2="23"></line>
+                            <path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"></path>
+                        </svg>
+                    </div>
+                    <div class="stat-info">
+                        <span class="stat-title">Gasto Total en Mantenimientos</span>
+                        <span class="stat-number" style="color: #dc2626;">
+                            <%= new Intl.NumberFormat('es-AR', { style: 'currency', currency: 'ARS' }).format(estadisticas.costoTotal || 0) %>
+                        </span>
+                    </div>
+                </div>
+
+                <div class="stat-card">
+                    <div class="stat-icon" style="background: #fef3c7; color: #d97706;">
+                        <svg viewBox="0 0 24 24" width="28" height="28" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect>
+                            <line x1="16" y1="2" x2="16" y2="6"></line>
+                            <line x1="8" y1="2" x2="8" y2="6"></line>
+                            <line x1="3" y1="10" x2="21" y2="10"></line>
+                        </svg>
+                    </div>
+                    <div class="stat-info">
+                        <span class="stat-title">Período Analizado</span>
+                        <span class="stat-number" style="font-size: 20px;">
+                            <% 
+                                const formatFecha = (d) => {
+                                    if(!d) return '--/--/----';
+                                    const date = new Date(d);
+                                    return `${String(date.getUTCDate()).padStart(2,'0')}/${String(date.getUTCMonth()+1).padStart(2,'0')}/${date.getUTCFullYear()}`;
+                                };
+                            %>
+                            <%= formatFecha(typeof fechaDesde !== 'undefined' ? fechaDesde : null) %> al <%= formatFecha(typeof fechaHasta !== 'undefined' ? fechaHasta : null) %>
+                        </span>
+                    </div>
+                </div>
+
+            </div>
+
+            <div class="dashboard-charts">
+                
+                <div class="chart-card">
+                    <h3>Top 5 Vehículos con Mayor Gasto (ARS)</h3>
+                    <div class="chart-container">
+                        <canvas id="chartTopVehiculos"></canvas>
+                    </div>
+                </div>
+
+                <div class="chart-card">
+                    <h3>Ranking de Viajes por Destino</h3>
+                    <div class="chart-container">
+                        <canvas id="chartViajesDestino"></canvas>
+                    </div>
+                </div>
+
+                <div class="chart-card chart-card--full">
+                    <h3>Frecuencia de Tipos de Servicio en Taller</h3>
+                    <div class="chart-container">
+                        <canvas id="chartTipoServicio"></canvas>
+                    </div>
+                </div>
+
+            </div>
+
+        </main>
+
+    </div>
+
+    <script src="/js/sidebar.js"></script>
+
+    <script>
+        /* ── FIX BOTÓN HAMBURGUESA BLINDADO ── */
+        document.addEventListener('DOMContentLoaded', () => {
+          const topbar = document.querySelector('.topbar') || document.querySelector('.app-header');
+          if (!topbar) return;
+          const btnHamburguesa = topbar.querySelector('button') || document.getElementById('menu-toggle');
+          const sidebar = document.getElementById('mi-sidebar-blindado');
+          const overlay = document.getElementById('sb-overlay-blindado');
+          if (btnHamburguesa && sidebar && overlay) {
+            const nuevoBtn = btnHamburguesa.cloneNode(true);
+            btnHamburguesa.parentNode.replaceChild(nuevoBtn, btnHamburguesa);
+            nuevoBtn.addEventListener('click', (e) => {
+              e.preventDefault(); e.stopPropagation();
+              sidebar.classList.toggle('abierto'); overlay.classList.toggle('activo');
+            });
+          }
+        });
+
+        document.addEventListener("DOMContentLoaded", function() {
+            const stats = <%- safeJson(estadisticas) %>;
+
+            // Tipografía corporativa para todos los gráficos
+            Chart.defaults.font.family = "'DM Sans', sans-serif";
+            Chart.defaults.color = "#475569";
+            Chart.defaults.scale.grid.color = "#f1f5f9"; // Color sutil para las líneas de fondo
+
+            /* ==========================================================
+               1. Top 5 Vehículos (Bar Chart)
+            ========================================================== */
+            const ctxVehiculos = document.getElementById('chartTopVehiculos').getContext('2d');
+            let labelsVehiculos = [];
+            let datosVehiculos = [];
+
+            if(stats.topVehiculos && stats.topVehiculos.length > 0) {
+                stats.topVehiculos.forEach(v => {
+                    labelsVehiculos.push(`${v.vehiculo.patente}`);
+                    datosVehiculos.push(v.total_gastado);
+                });
+            } else {
+                labelsVehiculos = ['Sin datos'];
+                datosVehiculos = [0];
+            }
+
+            new Chart(ctxVehiculos, {
+                type: 'bar',
+                data: {
+                    labels: labelsVehiculos,
+                    datasets: [{
+                        label: 'Gasto Total $',
+                        data: datosVehiculos,
+                        backgroundColor: '#ef4444', // Rojo para el gasto
+                        borderRadius: 6,
+                        barPercentage: 0.6
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: { display: false },
+                        tooltip: {
+                            backgroundColor: '#0f172a',
+                            titleFont: { size: 14, family: "'DM Sans', sans-serif" },
+                            bodyFont: { size: 14, weight: 'bold' },
+                            callbacks: {
+                                label: function(context) {
+                                    return new Intl.NumberFormat('es-AR', { style: 'currency', currency: 'ARS' }).format(context.raw);
+                                }
+                            }
+                        }
+                    },
+                    scales: {
+                        y: { 
+                            beginAtZero: true,
+                            ticks: {
+                                callback: function(value) { return '$' + value.toLocaleString('es-AR'); }
+                            }
+                        }
+                    }
+                }
+            });
+
+
+            /* ==========================================================
+               2. Viajes por Destino (Doughnut Chart)
+            ========================================================== */
+            const ctxDestino = document.getElementById('chartViajesDestino').getContext('2d');
+            let labelsDestino = [];
+            let datosDestino = [];
+
+            if(stats.viajesPorDestino && stats.viajesPorDestino.length > 0) {
+                stats.viajesPorDestino.forEach(d => {
+                    labelsDestino.push(d.destino_area || 'Sin especificar');
+                    datosDestino.push(d.cantidad_viajes);
+                });
+            } else {
+                labelsDestino = ['Sin datos'];
+                datosDestino = [1]; 
+            }
+
+            new Chart(ctxDestino, {
+                type: 'doughnut',
+                data: {
+                    labels: labelsDestino,
+                    datasets: [{
+                        data: datosDestino,
+                        backgroundColor: ['#3b82f6', '#10b981', '#f59e0b', '#8b5cf6', '#ec4899', '#14b8a6', '#94a3b8'],
+                        borderWidth: 2,
+                        borderColor: '#ffffff',
+                        hoverOffset: 6
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    cutout: '70%',
+                    plugins: {
+                        legend: { 
+                            position: 'right', 
+                            labels: { usePointStyle: true, boxWidth: 10, padding: 20 } 
+                        },
+                        tooltip: {
+                            backgroundColor: '#0f172a',
+                            callbacks: {
+                                label: function(context) {
+                                    return ` ${context.raw} viajes`;
+                                }
+                            }
+                        }
+                    }
+                }
+            });
+
+
+            /* ==========================================================
+               3. Frecuencia de Servicios (Horizontal Bar Chart)
+            ========================================================== */
+            const ctxServicio = document.getElementById('chartTipoServicio').getContext('2d');
+            let labelsServicio = [];
+            let datosServicio = [];
+
+            if(stats.mantPorTipo && stats.mantPorTipo.length > 0) {
+                stats.mantPorTipo.forEach(m => {
+                    labelsServicio.push(m.tipo_servicio);
+                    datosServicio.push(m.cantidad);
+                });
+            } else {
+                labelsServicio = ['Sin datos'];
+                datosServicio = [0];
+            }
+
+            new Chart(ctxServicio, {
+                type: 'bar',
+                data: {
+                    labels: labelsServicio,
+                    datasets: [{
+                        label: 'Mantenimientos',
+                        data: datosServicio,
+                        backgroundColor: '#3b82f6', // Azul corporativo
+                        borderRadius: 6,
+                        barPercentage: 0.5
+                    }]
+                },
+                options: {
+                    indexAxis: 'y', 
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: { display: false },
+                        tooltip: { backgroundColor: '#0f172a' }
+                    },
+                    scales: {
+                        x: { 
+                            beginAtZero: true, 
+                            ticks: { stepSize: 1, precision: 0 } 
+                        }
+                    }
+                }
+            });
+
+        });
+    </script>
+</body>
+</html>

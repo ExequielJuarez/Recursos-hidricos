@@ -1,0 +1,177 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Asignar Préstamo - Gestión Industrial</title>
+  <link rel="stylesheet" href="/css/ListadoVehiculos.css" />
+  <link rel="stylesheet" href="/css/CargaFichaVehiculo.css" />
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500;600;700&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet" />
+  <style>
+    /* ── ADAPTACIÓN MÓVIL Y BOTÓN VOLVER ── */
+    #mobile-back-btn {
+      background-color: #f8fafc;
+      color: #475569;
+      border: 1px solid #cbd5e1;
+      padding: 8px 14px;
+      font-size: 13px;
+      font-weight: 700;
+      border-radius: 8px;
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      transition: 0.2s;
+      margin-bottom: 20px;
+      text-decoration: none;
+    }
+    #mobile-back-btn:hover { background-color: #e2e8f0; color: #0f172a; }
+    #mobile-back-btn svg { width: 16px; height: 16px; }
+
+    @media (min-width: 900px) {
+      #mobile-back-btn { display: none !important; }
+    }
+
+    @media (max-width: 900px) {
+      .form-row { flex-direction: column !important; gap: 0 !important; }
+      .acciones { flex-direction: column-reverse !important; width: 100% !important; gap: 12px !important; }
+      .acciones button, .acciones a { width: 100% !important; text-align: center; padding: 14px !important; font-size: 14px !important; }
+      .page-header { margin-bottom: 16px !important; }
+    }
+  </style>
+</head>
+<body>
+
+  <%- include('./partials/sidebar') %>
+
+  <div class="app-wrapper" id="app-wrapper">
+    <%- include('./partials/topbar') %>
+
+    <main class="main-content">
+      
+      <a href="/Tools/<%= herramienta.id_herramienta %>" id="mobile-back-btn">
+        <svg viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M9.707 16.707a1 1 0 01-1.414 0l-6-6a1 1 0 010-1.414l6-6a1 1 0 011.414 1.414L5.414 9H17a1 1 0 110 2H5.414l4.293 4.293a1 1 0 010 1.414z" clip-rule="evenodd"/></svg>
+        Volver a la herramienta
+      </a>
+
+      <div class="page-header">
+        <h2 class="page-title">Formulario de Préstamo</h2>
+        <p class="page-subtitle">Asigná una herramienta a un colaborador o sector.</p>
+      </div>
+
+      <form class="form" action="/Tools/Prestamo" method="post">
+        <input type="hidden" name="id_herramienta" value="<%= herramienta.id_herramienta %>">
+
+        <section class="form-section">
+          
+          <div style="background: #f8fafc; border: 1px solid #cbd5e1; border-radius: 8px; padding: 16px; margin-bottom: 24px; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px;">
+            <div>
+              <span style="font-size: 11px; font-weight: 700; color: #64748b; text-transform: uppercase; letter-spacing: 0.05em; display: block; margin-bottom: 4px;">Activo a Prestar</span>
+              <strong style="font-size: 18px; color: #0f172a; font-family: var(--font-mono);"><%= herramienta.codigo_activo %></strong>
+              <span style="color: #475569; font-size: 14px; margin-left: 8px;"><%= herramienta.nombre %></span>
+            </div>
+            <div style="text-align: right;">
+              <span style="font-size: 11px; font-weight: 700; color: #64748b; text-transform: uppercase; letter-spacing: 0.05em; display: block; margin-bottom: 4px;">Stock Físico Restante</span>
+              <span style="font-size: 16px; font-weight: 800; color: #2563eb;"><%= herramienta.stock %> unidades</span>
+            </div>
+          </div>
+
+          <h3>Datos del Destinatario</h3>
+          <div class="form-row">
+            <div class="form-group">
+              <label>Operario / Colaborador Responsable <span class="req">*</span></label>
+              <select name="id_operario" required>
+                <option value="">Seleccione operario</option>
+                <% if (operarios && operarios.length > 0) { %>
+                  <% operarios.forEach(op => { %>
+                    <option value="<%= op.id_operario %>"><%= op.nombre %></option>
+                  <% }) %>
+                <% } else { %>
+                  <option value="" disabled>No hay operarios cargados en Ajustes</option>
+                <% } %>
+              </select>
+            </div>
+            
+            <div class="form-group">
+              <label>Sector de Destino <span class="req">*</span></label>
+              <select name="id_sector_destino" required>
+                <option value="">Seleccione sector</option>
+                <% if (sectores && sectores.length > 0) { %>
+                  <% sectores.forEach(sec => { %>
+                    <option value="<%= sec.id_sector %>" <%= herramienta.sector === sec.nombre ? 'selected' : '' %>><%= sec.nombre %></option>
+                  <% }) %>
+                <% } else { %>
+                  <option value="" disabled>No hay sectores cargados en Ajustes</option>
+                <% } %>
+              </select>
+            </div>
+          </div>
+        </section>
+
+        <section class="form-section">
+          <h3>Condiciones del Préstamo</h3>
+          <div class="form-row">
+            <div class="form-group">
+              <label>Fecha de Salida <span class="req">*</span></label>
+              <input type="date" name="fecha_salida" id="fecha_salida" required>
+            </div>
+            <div class="form-group">
+              <label>Fecha de Devolución Estimada <span class="req">*</span></label>
+              <input type="date" name="fecha_devolucion_estimada" id="fecha_devolucion_estimada" required>
+            </div>
+          </div>
+
+          <div class="form-group">
+            <label>Observaciones de Entrega</label>
+            <textarea name="observaciones_entrega" placeholder="Ej: Se entrega con batería cargada al 100% y cargador..."></textarea>
+          </div>
+        </section>
+
+        <section class="form-section" style="background-color: var(--color-amber-bg); border-color: #fde68a;">
+          <div style="display: flex; gap: 12px; align-items: flex-start;">
+            <svg viewBox="0 0 20 20" fill="currentColor" style="width: 24px; height: 24px; color: var(--color-amber); flex-shrink: 0;"><path fill-rule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clip-rule="evenodd"/></svg>
+            <div>
+              <h4 style="color: var(--color-amber-text); margin-bottom: 4px; font-size: 14px; font-weight: 800;">Registro Automático</h4>
+              <p style="color: #92400e; font-size: 12px; margin: 0; line-height: 1.5;">Al guardar este formulario, el stock físico de la herramienta se descontará en <strong>1 unidad</strong> automáticamente y su estado general pasará a <strong>"En uso"</strong> en caso de agotar su stock.</p>
+            </div>
+          </div>
+        </section>
+
+        <div class="acciones">
+          <a href="/Tools/<%= herramienta.id_herramienta %>" class="boton-secundario">Cancelar</a>
+          <button type="submit" class="boton-primario">Confirmar Entrega</button>
+        </div>
+      </form>
+    </main>
+  </div>
+  
+  <script src="/js/sidebar.js"></script>
+  <script>
+    /* ── FIX BOTÓN HAMBURGUESA BLINDADO ── */
+    document.addEventListener('DOMContentLoaded', () => {
+      const topbar = document.querySelector('.topbar') || document.querySelector('.app-header');
+      if (!topbar) return;
+      const btnHamburguesa = topbar.querySelector('button') || document.getElementById('menu-toggle');
+      const sidebar = document.getElementById('mi-sidebar-blindado');
+      const overlay = document.getElementById('sb-overlay-blindado');
+      if (btnHamburguesa && sidebar && overlay) {
+        const nuevoBtn = btnHamburguesa.cloneNode(true);
+        btnHamburguesa.parentNode.replaceChild(nuevoBtn, btnHamburguesa);
+        nuevoBtn.addEventListener('click', (e) => {
+          e.preventDefault(); e.stopPropagation();
+          sidebar.classList.toggle('abierto'); overlay.classList.toggle('activo');
+        });
+      }
+    });
+
+    // Setear fechas predeterminadas
+    const hoy = new Date(Date.now() - new Date().getTimezoneOffset() * 60000).toISOString().split('T')[0];
+    const manana = new Date(Date.now() + 86400000 - new Date().getTimezoneOffset() * 60000).toISOString().split('T')[0];
+    
+    document.getElementById('fecha_salida').value = hoy;
+    document.getElementById('fecha_devolucion_estimada').value = manana;
+    
+    document.getElementById('fecha_devolucion_estimada').min = hoy;
+  </script>
+</body>
+</html>

@@ -1,0 +1,45 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Iniciar Sesión</title>
+    <link rel="stylesheet" href="/css/inicio_Sesion.css">
+    <style>
+        /* Adaptación móvil para que la caja de login no se desborde */
+        @media (max-width: 600px) {
+            body { padding: 20px; }
+            .box_datos { 
+                width: 100% !important; 
+                max-width: 400px; 
+                box-sizing: border-box; 
+                padding: 30px 20px !important; 
+                border-radius: 12px;
+            }
+            .input_usuario, .input_contraseña, .submit { 
+                width: 100% !important; 
+                box-sizing: border-box; 
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="box_datos">
+        <h1 class="inicio_titulo">Iniciar Sesión</h1>
+        <% if (typeof error !== 'undefined' && error) { %>
+            <p role="alert" style="background:#fef2f2;border:1px solid #fecaca;color:#991b1b;padding:10px 12px;border-radius:8px;font-size:14px;font-weight:600;margin:0 0 14px 0;text-align:center;"><%= error %></p>
+        <% } %>
+        <form action="/InicioSesion" method="post">
+            <label class="usuario" for="Usuario">Usuario</label>
+            <input id="Usuario" name="Usuario" class="input_usuario" type="text" placeholder="Ingresa tu usuario" required>
+            
+            <label class="contraseña" for="Contrasena">Contraseña</label>
+            <input id="Contrasena" name="Contrasena" class="input_contraseña" type="password" placeholder="Ingresa tu contraseña" required>
+            
+            <input class="submit" type="submit" value="Ingresar">
+         </form>
+    </div>
+    <script>window.CSRF_TOKEN = "<%= typeof csrfToken !== 'undefined' ? csrfToken : '' %>";</script>
+    <script src="/js/csrf.js"></script>
+</body>
+</html>

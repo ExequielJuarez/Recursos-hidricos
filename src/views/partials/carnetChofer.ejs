@@ -1,0 +1,75 @@
+<%#
+  Carnet oficial de la provincia (opcional). Parámetros: old, errors, carnetCargados (cantidad de archivos ya guardados)
+%>
+<% const tieneCarnet = (old && (old.tiene_carnet_oficial === 'si' || old.tiene_carnet_oficial === true || old.tiene_carnet_oficial === 1)); const cargados = typeof carnetCargados !== 'undefined' ? carnetCargados : 0; %>
+<section class="form-section" id="seccion-carnet">
+  <h3>Carnet de la Provincia (Opcional)</h3>
+  <div class="form-group">
+    <label>¿Tiene carnet oficial de la provincia?</label>
+    <div style="display:flex; gap:20px; margin-top:6px;">
+      <label style="display:inline-flex; align-items:center; gap:8px; font-weight:600; cursor:pointer; white-space:nowrap; margin:0; width:auto;"><input type="radio" style="width:auto; height:auto; padding:0; margin:0; flex:none; box-shadow:none;" name="tiene_carnet_oficial" value="no" <%= tieneCarnet ? '' : 'checked' %>> No tiene</label>
+      <label style="display:inline-flex; align-items:center; gap:8px; font-weight:600; cursor:pointer; white-space:nowrap; margin:0; width:auto;"><input type="radio" style="width:auto; height:auto; padding:0; margin:0; flex:none; box-shadow:none;" name="tiene_carnet_oficial" value="si" <%= tieneCarnet ? 'checked' : '' %>> Sí, tiene carnet oficial</label>
+    </div>
+  </div>
+  <div id="bloque-carnet" style="display:none; margin-top:12px;">
+    <% if (cargados > 0) { %>
+      <p style="font-size:13px; color:#059669; font-weight:600; margin:0 0 10px;">Ya hay <%= cargados %> archivo(s) del carnet cargados (los ves y gestionás en "Documentación adjunta", más abajo). Podés subir otros para agregarlos.</p>
+    <% } else { %>
+      <p style="font-size:13px; color:#64748b; margin:0 0 10px;">Si tiene carnet oficial, es obligatorio cargar la foto o PDF del <strong>frente</strong> y del <strong>dorso</strong>.</p>
+    <% } %>
+    <div class="form-row">
+      <div class="form-group">
+        <label>Carnet - Frente</label>
+        <div class="upload-box" style="margin-top: 8px;">
+          <label for="carnet_frente">Haga clic aquí para subir el frente</label>
+          <span style="font-size: 12px; color: var(--color-text-muted);">PDF, JPG, PNG o WEBP · hasta 8 MB</span>
+          <input type="file" id="carnet_frente" name="carnet_frente" accept=".pdf,.jpg,.jpeg,.png,.webp" disabled>
+        </div>
+        <div class="vista-previa" data-para="carnet_frente" style="font-size:13px;color:var(--color-text-muted);margin-top:6px;">Sin archivo seleccionado</div>
+        <% if (errors && errors.carnet_frente) { %><span class="error"><%= errors.carnet_frente.msg %></span><% } %>
+      </div>
+      <div class="form-group">
+        <label>Carnet - Dorso</label>
+        <div class="upload-box" style="margin-top: 8px;">
+          <label for="carnet_dorso">Haga clic aquí para subir el dorso</label>
+          <span style="font-size: 12px; color: var(--color-text-muted);">PDF, JPG, PNG o WEBP · hasta 8 MB</span>
+          <input type="file" id="carnet_dorso" name="carnet_dorso" accept=".pdf,.jpg,.jpeg,.png,.webp" disabled>
+        </div>
+        <div class="vista-previa" data-para="carnet_dorso" style="font-size:13px;color:var(--color-text-muted);margin-top:6px;">Sin archivo seleccionado</div>
+        <% if (errors && errors.carnet_dorso) { %><span class="error"><%= errors.carnet_dorso.msg %></span><% } %>
+      </div>
+    </div>
+  </div>
+</section>
+<script>
+  (function () {
+    var bloque = document.getElementById('bloque-carnet');
+    var radios = document.querySelectorAll('input[name="tiene_carnet_oficial"]');
+    var inputs = bloque.querySelectorAll('input[type=file]');
+    var cargados = <%= cargados %>;
+    function alternar() {
+      var si = document.querySelector('input[name="tiene_carnet_oficial"]:checked').value === 'si';
+      bloque.style.display = si ? 'block' : 'none';
+      inputs.forEach(function (i) { i.disabled = !si; if (!si) i.value = ''; });
+    }
+    radios.forEach(function (r) { r.addEventListener('change', alternar); });
+    inputs.forEach(function (i) {
+      i.addEventListener('change', function () {
+        var p = bloque.querySelector('.vista-previa[data-para="' + i.id + '"]');
+        p.textContent = i.files.length ? 'Seleccionado: ' + i.files[0].name : 'Sin archivo seleccionado';
+      });
+    });
+    alternar();
+    var form = document.getElementById('seccion-carnet').closest('form');
+    form.addEventListener('submit', function (e) {
+      var si = document.querySelector('input[name="tiene_carnet_oficial"]:checked').value === 'si';
+      var elegidos = Array.prototype.filter.call(inputs, function (i) { return i.files.length; }).length;
+      if (si && cargados + elegidos < 2) {
+        e.preventDefault();
+        alert('Si el chofer tiene carnet oficial de la provincia tenés que cargar la foto o PDF del frente y del dorso.');
+      } else if (!si && cargados > 0 && !confirm('Marcaste que NO tiene carnet oficial: se eliminarán los ' + cargados + ' archivo(s) del carnet ya cargados. ¿Continuar?')) {
+        e.preventDefault();
+      }
+    });
+  })();
+</script>

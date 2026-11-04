@@ -1,0 +1,298 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Actualizar Kilometraje - Gestión de Flota</title>
+  <link rel="stylesheet" href="/css/ListadoVehiculos.css" />
+  <link rel="stylesheet" href="/css/CargaFichaVehiculo.css" />
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500;600;700&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet" />
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+  <style>
+    /* Widgets del gráfico y displays */
+    .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
+    .info-box { background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 8px; padding: 16px; display: flex; align-items: center; gap: 16px; }
+    .info-box__icon { width: 40px; height: 40px; background: white; border-radius: 8px; display: flex; align-items: center; justify-content: center; color: #2563eb; border: 1px solid #cbd5e1; }
+    .km-giant { font-size: 24px; font-weight: 800; font-family: var(--font-mono); color: #0f172a; display: block; }
+    .chart-container { background: #ffffff; border: 1px solid #e2e8f0; border-radius: 12px; padding: 20px; margin-top: 24px; height: 350px; box-shadow: var(--shadow-sm); }
+    .chart-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px; }
+    
+    /* ── ADAPTACIÓN MÓVIL Y BOTÓN VOLVER ── */
+    #mobile-back-btn {
+      background-color: #f8fafc;
+      color: #475569;
+      border: 1px solid #cbd5e1;
+      padding: 8px 14px;
+      font-size: 13px;
+      font-weight: 700;
+      border-radius: 8px;
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      transition: 0.2s;
+      margin-bottom: 20px;
+      text-decoration: none;
+    }
+    #mobile-back-btn:hover { background-color: #e2e8f0; color: #0f172a; }
+    #mobile-back-btn svg { width: 16px; height: 16px; }
+
+    @media (min-width: 900px) {
+      #mobile-back-btn { display: none !important; }
+    }
+
+    @media (max-width: 900px) { 
+      .grid-2 { grid-template-columns: 1fr !important; } 
+      .form-row { flex-direction: column !important; gap: 0 !important; }
+      .chart-header { flex-direction: column; align-items: flex-start; gap: 12px; }
+      .chart-header select { width: 100%; }
+      .acciones { flex-direction: column-reverse !important; width: 100% !important; gap: 12px !important; }
+      .acciones button, .acciones a { width: 100% !important; text-align: center; padding: 14px !important; font-size: 14px !important; }
+    }
+  </style>
+</head>
+<body>
+
+  <%- include('./partials/sidebar') %>
+
+  <div class="app-wrapper" id="app-wrapper">
+    <%- include('./partials/topbar') %>
+
+    <main class="main-content">
+
+      <a href="/Vehicles" id="mobile-back-btn">
+        <svg viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M9.707 16.707a1 1 0 01-1.414 0l-6-6a1 1 0 010-1.414l6-6a1 1 0 011.414 1.414L5.414 9H17a1 1 0 110 2H5.414l4.293 4.293a1 1 0 010 1.414z" clip-rule="evenodd"/></svg>
+        Volver a Vehículos
+      </a>
+
+      <div class="page-header">
+        <h2 class="page-title">Actualizar Kilometraje</h2>
+        <p class="page-subtitle">Registrá la lectura de odómetro de los vehículos en circulación.</p>
+      </div>
+
+      <form class="form" action="/ActualizarKm" method="post" id="form-km" novalidate>
+
+        <section class="form-section">
+          <h3>1. Seleccionar Vehículo</h3>
+          <div class="form-group">
+            <select name="id_vehiculo" id="id_vehiculo" required>
+    <option value="">— Elegir un vehículo —</option>
+
+    <% if (todosVehiculos && todosVehiculos.length > 0) { %>
+        <% todosVehiculos.forEach(v => { %>
+            <option
+                value="<%= v.id_vehiculo %>"
+                data-patente="<%= v.patente %>"
+                data-detalle="<%= v.marca %> <%= v.modelo %>"
+                data-km="<%= v.km_actual %>"
+                data-unidad="<%= unidadDe(v) %>">
+                <%= v.patente %> · <%= v.marca %> <%= v.modelo %><%= unidadDe(v) === 'hs' ? ' (horas)' : '' %>
+            </option>
+        <% }) %>
+    <% } %>
+</select>
+            <span class="field-error" id="err-vehiculo"></span>
+          </div>
+
+          <div class="info-box" id="box-vehiculo" style="margin-top: 16px;">
+            <div class="info-box__icon">
+              <svg viewBox="0 0 20 20" fill="currentColor" style="width:20px;height:20px;"><path d="M8 16.5a1.5 1.5 0 11-3 0 1.5 1.5 0 013 0zM15 16.5a1.5 1.5 0 11-3 0 1.5 1.5 0 013 0z"/><path d="M3 4a1 1 0 00-1 1v10a1 1 0 001 1h1.05a2.5 2.5 0 014.9 0H10a1 1 0 001-1V5a1 1 0 00-1-1H3zM14 7a1 1 0 00-1 1v6.05A2.5 2.5 0 0115.95 16H17a1 1 0 001-1v-5a1 1 0 00-.293-.707l-2-2A1 1 0 0015 7h-1z"/></svg>
+            </div>
+            <div>
+              <span style="font-size:11px; font-weight:700; color:#64748b; text-transform:uppercase;">Última lectura</span>
+              <span class="km-giant" id="km-actual-display">0 km</span>
+            </div>
+          </div>
+        </section>
+
+        <section class="form-section">
+          <h3>2. Ingresar Nuevo Kilometraje</h3>
+          <div class="form-row">
+            <div class="form-group">
+              <label for="km_nuevo">Nueva Lectura de Odómetro <span class="req">*</span></label>
+              <input type="number" name="km_nuevo" id="km_nuevo" min="0" placeholder="Ej: 102500" required autocomplete="off">
+              <span class="field-error" id="err-km"></span>
+              <span id="km-diff-hint" style="font-size:12px; font-weight:700; display:block; margin-top:4px;"></span>
+            </div>
+            
+            <div class="form-group">
+              <label for="fecha_actualizacion">Fecha de lectura <span class="req">*</span></label>
+              <input type="date" name="fecha_actualizacion" id="fecha_actualizacion" required>
+              <span class="field-error" id="err-fecha"></span>
+            </div>
+          </div>
+          <div class="form-group">
+            <label for="observaciones">Observaciones (Opcional)</label>
+            <input type="text" name="observaciones" id="observaciones" placeholder="Ej: Control de rutina al llegar a planta...">
+          </div>
+        </section>
+
+        <div class="acciones">
+          <a href="/Vehicles" class="boton-secundario">Cancelar</a>
+          <button type="submit" class="boton-primario" id="btn-guardar">Actualizar y Guardar</button>
+        </div>
+      </form>
+
+      <div class="chart-container">
+        <div class="chart-header">
+          <div>
+            <h3 style="font-size: 16px; font-weight: 800; color: var(--color-primary);">Evolución de Kilometraje</h3>
+            <p style="font-size: 13px; color: #64748b;">Seleccioná un vehículo para ver su gráfico histórico.</p>
+          </div>
+          <select id="id_vehiculo_historial" style="padding: 8px; border-radius: 6px; border: 1px solid #cbd5e1; font-size: 13px; font-family: inherit;">
+            <option value="">— Elegir vehículo —</option>
+            <% if (todosVehiculos && todosVehiculos.length > 0) { %>
+              <% todosVehiculos.forEach(v => { %>
+                <option value="<%= v.id_vehiculo %>"><%= v.patente %> · <%= v.marca %> <%= v.modelo %></option>
+              <% }) %>
+            <% } %>
+          </select>
+        </div>
+        
+        <div style="position: relative; height: 240px; width: 100%;">
+          <canvas id="kmChart"></canvas>
+        </div>
+      </div>
+
+    </main>
+  </div>
+
+  <script src="/js/sidebar.js"></script>
+  <script>
+    /* ── FIX BOTÓN HAMBURGUESA BLINDADO ── */
+    document.addEventListener('DOMContentLoaded', () => {
+      const topbar = document.querySelector('.topbar') || document.querySelector('.app-header');
+      if (!topbar) return;
+      const btnHamburguesa = topbar.querySelector('button') || document.getElementById('menu-toggle');
+      const sidebar = document.getElementById('mi-sidebar-blindado');
+      const overlay = document.getElementById('sb-overlay-blindado');
+      if (btnHamburguesa && sidebar && overlay) {
+        const nuevoBtn = btnHamburguesa.cloneNode(true);
+        btnHamburguesa.parentNode.replaceChild(nuevoBtn, btnHamburguesa);
+        nuevoBtn.addEventListener('click', (e) => {
+          e.preventDefault(); e.stopPropagation();
+          sidebar.classList.toggle('abierto'); overlay.classList.toggle('activo');
+        });
+      }
+    });
+
+    /* ── Lógica del formulario principal ── */
+    const vehicleSelect = document.getElementById('id_vehiculo');
+    const kmActualDisplay = document.getElementById('km-actual-display');
+    const kmNuevoInput = document.getElementById('km_nuevo');
+    const kmDiffHint = document.getElementById('km-diff-hint');
+    let kmActualGlobal = null;
+    let unidadActual = 'km';
+
+    vehicleSelect.addEventListener('change', function() {
+      const opt = this.options[this.selectedIndex];
+      if (!this.value) {
+        kmActualDisplay.textContent = '0 km';
+        unidadActual = 'km';
+        kmActualGlobal = null;
+        kmDiffHint.textContent = '';
+        return;
+      }
+      
+      const kmNum = parseInt(opt.dataset.km) || 0;
+      unidadActual = opt.dataset.unidad === 'hs' ? 'hs' : 'km';
+      kmActualDisplay.textContent = kmNum.toLocaleString('es-AR') + ' ' + unidadActual;
+      kmActualGlobal = kmNum;
+      
+      if (!kmNuevoInput.value) kmNuevoInput.value = kmNum;
+      actualizarDiff();
+    });
+
+    function actualizarDiff() {
+      if (kmActualGlobal === null) { kmDiffHint.textContent = ''; return; }
+      const nuevo = parseInt(kmNuevoInput.value);
+      if (isNaN(nuevo)) { kmDiffHint.textContent = ''; return; }
+      
+      const diff = nuevo - kmActualGlobal;
+      if (diff > 0) {
+        kmDiffHint.textContent = `+${diff.toLocaleString('es-AR')} ${unidadActual} respecto al registro actual`;
+        kmDiffHint.style.color = '#059669'; // Verde
+      } else if (diff === 0) {
+        kmDiffHint.textContent = 'Sin cambios';
+        kmDiffHint.style.color = '#64748b'; // Gris
+      } else {
+        kmDiffHint.textContent = `⚠ Valor menor al actual (-${Math.abs(diff).toLocaleString('es-AR')} ${unidadActual})`;
+        kmDiffHint.style.color = '#dc2626'; // Rojo
+      }
+    }
+    kmNuevoInput.addEventListener('input', actualizarDiff);
+
+    /* ── Validación y Envío ── */
+    const fechaInput = document.getElementById('fecha_actualizacion');
+    const hoy = new Date(Date.now() - new Date().getTimezoneOffset() * 60000).toISOString().split('T')[0];
+    fechaInput.max = hoy;
+    if (!fechaInput.value) fechaInput.value = hoy;
+
+    function setError(id, msg) {
+      document.getElementById(id).classList.add('input-error');
+      document.getElementById('err-' + id.split('_')[0]).textContent = msg;
+    }
+
+    document.getElementById('form-km').addEventListener('submit', function (e) {
+      e.preventDefault();
+      document.querySelectorAll('.input-error').forEach(el => el.classList.remove('input-error'));
+      document.querySelectorAll('.field-error').forEach(el => el.textContent = '');
+
+      let valido = true;
+      if (!vehicleSelect.value) { setError('id_vehiculo', 'Seleccioná un vehículo.'); valido = false; }
+      const kmNuevo = parseInt(kmNuevoInput.value);
+      if (isNaN(kmNuevo) || kmNuevo < 0) { setError('km_nuevo', 'Kilometraje inválido.'); valido = false; }
+      if (!fechaInput.value || fechaInput.value > hoy) { setError('fecha_actualizacion', 'Fecha inválida.'); valido = false; }
+
+      if (valido) this.submit();
+    });
+
+    if (vehicleSelect.value) vehicleSelect.dispatchEvent(new Event('change'));
+
+    /* ── Lógica del Gráfico Histórico con Chart.js ── */
+    const historialTodos = <%- safeJson(historial.map(h => ({
+      id_vehiculo: h.id_vehiculo,
+      fecha: h.fecha,
+      km_nuevo: h.km_nuevo
+    }))) %>;
+    
+    let kmChartInstance = null;
+    const historialSelect = document.getElementById('id_vehiculo_historial');
+
+    if (historialSelect) {
+      historialSelect.addEventListener('change', function () {
+        const id_vehiculo = this.value;
+        const datos = historialTodos
+          .filter(h => h.id_vehiculo == id_vehiculo)
+          .sort((a, b) => new Date(a.fecha) - new Date(b.fecha));
+
+        if (kmChartInstance) kmChartInstance.destroy();
+        if (datos.length === 0) return;
+
+        kmChartInstance = new Chart(document.getElementById('kmChart'), {
+          type: 'line',
+          data: {
+            labels: datos.map(h => { const pf = String(h.fecha).split('-'); return pf[2] + '/' + pf[1] + '/' + pf[0].slice(2); }),
+            datasets: [{
+              label: 'Kilometraje',
+              data: datos.map(h => h.km_nuevo),
+              borderColor: '#2563eb',
+              backgroundColor: 'rgba(37, 99, 235, 0.1)',
+              borderWidth: 3,
+              pointBackgroundColor: '#2563eb',
+              pointRadius: 4,
+              fill: true,
+              tension: 0.3
+            }]
+          },
+          options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: { legend: { display: false } }
+          }
+        });
+      });
+    }
+  </script>
+</body>
+</html>

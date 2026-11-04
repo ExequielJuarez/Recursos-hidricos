@@ -1,0 +1,208 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Registrar Siniestro - Ficha Técnica</title>
+    <link rel="stylesheet" href="/css/CargaChofer.css"> 
+    <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        .siniestro-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 24px; margin-bottom: 24px; }
+        
+        .caja-seccion { background: white; padding: 24px; border-radius: 12px; border: 1px solid #e2e8f0; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.05);}
+        .caja-titulo { font-size: 14px; font-weight: 800; color: #0f172a; text-transform: uppercase; letter-spacing: 0.05em; border-bottom: 2px solid #f1f5f9; padding-bottom: 12px; margin-bottom: 20px; display: flex; align-items: center; gap: 8px;}
+        
+        .input-group { margin-bottom: 16px; }
+        .input-label { display: block; font-size: 13px; font-weight: 700; color: #334155; margin-bottom: 6px; }
+        .input-field { width: 100%; padding: 10px 14px; border: 1px solid #cbd5e1; border-radius: 8px; font-family: 'DM Sans', sans-serif; font-size: 14px; transition: all 0.2s; outline: none; background: #f8fafc; }
+        .input-field:focus { border-color: #3b82f6; background: white; box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1); }
+        .input-field.error { border-color: #ef4444; background: #fef2f2; }
+        
+        .btn-guardar-rojo { background-color: #dc2626; color: white; border: none; padding: 12px 24px; border-radius: 8px; font-size: 14px; font-weight: 700; cursor: pointer; transition: 0.2s; display: inline-flex; align-items: center; justify-content: center; gap: 8px; }
+        .btn-guardar-rojo:hover { background-color: #b91c1c; }
+
+        /* ── ADAPTACIÓN MÓVIL Y BOTÓN VOLVER ── */
+        #mobile-back-btn {
+          background-color: #f8fafc;
+          color: #475569;
+          border: 1px solid #cbd5e1;
+          padding: 8px 14px;
+          font-size: 13px;
+          font-weight: 700;
+          border-radius: 8px;
+          cursor: pointer;
+          display: inline-flex;
+          align-items: center;
+          gap: 6px;
+          transition: 0.2s;
+          margin-bottom: 20px;
+          text-decoration: none;
+        }
+        #mobile-back-btn:hover { background-color: #e2e8f0; color: #0f172a; }
+        #mobile-back-btn svg { width: 16px; height: 16px; }
+
+        .acciones-form { margin-top: 30px; display: flex; justify-content: flex-end; gap: 15px; align-items: center; }
+
+        @media (min-width: 900px) {
+          #mobile-back-btn { display: none !important; }
+        }
+
+        @media (max-width: 900px) {
+          .siniestro-grid { grid-template-columns: 1fr !important; gap: 16px !important; }
+          .caja-seccion { padding: 16px !important; }
+          .acciones-form { flex-direction: column-reverse; gap: 12px; }
+          .acciones-form a, .acciones-form button { width: 100%; text-align: center; padding: 14px; font-size: 14px; justify-content: center; }
+        }
+    </style>
+</head>
+<body>
+
+    <%- include('./partials/sidebar') %>
+
+    <div class="app-wrapper" id="app-wrapper">
+        <%- include('./partials/topbar') %>
+
+        <main class="main-content" style="padding: 30px; max-width: 900px; margin: 0 auto;">
+
+            <a href="/Siniestros" id="mobile-back-btn">
+                <svg viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M9.707 16.707a1 1 0 01-1.414 0l-6-6a1 1 0 010-1.414l6-6a1 1 0 011.414 1.414L5.414 9H17a1 1 0 110 2H5.414l4.293 4.293a1 1 0 010 1.414z" clip-rule="evenodd"/></svg>
+                Volver a Siniestros
+            </a>
+
+            <div style="margin-bottom: 24px;">
+                <h2 style="font-size: 24px; font-weight: 800; color: #0f172a; margin: 0 0 8px 0;">Registrar Siniestro / Accidente</h2>
+                <p style="color: #64748b; font-size: 14px; margin: 0;">Complete los datos del incidente para iniciar el seguimiento del seguro.</p>
+            </div>
+
+            <form action="/Siniestros/Carga" method="POST" enctype="multipart/form-data">
+                
+                <div class="caja-seccion" style="margin-bottom: 20px;">
+                    <h4 class="caja-titulo">
+                        <svg width="20" height="20" fill="none" stroke="currentColor" viewBox="0 0 24 24" style="color: #dc2626;"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"></path></svg>
+                        Datos Principales
+                    </h4>
+                    <div class="siniestro-grid">
+                        <div class="input-group">
+                            <label class="input-label">Vehículo Involucrado <span style="color: #dc2626;">*</span></label>
+                            <select name="id_vehiculo" class="input-field" required>
+                                <option value="">Seleccione vehículo...</option>
+                                <% vehiculos.forEach(v => { %>
+                                    <option value="<%= v.id_vehiculo %>"><%= v.patente %> - <%= v.marca %> <%= v.modelo %></option>
+                                <% }) %>
+                            </select>
+                        </div>
+                        <div class="input-group">
+                            <label class="input-label">Chofer al mando</label>
+                            <select name="id_chofer" class="input-field">
+                                <option value="">Seleccione chofer...</option>
+                                <% choferes.forEach(c => { %>
+                                    <option value="<%= c.id_chofer %>"><%= c.nombre %> <%= c.apellido %> (DNI: <%= c.dni %>)</option>
+                                <% }) %>
+                            </select>
+                            <span style="font-size: 11px; color: #94a3b8;">* Opcional si estaba estacionado</span>
+                        </div>
+                    </div>
+                    <div class="siniestro-grid">
+                        <div class="input-group">
+                            <label class="input-label">Fecha del Siniestro <span style="color: #dc2626;">*</span></label>
+                            <input type="date" name="fecha_siniestro" class="input-field" required id="fecha_siniestro">
+                        </div>
+                        <div class="input-group">
+                            <label class="input-label">Ubicación del hecho <span style="color: #dc2626;">*</span></label>
+                            <input type="text" name="ubicacion" class="input-field" placeholder="Ej: Av. Belgrano y Urquiza" required>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="caja-seccion" style="margin-bottom: 20px;">
+                    <h4 class="caja-titulo">
+                        <svg width="20" height="20" fill="none" stroke="currentColor" viewBox="0 0 24 24" style="color: #3b82f6;"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"></path></svg>
+                        Detalles del Hecho
+                    </h4>
+                    <div class="input-group">
+                        <label class="input-label">Descripción de lo ocurrido <span style="color: #dc2626;">*</span></label>
+                        <textarea name="descripcion" class="input-field" rows="4" placeholder="Describa cómo sucedió el siniestro..." required></textarea>
+                    </div>
+                    <div class="input-group">
+                        <label class="input-label">Daños en nuestro vehículo</label>
+                        <textarea name="danos_vehiculo" class="input-field" rows="2" placeholder="Ej: Rotura de óptica delantera derecha y paragolpes"></textarea>
+                    </div>
+                </div>
+
+                <div class="caja-seccion" style="margin-bottom: 20px;">
+                    <h4 class="caja-titulo">
+                        <svg width="20" height="20" fill="none" stroke="currentColor" viewBox="0 0 24 24" style="color: #eab308;"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z"></path></svg>
+                        Terceros Involucrados
+                    </h4>
+                    <div class="siniestro-grid">
+                        <div class="input-group">
+                            <label class="input-label">Vehículo Tercero (Patente/Marca)</label>
+                            <input type="text" name="tercero_vehiculo" class="input-field" placeholder="Ej: AB123CD - VW Gol">
+                        </div>
+                        <div class="input-group">
+                            <label class="input-label">Seguro del Tercero</label>
+                            <input type="text" name="tercero_seguro" class="input-field" placeholder="Ej: La Caja Seguros">
+                        </div>
+                    </div>
+                    <div class="siniestro-grid">
+                        <div class="input-group">
+                            <label class="input-label">Nombre del Conductor Tercero</label>
+                            <input type="text" name="tercero_conductor" class="input-field" placeholder="Nombre completo">
+                        </div>
+                        <div class="input-group">
+                            <label class="input-label">Contacto (Teléfono)</label>
+                            <input type="text" name="tercero_contacto" class="input-field" placeholder="Teléfono del tercero">
+                        </div>
+                    </div>
+                </div>
+
+                <div class="caja-seccion" style="background-color: #f8fafc; border-style: dashed;">
+                    <div class="input-group" style="margin: 0;">
+                        <h4 class="caja-titulo" style="border: none; margin-bottom: 10px;">
+                            <svg width="20" height="20" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path></svg>
+                            Subir Archivos y Evidencia
+                        </h4>
+                        <p style="font-size: 13px; color: #64748b; margin-bottom: 10px;">Puedes subir fotos del choque, denuncia policial escaneada o cartas del seguro (Se permiten múltiples PDF, JPG, PNG).</p>
+                        <input type="file" name="archivos" multiple class="input-field" style="background: white;">
+                    </div>
+                </div>
+
+                <div class="acciones-form">
+                    <a href="/Siniestros" style="color: #64748b; font-weight: 700; text-decoration: none; padding: 10px 20px; background: #f1f5f9; border-radius: 8px; border: 1px solid #cbd5e1;">Cancelar</a>
+                    <button type="submit" class="btn-guardar-rojo">
+                        <svg width="18" height="18" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg>
+                        Registrar Siniestro
+                    </button>
+                </div>
+            </form>
+
+        </main>
+    </div>
+
+    <script src="/js/sidebar.js"></script>
+    <script>
+        /* ── FIX BOTÓN HAMBURGUESA BLINDADO ── */
+        document.addEventListener('DOMContentLoaded', () => {
+          const topbar = document.querySelector('.topbar') || document.querySelector('.app-header');
+          if (!topbar) return;
+          const btnHamburguesa = topbar.querySelector('button') || document.getElementById('menu-toggle');
+          const sidebar = document.getElementById('mi-sidebar-blindado');
+          const overlay = document.getElementById('sb-overlay-blindado');
+          if (btnHamburguesa && sidebar && overlay) {
+            const nuevoBtn = btnHamburguesa.cloneNode(true);
+            btnHamburguesa.parentNode.replaceChild(nuevoBtn, btnHamburguesa);
+            nuevoBtn.addEventListener('click', (e) => {
+              e.preventDefault(); e.stopPropagation();
+              sidebar.classList.toggle('abierto'); overlay.classList.toggle('activo');
+            });
+          }
+        });
+
+        // Setear fecha actual como máximo
+        const fechaSiniestro = document.getElementById('fecha_siniestro');
+        if (fechaSiniestro) {
+            fechaSiniestro.max = new Date(Date.now() - new Date().getTimezoneOffset() * 60000).toISOString().split('T')[0];
+        }
+    </script>
+</body>
+</html>

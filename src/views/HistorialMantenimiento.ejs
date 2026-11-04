@@ -1,0 +1,220 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Historial Administrativo - Gestión de Flota</title>
+    <link rel="stylesheet" href="/css/ListadoVehiculos.css">
+    <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500;600;700&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
+    <style>
+        .app-wrapper { min-width: 0; }
+        .main-content { min-width: 0; box-sizing: border-box; width: 100%; }
+        .mv-resumen { display: grid; grid-template-columns: repeat(auto-fit, minmax(190px, 1fr)); gap: 14px; margin-bottom: 22px; }
+        .mv-kpi { background: #fff; border: 1px solid var(--color-border); border-radius: var(--radius-lg); padding: 14px 16px; }
+        .mv-kpi__label { display: block; font-size: 11px; font-weight: 700; color: var(--color-text-muted); text-transform: uppercase; letter-spacing: .05em; margin-bottom: 6px; }
+        .mv-kpi__value { font-size: 20px; font-weight: 800; color: #0f172a; }
+        .hs-barra { background: #fff; border: 1px solid var(--color-border); border-radius: var(--radius-lg); padding: 14px 16px; margin-bottom: 16px; display: flex; gap: 12px; flex-wrap: wrap; align-items: flex-end; }
+        .hs-barra label { display: block; font-size: 11px; font-weight: 700; color: var(--color-text-muted); text-transform: uppercase; letter-spacing: .05em; margin-bottom: 4px; }
+        .hs-barra select, .hs-barra input[type=file] { padding: 8px 10px; border: 1px solid var(--color-border); border-radius: var(--radius-md); font-family: var(--font-sans); font-size: 13px; background: #fff; }
+        .hs-btn { border: 1px solid #cbd5e1; background: #f8fafc; color: #0f172a; border-radius: 8px; padding: 9px 14px; font-size: 12px; font-weight: 700; cursor: pointer; text-decoration: none; display: inline-block; font-family: inherit; }
+        .hs-btn--azul { background: #2563eb; border-color: #2563eb; color: #fff; }
+        .hs-btn--verde { background: #ecfdf5; border-color: #a7f3d0; color: #059669; }
+        .hs-sep { flex: 1; }
+        .hs-tabla td, .hs-tabla th { white-space: nowrap; }
+        .hs-tabla td.hs-desc { white-space: normal; min-width: 240px; max-width: 360px; }
+        .hs-falta { color: #b45309; font-style: italic; }
+        .hs-vacio { text-align: center; color: #64748b; padding: 40px 20px; background: #fff; border: 1px dashed var(--color-border); border-radius: var(--radius-lg); }
+        .hs-modal { position: fixed; inset: 0; background: rgba(15,23,42,.6); display: none; align-items: center; justify-content: center; padding: 16px; z-index: 9000; }
+        .hs-modal--abierto { display: flex; }
+        .hs-modal__caja { background: #fff; border-radius: 12px; width: min(640px, 100%); max-height: 92vh; overflow-y: auto; padding: 22px; }
+        .hs-modal__caja h3 { margin: 0 0 4px; font-size: 18px; color: #0f172a; }
+        .hs-modal__sub { margin: 0 0 16px; font-size: 13px; color: #64748b; }
+        .hs-campo { margin-bottom: 12px; }
+        .hs-campo label { display: block; font-size: 11px; font-weight: 700; color: var(--color-text-muted); text-transform: uppercase; letter-spacing: .05em; margin-bottom: 4px; }
+        .hs-campo input, .hs-campo textarea { width: 100%; box-sizing: border-box; padding: 9px 11px; border: 1px solid #cbd5e1; border-radius: 8px; font-family: inherit; font-size: 14px; }
+        .hs-fila2 { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+        @media (max-width: 600px) { .hs-fila2 { grid-template-columns: 1fr; } }
+    </style>
+</head>
+<body>
+
+    <%- include('./partials/sidebar') %>
+
+    <div class="app-wrapper" id="app-wrapper">
+
+        <%- include('./partials/topbar') %>
+
+        <%
+            const moneda = (n) => '$' + Number(n || 0).toLocaleString('es-AR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+            const vehiculoElegido = filtros.id_vehiculo ? vehiculos.find(v => v.id_vehiculo === filtros.id_vehiculo) : null;
+            const volver = '/Mantenimientos/Historial' + (queryActual ? '?' + queryActual : '');
+        %>
+
+        <main class="main-content" style="display: block; overflow-y: auto; padding: 40px; max-width: 1400px; margin: 0 auto;">
+
+            <div class="page-header" style="margin-bottom: 24px;">
+                <h2 class="page-title">Historial Administrativo de Mantenimiento<%= vehiculoElegido ? ' · ' + vehiculoElegido.patente : '' %></h2>
+                <p class="page-subtitle">Fecha, remito, factura, casa proveedora, pedido, expediente, cantidad, descripción y precio de cada mantenimiento. Descargalo en Excel, completalo y volvé a cargarlo, o editá cada fila acá mismo.</p>
+            </div>
+
+            <section class="mv-resumen">
+                <div class="mv-kpi"><span class="mv-kpi__label">Órdenes del período</span><span class="mv-kpi__value"><%= resumen.total %></span></div>
+                <div class="mv-kpi"><span class="mv-kpi__label">Con todos los datos</span><span class="mv-kpi__value" style="color:#059669;"><%= resumen.completas %></span></div>
+                <div class="mv-kpi"><span class="mv-kpi__label">Con datos por completar</span><span class="mv-kpi__value" style="color:<%= resumen.total - resumen.completas ? '#d97706' : '#0f172a' %>;"><%= resumen.total - resumen.completas %></span></div>
+                <div class="mv-kpi"><span class="mv-kpi__label">Importe total</span><span class="mv-kpi__value"><%= moneda(resumen.importe) %></span></div>
+            </section>
+
+            <form class="hs-barra" method="GET" action="/Mantenimientos/Historial" id="form-filtros">
+                <div>
+                    <label for="f-vehiculo">Vehículo</label>
+                    <select id="f-vehiculo" name="vehiculo">
+                        <option value="">Toda la flota</option>
+                        <% vehiculos.forEach(v => { %>
+                        <option value="<%= v.id_vehiculo %>" <%= filtros.id_vehiculo === v.id_vehiculo ? 'selected' : '' %>><%= v.patente %> — <%= v.marca %> <%= v.modelo %></option>
+                        <% }) %>
+                    </select>
+                </div>
+                <div>
+                    <label for="f-anios">Período</label>
+                    <select id="f-anios" name="anios">
+                        <option value="1" <%= filtros.anios === '1' ? 'selected' : '' %>>Último año</option>
+                        <option value="2" <%= filtros.anios === '2' ? 'selected' : '' %>>Últimos 2 años</option>
+                        <option value="3" <%= filtros.anios === '3' ? 'selected' : '' %>>Últimos 3 años</option>
+                        <option value="5" <%= filtros.anios === '5' ? 'selected' : '' %>>Últimos 5 años</option>
+                        <option value="todo" <%= filtros.anios === 'todo' ? 'selected' : '' %>>Todo el historial</option>
+                    </select>
+                </div>
+                <div>
+                    <label for="f-pend">Mostrar</label>
+                    <select id="f-pend" name="pendientes">
+                        <option value="">Todas las órdenes</option>
+                        <option value="1" <%= filtros.pendientes ? 'selected' : '' %>>Solo con datos por completar</option>
+                    </select>
+                </div>
+                <button type="submit" class="hs-btn">Aplicar</button>
+                <span class="hs-sep"></span>
+                <a class="hs-btn hs-btn--verde" href="/Mantenimientos/Historial/exportar?<%= queryActual %>" id="btn-exportar">⬇ Descargar Excel</a>
+            </form>
+
+            <form class="hs-barra" method="POST" action="/Mantenimientos/Historial/importar" enctype="multipart/form-data" id="form-importar">
+                <input type="hidden" name="volver" value="<%= volver %>">
+                <div style="flex:1; min-width:240px;">
+                    <label for="archivo">Cargar Excel completado (.xlsx)</label>
+                    <input type="file" id="archivo" name="archivo" accept=".xlsx" required style="width:100%; box-sizing:border-box;">
+                </div>
+                <button type="submit" class="hs-btn hs-btn--azul">⬆ Cargar Excel completado</button>
+                <span style="font-size:12px; color:#64748b; flex-basis:100%;">Usá el archivo descargado desde acá: cada fila se identifica por su "ID orden". Las celdas vacías no borran datos. Si una fila tiene un error no se guarda nada y se te indica cuál corregir.</span>
+            </form>
+
+            <% if (filas.length > 0) { %>
+            <div class="data-table-wrapper" style="background:#fff; border:1px solid var(--color-border); border-radius: var(--radius-lg);">
+                <table class="data-table hs-tabla">
+                    <thead class="data-table__head">
+                        <tr>
+                            <th class="data-table__th">Fecha</th>
+                            <th class="data-table__th">Patente</th>
+                            <th class="data-table__th">N° Remito</th>
+                            <th class="data-table__th">N° Factura</th>
+                            <th class="data-table__th">Casa proveedora</th>
+                            <th class="data-table__th">N° Pedido</th>
+                            <th class="data-table__th">N° Expediente</th>
+                            <th class="data-table__th">Cant.</th>
+                            <th class="data-table__th">Descripción</th>
+                            <th class="data-table__th" style="text-align:right;">Precio</th>
+                            <th class="data-table__th"></th>
+                        </tr>
+                    </thead>
+                    <tbody class="data-table__body">
+                        <% filas.forEach(f => { %>
+                        <tr class="data-table__row">
+                            <td class="data-table__td" data-label="Fecha"><%= fmtFecha(f.fecha) %></td>
+                            <td class="data-table__td" data-label="Patente" style="font-family: var(--font-mono); font-weight:700;"><%= f.patente %></td>
+                            <% [['nro_remito'],['nro_factura'],['proveedor'],['nro_pedido'],['nro_expediente']].forEach(([k]) => { %>
+                            <td class="data-table__td" data-label="<%= k %>"><% if (f[k]) { %><%= f[k] %><% } else { %><span class="hs-falta">por completar</span><% } %></td>
+                            <% }) %>
+                            <td class="data-table__td" data-label="Cant."><%= f.cantidad %></td>
+                            <td class="data-table__td hs-desc" data-label="Descripción"><strong><%= f.tipo_servicio %></strong><% if (f.estado === 'En proceso') { %> <span class="badge badge--info">En proceso</span><% } %><br><span style="color:#475569;"><%= f.descripcion %></span></td>
+                            <td class="data-table__td" data-label="Precio" style="text-align:right; font-weight:800;"><%= moneda(f.precio) %></td>
+                            <td class="data-table__td">
+                                <button type="button" class="hs-btn btn-editar-fila"
+                                    data-id="<%= f.id_mantenimiento %>"
+                                    data-patente="<%= f.patente %>"
+                                    data-fecha="<%= fmtFecha(f.fecha) %>"
+                                    data-servicio="<%= f.tipo_servicio %>"
+                                    data-descripcion="<%= f.descripcion %>"
+                                    data-precio="<%= f.precio %>"
+                                    data-repuestos="<%= f.costo_repuestos %>"
+                                    data-nro_remito="<%= f.nro_remito %>"
+                                    data-nro_factura="<%= f.nro_factura %>"
+                                    data-proveedor="<%= f.proveedor %>"
+                                    data-nro_pedido="<%= f.nro_pedido %>"
+                                    data-nro_expediente="<%= f.nro_expediente %>"><%= f.faltantes.length ? 'Completar' : 'Modificar' %></button>
+                            </td>
+                        </tr>
+                        <% }) %>
+                    </tbody>
+                </table>
+            </div>
+            <% } else { %>
+            <div class="hs-vacio"><%= filtros.pendientes ? 'No hay órdenes con datos por completar en este período. ¡Todo al día!' : 'No hay mantenimientos realizados o en proceso en este período.' %></div>
+            <% } %>
+        </main>
+    </div>
+
+    <!-- Cuadro de modificación de una fila -->
+    <div class="hs-modal" id="modal-fila" aria-hidden="true">
+        <form class="hs-modal__caja" method="POST" id="form-fila" action="">
+            <input type="hidden" name="volver" value="<%= volver %>">
+            <h3 id="modal-titulo">Modificar mantenimiento</h3>
+            <p class="hs-modal__sub" id="modal-sub"></p>
+            <div class="hs-fila2">
+                <div class="hs-campo"><label for="m-nro_remito">N° de Remito</label><input id="m-nro_remito" name="nro_remito" maxlength="50"></div>
+                <div class="hs-campo"><label for="m-nro_factura">N° de Factura</label><input id="m-nro_factura" name="nro_factura" maxlength="50"></div>
+            </div>
+            <div class="hs-campo"><label for="m-proveedor">Casa proveedora</label><input id="m-proveedor" name="proveedor" maxlength="150"></div>
+            <div class="hs-fila2">
+                <div class="hs-campo"><label for="m-nro_pedido">N° de Pedido</label><input id="m-nro_pedido" name="nro_pedido" maxlength="50"></div>
+                <div class="hs-campo"><label for="m-nro_expediente">N° de Expediente</label><input id="m-nro_expediente" name="nro_expediente" maxlength="50"></div>
+            </div>
+            <div class="hs-campo"><label for="m-descripcion">Descripción</label><textarea id="m-descripcion" name="descripcion" rows="3" required></textarea></div>
+            <div class="hs-campo"><label for="m-precio">Precio total ($)</label><input id="m-precio" name="precio" type="number" step="0.01" min="0" required><span id="m-precio-ayuda" style="font-size:12px; color:#64748b;"></span></div>
+            <div style="display:flex; gap:10px; justify-content:flex-end; margin-top:16px;">
+                <button type="button" class="hs-btn" id="modal-cancelar">Cancelar</button>
+                <button type="submit" class="hs-btn hs-btn--azul">Guardar cambios</button>
+            </div>
+        </form>
+    </div>
+
+    <script src="/js/sidebar.js"></script>
+    <script>
+        (function () {
+            const modal = document.getElementById('modal-fila');
+            const form = document.getElementById('form-fila');
+            const campos = ['nro_remito', 'nro_factura', 'proveedor', 'nro_pedido', 'nro_expediente', 'descripcion', 'precio'];
+
+            function cerrar() { modal.classList.remove('hs-modal--abierto'); modal.setAttribute('aria-hidden', 'true'); }
+
+            document.addEventListener('click', function (e) {
+                const b = e.target.closest('.btn-editar-fila');
+                if (b) {
+                    const d = b.dataset;
+                    form.action = '/Mantenimientos/Historial/' + d.id;
+                    document.getElementById('modal-titulo').textContent = 'Mantenimiento de ' + d.patente;
+                    document.getElementById('modal-sub').textContent = d.fecha + ' · ' + d.servicio;
+                    campos.forEach(function (c) { document.getElementById('m-' + c).value = d[c] || ''; });
+                    const rep = Number(d.repuestos) || 0;
+                    document.getElementById('m-precio-ayuda').textContent = rep > 0
+                        ? 'Los repuestos registrados suman $' + rep.toLocaleString('es-AR') + '; si cambiás el precio, la diferencia se guarda como mano de obra.'
+                        : 'Si cambiás el precio, se actualiza el costo total del mantenimiento (mano de obra).';
+                    modal.classList.add('hs-modal--abierto');
+                    modal.setAttribute('aria-hidden', 'false');
+                    document.getElementById('m-nro_remito').focus();
+                    return;
+                }
+                if (e.target === modal || e.target.id === 'modal-cancelar') cerrar();
+            });
+            document.addEventListener('keydown', function (e) { if (e.key === 'Escape') cerrar(); });
+        })();
+    </script>
+</body>
+</html>

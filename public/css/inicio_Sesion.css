@@ -1,0 +1,86 @@
+* {
+    box-sizing: border-box;
+    margin: 0;
+    padding: 0;
+}
+
+body {
+    width: 100%;
+    height: 100vh; /* 100vh significa que ocupa exactamente el 100% del alto de la ventana visible */
+    display: flex;
+    justify-content: center; /* Centrado horizontal */
+    align-items: center; /* Centrado vertical perfecto */
+    background-image: url(/images/InicioSesion/Gemini_Generated_Image_uysasbuysasbuysa.png);
+    background-size: cover;
+    background-position: center;
+    background-repeat: no-repeat;
+    font-family: sans-serif;
+}
+
+.box_datos {
+    width: 90%;
+    max-width: 420px; /* Tamaño máximo para que no se estire de más en PC */
+    display: flex;
+    flex-direction: column;
+    padding: 40px 30px;
+    background-color: rgba(0, 0, 0, 0.5); /* Fondo negro semi-transparente */
+    backdrop-filter: blur(8px); /* Efecto cristalino moderno sobre la imagen */
+    border-radius: 15px;
+    box-shadow: 0 10px 25px rgba(0, 0, 0, 0.8);
+}
+
+form {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+}
+
+.inicio_titulo {
+    color: white;
+    font-size: 32px;
+    text-align: center;
+    margin-bottom: 25px;
+    font-weight: 600;
+    text-shadow: 0 2px 4px rgba(0, 0, 0, 0.8);
+}
+
+.usuario, .contraseña {
+    color: white;
+    font-size: 16px;
+    margin-bottom: 3px;
+    margin-left: 5px;
+    text-shadow: 0 1px 2px rgba(0, 0, 0, 0.8);
+}
+
+input[type="text"], input[type="password"] {
+    border-radius: 8px;
+    border: none;
+    font-size: 16px;
+    width: 100%;
+    height: 45px;
+    padding: 0 15px;
+    background-color: rgba(255, 255, 255, 0.9);
+    outline: none;
+    transition: box-shadow 0.3s;
+}
+
+input[type="text"]:focus, input[type="password"]:focus {
+    box-shadow: 0 0 8px rgba(255, 255, 255, 0.6); /* Brillo al hacer clic para escribir */
+}
+
+.submit {
+    color: white;
+    background: rgb(55, 69, 89);
+    border-radius: 8px;
+    border: none;
+    margin-top: 25px;
+    font-size: 18px;
+    font-weight: bold;
+    height: 50px;
+    cursor: pointer;
+    transition: background 0.3s;
+}
+
+.submit:hover {
+    background: rgb(75, 89, 109); /* Color ligeramente más claro al pasar el mouse */
+}
