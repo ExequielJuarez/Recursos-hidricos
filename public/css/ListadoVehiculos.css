@@ -354,8 +354,22 @@ img { display: block; }
 /* ============================================================
    RESPONSIVE (MÓVIL Y TABLET)
    ============================================================ */
+/* Los hijos de grillas/flex pueden achicarse: si no, una tabla ancha estira la columna fuera de la pantalla */
+.detail-columns > *, .detail-main-column > *, .detail-side-column > *, .vehicle-detail, .vehicle-profile { min-width: 0; }
+
 @media (max-width: 1200px) {
-  .detail-columns { grid-template-columns: 1fr; }
+  .detail-columns { grid-template-columns: minmax(0, 1fr); }
+}
+
+@media (max-width: 600px) {
+  .vehicle-detail { padding: 12px !important; }
+  .vehicle-profile { padding: 18px !important; }
+  .vehicle-profile__header { flex-wrap: wrap; gap: 10px; }
+  .vehicle-profile__plate { font-size: 22px !important; overflow-wrap: anywhere; }
+  .vehicle-profile__specs { grid-template-columns: minmax(0, 1fr) !important; gap: 16px; }
+  .detail-columns { padding-left: 0 !important; padding-right: 0 !important; }
+  .data-table__th, .data-table__td { padding: 10px 12px; white-space: nowrap; }
+  .vehicle-detail__breadcrumb { flex-wrap: wrap; gap: 10px; padding-left: 0 !important; padding-right: 0 !important; }
 }
 
 @media (max-width: 900px) {

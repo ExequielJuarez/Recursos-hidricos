@@ -1,291 +1,146 @@
+<%
+  // Menú lateral: solo en celular y tablet (en escritorio la navegación está en la barra superior, ver topbar.ejs)
+  const _nav = (typeof navegacion !== 'undefined') ? navegacion : require('../../utils/navegacion');
+  const _usr = (typeof usuarioLocal !== 'undefined') ? usuarioLocal : null;
+  const _secciones = _nav.seccionesVisibles(_usr);
+  const _ubic = _nav.ubicar(typeof currentPath !== 'undefined' ? currentPath : '', _secciones);
+%>
 <style>
   @import url('https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700;800&display=swap');
 
-  /* ── 1. ESTRUCTURA BLINDADA (Ignora tus CSS viejos) ── */
-  body .app-wrapper { margin-left: 280px !important; width: calc(100% - 280px) !important; transition: 0.3s ease !important; }
-  
+  :root {
+    --rh-navy: #0d1b2e;
+    --rh-navy-2: #13253d;
+    --rh-line: rgba(255, 255, 255, 0.09);
+    --rh-text: #cbd5e1;
+    --rh-muted: #8193ab;
+    --rh-active-bg: rgba(59, 130, 246, 0.16);
+    --rh-active-border: rgba(96, 165, 250, 0.45);
+  }
+
+  /* El contenido ocupa todo el ancho: ya no hay barra lateral fija */
+  body .app-wrapper { margin-left: 0 !important; width: 100% !important; }
+
   #mi-sidebar-blindado {
-    position: fixed !important; top: 0 !important; left: 0 !important; bottom: 0 !important; z-index: 9999 !important;
-    background-color: #0f172a !important; /* Fondo azul noche */
-    font-family: 'DM Sans', sans-serif !important;
-    width: 280px !important; display: flex !important; flex-direction: column !important;
-    border-right: 1px solid #1e293b !important;
-    overflow: hidden !important; transition: transform 0.3s ease !important;
+    position: fixed; top: 0; left: 0; bottom: 0; z-index: 9999;
+    width: 290px; max-width: 86vw;
+    background: linear-gradient(180deg, var(--rh-navy) 0%, var(--rh-navy-2) 100%);
+    font-family: 'DM Sans', sans-serif;
+    display: flex; flex-direction: column;
+    border-right: 1px solid var(--rh-line);
+    transform: translateX(-100%); transition: transform 0.28s ease;
+    box-shadow: 8px 0 30px rgba(2, 8, 23, 0.35);
   }
+  #mi-sidebar-blindado.abierto { transform: translateX(0); }
 
-  /* ── 2. LOGO Y MARCA (HEADER FIJO, NO SCROLLA) ── */
-  .sb-header {
-    padding: 12px 16px !important;
-    display: flex !important;
-    align-items: center !important;
-    justify-content: center !important;
-    border-bottom: 1px solid #1e293b !important;
-    margin-bottom: 0 !important;
-    flex-shrink: 0 !important;
-  }
-  /* Logo sin caja: mismo alto de cabecera que tenía, proporciones intactas (object-fit: contain) */
-  .sb-logo-box { width: 100% !important; height: 68px !important; background: transparent !important; padding: 0 !important; display: flex; align-items: center; justify-content: center; }
-  .sb-logo-box img { max-width: 100% !important; max-height: 100% !important; width: auto !important; height: auto !important; object-fit: contain !important; display: block; }
-  .sb-title-box { display: flex !important; flex-direction: column !important; }
-  .sb-title { color: #ffffff !important; font-weight: 800 !important; font-size: 17px !important; letter-spacing: -0.02em !important; margin: 0 !important; line-height: 1.2 !important; }
-  .sb-subtitle { color: #38bdf8 !important; font-size: 11px !important; font-weight: 800 !important; text-transform: uppercase !important; letter-spacing: 0.1em !important; margin: 0 !important; }
-  
-  /* ── 3. NAVEGACIÓN PRINCIPAL (SCROLL INDEPENDIENTE) ── */
-  .sb-nav { 
-    padding: 16px 16px 24px 16px !important; 
-    flex: 1 !important; 
-    overflow-y: auto !important; /* La magia para que los botones scrolleen */
-  }
-  
-  /* Diseño de la barra de scroll del menú */
+  .sb-header { display: flex; align-items: center; justify-content: space-between; gap: 10px; padding: 14px 14px 14px 18px; border-bottom: 1px solid var(--rh-line); flex-shrink: 0; }
+  .sb-header img { height: 44px; width: auto; display: block; }
+  .sb-close { width: 36px; height: 36px; border-radius: 10px; border: 1px solid var(--rh-line); background: rgba(255,255,255,0.05); color: var(--rh-text); display: flex; align-items: center; justify-content: center; cursor: pointer; }
+  .sb-close svg { width: 18px; height: 18px; }
+
+  .sb-nav { padding: 14px 12px 24px; flex: 1; overflow-y: auto; }
   .sb-nav::-webkit-scrollbar { width: 4px; }
-  .sb-nav::-webkit-scrollbar-track { background: transparent; }
-  .sb-nav::-webkit-scrollbar-thumb { background-color: #334155; border-radius: 10px; }
+  .sb-nav::-webkit-scrollbar-thumb { background-color: #2b3d57; border-radius: 10px; }
+  .sb-label { display: block; padding: 0 10px; margin: 6px 0 10px; font-size: 10.5px; font-weight: 800; color: var(--rh-muted); text-transform: uppercase; letter-spacing: 0.1em; }
+  .sb-ul { list-style: none; padding: 0; margin: 0; }
+  .sb-li { margin-bottom: 4px; }
 
-  .sb-label { display: block !important; padding: 0 12px !important; font-size: 11px !important; font-weight: 800 !important; color: #475569 !important; text-transform: uppercase !important; letter-spacing: 0.1em !important; margin-bottom: 16px !important; }
-  .sb-ul { list-style: none !important; padding: 0 !important; margin: 0 !important; }
-  .sb-li { margin-bottom: 6px !important; }
-  
-  /* Botón Principal (Títulos) */
-  .sb-link { 
-    display: flex !important;
-    align-items: center !important; 
-    padding: 12px 14px !important; 
-    color: #e2e8f0 !important; /* Color principal: Blanco Humo */
-    text-decoration: none !important; 
-    border-radius: 8px !important; 
-    font-weight: 600 !important;
-    font-size: 15px !important; /* Tipografía más grande */
-    transition: all 0.2s ease !important; 
-    cursor: pointer !important;
+  .sb-link {
+    display: flex; align-items: center; gap: 12px; width: 100%;
+    padding: 11px 12px; border-radius: 10px; border: 1px solid transparent;
+    background: none; color: var(--rh-text); text-decoration: none; text-align: left;
+    font: 600 15px 'DM Sans', sans-serif; cursor: pointer; transition: background 0.2s, color 0.2s, border-color 0.2s;
   }
-  .sb-link:hover { background-color: #1e293b !important; color: #ffffff !important; }
-  
-  /* Íconos de Títulos */
-  .sb-icon { width: 22px !important; height: 22px !important; margin-right: 14px !important; flex-shrink: 0 !important; color: #64748b !important; transition: color 0.2s !important; }
-  .sb-link:hover .sb-icon { color: #cbd5e1 !important; }
-  
-  /* Flechita */
-  .sb-chevron { width: 16px !important; height: 16px !important; margin-left: auto !important; transition: transform 0.3s ease !important; opacity: 0.5 !important; }
-  .sb-li.abierto .sb-chevron { transform: rotate(180deg) !important; opacity: 1 !important; color: #38bdf8 !important; }
-  
-  /* ── 4. SUBMENÚS (Alineación Perfecta) ── */
-  .sb-submenu { list-style: none !important; padding: 0 !important; margin: 4px 0 8px 0 !important; display: none !important; }
-  .sb-li.abierto .sb-submenu { display: block !important; }
-  
-  /* Opciones Desplegables */
-  .sb-sub-link { 
-    display: block !important;
-    /* LA MAGIA DE LA ALINEACIÓN: 14px (padding) + 22px (icono) + 14px (margen del icono) = 50px */
-    padding: 10px 14px 10px 50px !important;
-    color: #94a3b8 !important; /* Color secundario: Gris Azulado */
-    text-decoration: none !important; 
-    font-size: 14px !important;
-    font-weight: 500 !important;
-    border-radius: 8px !important; 
-    transition: all 0.2s ease !important; 
-  }
-  .sb-sub-link:hover { color: #38bdf8 !important; background-color: #1e293b !important; }
+  .sb-link:hover { background: rgba(255, 255, 255, 0.06); color: #fff; }
+  .sb-icon { width: 20px; height: 20px; flex-shrink: 0; color: var(--rh-muted); fill: none; stroke: currentColor; stroke-width: 1.9; stroke-linecap: round; stroke-linejoin: round; }
+  .sb-link:hover .sb-icon { color: #e2e8f0; }
+  .sb-chevron { width: 16px; height: 16px; margin-left: auto; fill: none; stroke: currentColor; stroke-width: 2.2; stroke-linecap: round; stroke-linejoin: round; opacity: 0.6; transition: transform 0.25s; }
+  .sb-li.abierto .sb-chevron { transform: rotate(180deg); opacity: 1; }
 
-  /* ── 5. ESTADOS ACTIVOS (Pintados) ── */
-  .sb-link.activo { background-color: rgba(56, 189, 248, 0.1) !important; color: #38bdf8 !important; font-weight: 700 !important; }
-  .sb-link.activo .sb-icon { color: #38bdf8 !important; }
-  .sb-sub-link.activo { color: #38bdf8 !important; font-weight: 700 !important; background-color: rgba(56, 189, 248, 0.05) !important; }
+  .sb-submenu { list-style: none; margin: 4px 0 8px; padding: 0 0 0 22px; display: none; border-left: 1px solid var(--rh-line); margin-left: 21px; }
+  .sb-li.abierto .sb-submenu { display: block; }
+  .sb-sub-link { display: block; padding: 9px 12px; margin: 2px 0; border-radius: 8px; color: var(--rh-muted); text-decoration: none; font-size: 14px; font-weight: 500; transition: 0.2s; }
+  .sb-sub-link:hover { color: #fff; background: rgba(255, 255, 255, 0.06); }
 
-  /* ── 6. RESPONSIVE (CELULARES) ── */
-  #sb-overlay-blindado { position: fixed !important; top: 0 !important; left: 0 !important; right: 0 !important; bottom: 0 !important; background: rgba(0,0,0,0.5) !important; z-index: 9998 !important; display: none !important; }
-  @media (max-width: 900px) {
-    body .app-wrapper { margin-left: 0 !important; width: 100% !important; }
-    #mi-sidebar-blindado { transform: translateX(-100%) !important; }
-    #mi-sidebar-blindado.abierto { transform: translateX(0) !important; }
-    #sb-overlay-blindado.activo { display: block !important; }
+  /* Activo: mismo estilo que el botón activo de la barra superior */
+  .sb-link.activo { background: var(--rh-active-bg); border-color: var(--rh-active-border); color: #fff; }
+  .sb-link.activo .sb-icon { color: #93c5fd; }
+  .sb-sub-link.activo { color: #fff; font-weight: 700; background: #1d3b63; }
+
+  .sb-footer { padding: 14px; border-top: 1px solid var(--rh-line); display: flex; align-items: center; gap: 10px; flex-shrink: 0; }
+  .sb-footer .rh-avatar { flex-shrink: 0; }
+  .sb-footer__name { color: #fff; font-weight: 700; font-size: 14px; line-height: 1.2; }
+  .sb-footer__rol { color: var(--rh-muted); font-size: 10.5px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.06em; }
+
+  #sb-overlay-blindado { position: fixed; inset: 0; background: rgba(2, 8, 23, 0.55); z-index: 9998; display: none; }
+  #sb-overlay-blindado.activo { display: block; }
+
+  /* En escritorio el menú lateral no se usa */
+  @media (min-width: 1200px) {
+    #mi-sidebar-blindado, #sb-overlay-blindado { display: none !important; }
   }
 </style>
 
-<%
-  const user = (typeof usuarioLogueado !== 'undefined') ? usuarioLogueado : null;
-  const hasPerm = (permiso) => {
-      if (!user) return true;
-      if (user.rol === 'Administrador') return true; 
-      if (!user.permisos) return false;
-      return user.permisos.includes(permiso);
-  };
-%>
+<div id="sb-overlay-blindado"></div>
 
-<div id="sb-overlay-blindado" onclick="document.getElementById('mi-sidebar-blindado').classList.remove('abierto'); this.classList.remove('activo');"></div>
-
-<aside id="mi-sidebar-blindado">
+<aside id="mi-sidebar-blindado" aria-label="Menú principal">
   <div class="sb-header">
-    <div class="sb-logo-box">
-      <img src="/images/header/logo-recursos-hidricos-oscuro.png" alt="Administración Provincial de Recursos Hídricos" />
-    </div>
+    <img src="/images/header/logo-recursos-hidricos-oscuro.png" alt="Administración Provincial de Recursos Hídricos" />
+    <button type="button" class="sb-close" id="sb-close" aria-label="Cerrar menú">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M18 6 6 18"/><path d="m6 6 12 12"/></svg>
+    </button>
   </div>
 
   <nav class="sb-nav">
-    <span class="sb-label">Módulos del Sistema</span>
+    <span class="sb-label">Módulos del sistema</span>
     <ul class="sb-ul">
-
-      <% if (hasPerm('Vehicles')) { %>
-      <li class="sb-li">
-        <a href="#" class="sb-link" onclick="event.preventDefault(); this.parentElement.classList.toggle('abierto');">
-          <svg class="sb-icon" viewBox="0 0 20 20" fill="currentColor"><path d="M8 16.5a1.5 1.5 0 11-3 0 1.5 1.5 0 013 0zM15 16.5a1.5 1.5 0 11-3 0 1.5 1.5 0 013 0z"/><path d="M3 4a1 1 0 00-1 1v10a1 1 0 001 1h1.05a2.5 2.5 0 014.9 0H10a1 1 0 001-1V5a1 1 0 00-1-1H3zM14 7a1 1 0 00-1 1v6.05A2.5 2.5 0 0115.95 16H17a1 1 0 001-1v-5a1 1 0 00-.293-.707l-2-2A1 1 0 0015 7h-1z"/></svg>
-          Vehículos
-          <svg class="sb-chevron" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z" clip-rule="evenodd"/></svg>
-        </a>
-        <ul class="sb-submenu">
-          <li><a href="/Vehicles" class="sb-sub-link">Inventario de vehiculos</a></li>
-          <li><a href="/CargaVehiculo" class="sb-sub-link">Alta de Vehículo</a></li>
-          <li><a href="/asignaciones" class="sb-sub-link">Asignar a Chofer</a></li>
-          <li><a href="/ActualizarKm" class="sb-sub-link">Carga de Kilometraje</a></li>
-        </ul>
-      </li>
-      <% } %>
-
-      <% if (hasPerm('Choferes')) { %>
-      <li class="sb-li">
-        <a href="#" class="sb-link" onclick="event.preventDefault(); this.parentElement.classList.toggle('abierto');">
-          <svg class="sb-icon" viewBox="0 0 20 20" fill="currentColor"><path d="M9 6a3 3 0 11-6 0 3 3 0 016 0zM17 6a3 3 0 11-6 0 3 3 0 016 0zM12.93 17c.046-.327.07-.66.07-1a6.97 6.97 0 00-1.5-4.33A5 5 0 0119 16v1h-6.07zM6 11a5 5 0 015 5v1H1v-1a5 5 0 015-5z"/></svg>
-          Plantilla Choferes
-          <svg class="sb-chevron" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z" clip-rule="evenodd"/></svg>
-        </a>
-        <ul class="sb-submenu">
-          <li><a href="/Choferes" class="sb-sub-link">Nómina Activa</a></li>
-          <li><a href="/Choferes/carga" class="sb-sub-link">Nuevo Ingreso</a></li>
-        </ul>
-      </li>
-      <% } %>
-
-      <% if (hasPerm('Mantenimientos')) { %>
-      <li class="sb-li">
-        <a href="#" class="sb-link" onclick="event.preventDefault(); this.parentElement.classList.toggle('abierto');">
-          <svg class="sb-icon" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M11.49 3.17c-.38-1.56-2.6-1.56-2.98 0a1.532 1.532 0 01-2.286.948c-1.372-.836-2.942.734-2.106 2.106.54.886.061 2.042-.947 2.287-1.561.379-1.561 2.6 0 2.978a1.532 1.532 0 01.947 2.287c-.836 1.372.734 2.942 2.106 2.106a1.532 1.532 0 012.287.947c.379 1.561 2.6 1.561 2.978 0a1.533 1.533 0 012.287-.947c1.372.836 2.942-.734 2.106-2.106a1.533 1.533 0 01.947-2.287c1.561-.379 1.561-2.6 0-2.978a1.532 1.532 0 01-.947-2.287c.836-1.372-.734-2.942-2.106-2.106a1.532 1.532 0 01-2.287-.947zM10 13a3 3 0 100-6 3 3 0 000 6z" clip-rule="evenodd"/></svg>
-          Mantenimientos
-          <svg class="sb-chevron" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z" clip-rule="evenodd"/></svg>
-        </a>
-        <ul class="sb-submenu">
-          <li><a href="/Mantenimientos" class="sb-sub-link">Historial Técnico</a></li>
-          <li><a href="/Mantenimientos/carga" class="sb-sub-link">Registrar Orden</a></li>
-          <li><a href="/Mantenimientos/Historial" class="sb-sub-link">Historial Administrativo</a></li>
-        </ul>
-      </li>
-      <% } %>
-
-      <% if (hasPerm('Tools')) { %>
-      <li class="sb-li">
-        <a href="#" class="sb-link" onclick="event.preventDefault(); this.parentElement.classList.toggle('abierto');">
-          <svg class="sb-icon" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M6.672 1.911a1 1 0 10-1.932.518l.259.966a1 1 0 001.932-.518l-.26-.966zM2.429 4.74a1 1 0 10-.517 1.932l.966.259a1 1 0 00.517-1.932l-.966-.26zm8.814-.569a1 1 0 00-1.415-1.414l-.707.707a1 1 0 101.415 1.415l.707-.708zm-7.071 7.072l.707-.707A1 1 0 003.465 9.12l-.708.707a1 1 0 001.415 1.415zm3.2-5.171a1 1 0 00-1.3 1.3l4 10a1 1 0 001.823.075l1.38-2.759 3.018 3.02a1 1 0 001.414-1.415l-3.019-3.02 2.76-1.379a1 1 0 00-.076-1.822l-10-4z" clip-rule="evenodd"/></svg>
-          Herramientas Locales
-          <svg class="sb-chevron" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z" clip-rule="evenodd"/></svg>
-        </a>
-        <ul class="sb-submenu">
-          <li><a href="/Tools" class="sb-sub-link">Inventario Físico</a></li>
-          <li><a href="/Tools/carga" class="sb-sub-link">Carga Nueva</a></li>
-          <li><a href="/Tools/prestamos" class="sb-sub-link">Control Préstamos</a></li>
-          <li><a href="/Tools/ajustes" class="sb-sub-link">Ajustes Base</a></li>
-        </ul>
-      </li>
-      <% } %>
-
-      <% if (hasPerm('Siniestros')) { %>
-      <li class="sb-li">
-        <a href="/Siniestros" class="sb-link">
-          <svg class="sb-icon" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M10 2c-1.716 0-3.408.106-5.07.31C4.38 2.38 4 2.85 4 3.41v2.18c0 .348.163.67.433.865.748.56 1.162 1.455 1.123 2.388-.04 1.01-.25 1.996-.612 2.924a.998.998 0 00.383 1.17l2.17 1.343c.42.26.965.204 1.32-.132.846-.8 1.95-1.25 3.103-1.25s2.257.45 3.103 1.25c.355.336.9.392 1.32.132l2.17-1.342a.999.999 0 00.383-1.17c-.363-.928-.572-1.914-.612-2.924-.04-.933.375-1.828 1.123-2.388.27-.195.433-.517.433-.865V3.41c0-.56-.38-.103-.93-.1-1.662-.204-3.354-.31-5.07-.31z" clip-rule="evenodd" /></svg>
-          Siniestros / Seguros
-        </a>
-      </li>
-      <% } %>
-
-      <% if (hasPerm('Alertas')) { %>
-      <li class="sb-li">
-        <a href="/Alertas" class="sb-link">
-          <svg class="sb-icon" viewBox="0 0 20 20" fill="currentColor"><path d="M10 2a6 6 0 00-6 6v3.586l-.707.707A1 1 0 004 14h12a1 1 0 00.707-1.707L16 11.586V8a6 6 0 00-6-6zM10 18a3 3 0 01-3-3h6a3 3 0 01-3 3z"/></svg>
-          Panel de Alertas
-        </a>
-      </li>
-      <% } %>
-
-      <% if (hasPerm('Reportes')) { %>
-      <li class="sb-li">
-        <a href="/Reportes" class="sb-link">
-          <svg class="sb-icon" viewBox="0 0 20 20" fill="currentColor"><path d="M2 11a1 1 0 011-1h2a1 1 0 011 1v5a1 1 0 01-1 1H3a1 1 0 01-1-1v-5zM8 7a1 1 0 011-1h2a1 1 0 011 1v9a1 1 0 01-1 1H9a1 1 0 01-1-1V7zM14 4a1 1 0 011-1h2a1 1 0 011 1v12a1 1 0 01-1 1h-2a1 1 0 01-1-1V4z" /></svg>
-          Reportes y Análisis
-        </a>
-      </li>
-      <% } %>
-
-      <% if (hasPerm('Usuarios') || hasPerm('Roles')) { %>
-      <li class="sb-li">
-        <a href="#" class="sb-link" onclick="event.preventDefault(); this.parentElement.classList.toggle('abierto');">
-          <svg class="sb-icon" viewBox="0 0 20 20" fill="currentColor"><path d="M9 6a3 3 0 11-6 0 3 3 0 016 0zM17 6a3 3 0 11-6 0 3 3 0 016 0zM12.93 17c.046-.327.07-.66.07-1a6.97 6.97 0 00-1.5-4.33A5 5 0 0119 16v1h-6.07zM6 11a5 5 0 015 5v1H1v-1a5 5 0 015-5z"/></svg>
-          Control de Acceso
-          <svg class="sb-chevron" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z" clip-rule="evenodd"/></svg>
-        </a>
-        <ul class="sb-submenu">
-          <% if (hasPerm('Usuarios')) { %>
-          <li><a href="/Usuarios" class="sb-sub-link">Lista de Usuarios</a></li>
-          <li><a href="/Usuarios/Carga" class="sb-sub-link">Nuevo Usuario</a></li>
-          <% } %>
-          <% if (hasPerm('Roles')) { %>
-          <li><a href="/Usuarios/Roles" class="sb-sub-link">Matriz de Roles</a></li>
-          <% } %>
-        </ul>
-      </li>
-      <% } %>
-
-      <% if (hasPerm('Auditoria')) { %>
-      <li class="sb-li">
-        <a href="/Auditoria" class="sb-link">
-          <svg class="sb-icon" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-6-3a2 2 0 11-4 0 2 2 0 014 0zm-2 4a5 5 0 00-4.546 2.916A5.986 5.986 0 0010 16a5.986 5.986 0 004.546-2.084A5 5 0 0010 11z" clip-rule="evenodd"/></svg>
-          Log de Auditoría
-        </a>
-      </li>
-      <% } %>
-
+      <% _secciones.forEach(s => { const activa = _ubic.seccion && _ubic.seccion.id === s.id; %>
+        <% if (s.items.length === 1) { %>
+          <li class="sb-li">
+            <a href="<%= s.items[0].href %>" class="sb-link<%= activa ? ' activo' : '' %>">
+              <svg class="sb-icon" viewBox="0 0 24 24"><%- s.icono %></svg>
+              <%= s.label %>
+            </a>
+          </li>
+        <% } else { %>
+          <li class="sb-li<%= activa ? ' abierto' : '' %>">
+            <button type="button" class="sb-link<%= activa ? ' activo' : '' %>" onclick="this.parentElement.classList.toggle('abierto')">
+              <svg class="sb-icon" viewBox="0 0 24 24"><%- s.icono %></svg>
+              <%= s.label %>
+              <svg class="sb-chevron" viewBox="0 0 24 24"><path d="m6 9 6 6 6-6"/></svg>
+            </button>
+            <ul class="sb-submenu">
+              <% s.items.forEach(i => { %>
+                <li><a href="<%= i.href %>" class="sb-sub-link<%= _ubic.item === i ? ' activo' : '' %>"><%= i.label %></a></li>
+              <% }) %>
+            </ul>
+          </li>
+        <% } %>
+      <% }) %>
     </ul>
   </nav>
+
+  <div class="sb-footer">
+    <span class="rh-avatar"><%= _nav.iniciales(_usr) %></span>
+    <div>
+      <div class="sb-footer__name"><%= _usr ? (_usr.nombre + ' ' + _usr.apellido) : 'Administrador Sistema' %></div>
+      <div class="sb-footer__rol"><%= _usr ? _usr.rol : 'Administrador' %></div>
+    </div>
+  </div>
 </aside>
 
 <script>
-  // ── SCRIPT TOTALMENTE AISLADO (Para evitar choques con tus JS viejos) ──
-  (function() {
-      try {
-          const urlActual = window.location.pathname.toLowerCase();
-          const enlaces = document.querySelectorAll('#mi-sidebar-blindado a[href]:not([href="#"])');
-          let mejorEnlace = null;
-          let maxCoincidencia = 0;
-          
-          enlaces.forEach(enlace => {
-              const href = enlace.getAttribute('href').toLowerCase();
-              if (urlActual.startsWith(href) && href.length > maxCoincidencia) {
-                  maxCoincidencia = href.length;
-                  mejorEnlace = enlace;
-              }
-          });
-
-          if (mejorEnlace) {
-              mejorEnlace.classList.add('activo');
-              // Si es un submenú, abrir al padre
-              if (mejorEnlace.classList.contains('sb-sub-link')) {
-                  const liPadre = mejorEnlace.closest('.sb-li');
-                  if (liPadre) {
-                      liPadre.classList.add('abierto');
-                      const linkPadre = liPadre.querySelector('.sb-link');
-                      if (linkPadre) linkPadre.classList.add('activo');
-                  }
-              }
-          }
-
-          // Lógica menú móvil
-          const btnMenu = document.getElementById('menu-toggle');
-          if (btnMenu) {
-              btnMenu.addEventListener('click', function(e) {
-                  e.preventDefault();
-                  document.getElementById('mi-sidebar-blindado').classList.add('abierto');
-                  document.getElementById('sb-overlay-blindado').classList.add('activo');
-              });
-          }
-      } catch (err) {
-          console.log("Error pintando el menú:", err);
-      }
+  (function () {
+    const sidebar = document.getElementById('mi-sidebar-blindado');
+    const overlay = document.getElementById('sb-overlay-blindado');
+    const cerrar = () => { sidebar.classList.remove('abierto'); overlay.classList.remove('activo'); };
+    overlay.addEventListener('click', cerrar);
+    document.getElementById('sb-close').addEventListener('click', cerrar);
+    document.addEventListener('keydown', (e) => { if (e.key === 'Escape') cerrar(); });
+    // El botón ☰ está en la barra superior (topbar.ejs), que se dibuja después de este partial
+    document.addEventListener('DOMContentLoaded', () => {
+      const btn = document.getElementById('menu-toggle');
+      if (btn) btn.addEventListener('click', (e) => { e.preventDefault(); sidebar.classList.add('abierto'); overlay.classList.add('activo'); });
+    });
   })();
 </script>

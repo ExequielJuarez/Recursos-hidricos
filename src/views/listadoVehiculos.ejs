@@ -452,10 +452,16 @@
         const searchTerm = e.target.value.toLowerCase().trim();
         toolCards.forEach(card => {
           const code = card.querySelector('.vehicle-card__plate')?.textContent.toLowerCase() || '';
-          if (code.includes(searchTerm)) card.style.display = ''; 
-          else card.style.display = 'none'; 
+          if (code.includes(searchTerm)) card.style.display = '';
+          else card.style.display = 'none';
         });
       });
+      // Búsqueda que llega desde el buscador de la barra superior (?buscar=...)
+      const buscarInicial = new URLSearchParams(location.search).get('buscar');
+      if (buscarInicial) {
+        searchInput.value = buscarInicial;
+        searchInput.dispatchEvent(new Event('input'));
+      }
     }
 
     // ── EXPORTAR LISTADO CSV (con todos los datos, sin chofer asignado) ──

@@ -56,6 +56,12 @@
       #detail-back-btn { display: none !important; }
     }
 
+    /* Botones Imprimir / Editar / Eliminar: arriba a la derecha en escritorio, en su propia fila en pantallas chicas */
+    .tool-actions { position: absolute; top: 24px; right: 24px; display: flex; gap: 8px; flex-wrap: wrap; }
+    @media (max-width: 1100px) {
+      .tool-actions { position: static; margin-bottom: 16px; }
+    }
+
     @media (max-width: 900px) {
       .app-wrapper { height: auto; overflow: visible; }
       .main-content { height: auto; overflow: visible; flex-direction: column !important; }
@@ -180,7 +186,7 @@
 
           <div class="vehicle-profile__content" style="width: 100%;">
             
-            <div style="position: absolute; top: 24px; right: 24px; display: flex; gap: 8px; flex-wrap: wrap;">
+            <div class="tool-actions">
               <button onclick="window.print()" style="background-color: #f1f5f9; color: #334155; border: 1px solid #cbd5e1; padding: 6px 12px; font-size: 12px; font-weight: 600; border-radius: 6px; cursor: pointer; display: flex; align-items: center; transition: 0.2s;">
                 <svg viewBox="0 0 20 20" fill="currentColor" style="width: 14px; height: 14px; margin-right: 5px;"><path fill-rule="evenodd" d="M5 4v3H4a2 2 0 00-2 2v3a2 2 0 002 2h1v2a2 2 0 002 2h6a2 2 0 002-2v-2h1a2 2 0 002-2V9a2 2 0 00-2-2h-1V4a2 2 0 00-2-2H7a2 2 0 00-2 2zm8 0H7v3h6V4zm0 8H7v4h6v-4z" clip-rule="evenodd"/></svg>
                 Imprimir

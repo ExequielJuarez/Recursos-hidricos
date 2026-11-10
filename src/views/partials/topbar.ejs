@@ -1,22 +1,140 @@
+<%
+  // Barra superior (escritorio: navegación completa · celular/tablet: ☰ + logo + avisos)
+  const _nav = navegacion;
+  const _usr = (typeof usuarioLocal !== 'undefined') ? usuarioLocal : null;
+  const _secciones = _nav.seccionesVisibles(_usr);
+  const _ubic = _nav.ubicar(typeof currentPath !== 'undefined' ? currentPath : '', _secciones);
+  const _principales = _secciones.filter(s => s.grupo !== 'mas');
+  const _mas = _secciones.filter(s => s.grupo === 'mas');
+  const _masActivo = _ubic.seccion && _ubic.seccion.grupo === 'mas';
+  const _sub = _ubic.seccion;
+%>
 <style>
   :root {
-    /* Normalizamos la altura real del topbar para que el offset sticky calcule bien */
-    --topbar-height: 70px;
+    --rh-bar-h: 78px;
+    --rh-sub-h: 52px;
+    /* Altura total de la cabecera fija (la usan los títulos "sticky" de cada vista) */
+    --topbar-height: var(--rh-bar-h);
   }
+  <% if (_sub) { %>
+  @media (min-width: 1200px) { :root { --topbar-height: calc(var(--rh-bar-h) + var(--rh-sub-h)); } }
+  <% } %>
 
-  .topbar {
-    background-color: #ffffff;
-    border-bottom: 1px solid #e2e8f0;
-    height: var(--topbar-height);
-    padding: 0 24px;
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    font-family: 'DM Sans', sans-serif;
-    box-shadow: 0 1px 3px rgba(0,0,0,0.02);
-    position: sticky;
-    top: 0;
-    z-index: 50;
+  .rh-top { position: sticky; top: 0; z-index: 60; font-family: 'DM Sans', sans-serif; }
+
+  /* ── Barra principal ── */
+  .rh-bar {
+    height: var(--rh-bar-h);
+    display: flex; align-items: center; gap: 16px;
+    padding: 0 20px;
+    background: linear-gradient(90deg, #0b1628 0%, #0f1f36 55%, #13253e 100%);
+    border-bottom: 1px solid rgba(255,255,255,0.06);
+    color: #e2e8f0;
+  }
+  .rh-burger { display: none; width: 40px; height: 40px; border-radius: 10px; border: 1px solid rgba(255,255,255,0.12); background: rgba(255,255,255,0.05); color: #e2e8f0; align-items: center; justify-content: center; cursor: pointer; flex-shrink: 0; }
+  .rh-burger svg { width: 20px; height: 20px; }
+  .rh-logo { display: flex; align-items: center; flex-shrink: 0; padding-right: 8px; }
+  .rh-logo img { height: 58px; width: auto; display: block; }
+
+  .rh-bar { overflow: visible; }
+  .rh-menu { display: flex; align-items: center; gap: 4px; list-style: none; margin: 0; padding: 0; flex-shrink: 0; }
+  .rh-menu__li { position: relative; }
+  .rh-menu__btn {
+    display: inline-flex; align-items: center; gap: 8px;
+    height: 40px; padding: 0 12px;
+    border-radius: 10px; border: 1px solid transparent;
+    background: none; color: #cbd5e1; text-decoration: none; white-space: nowrap;
+    font: 600 14.5px 'DM Sans', sans-serif; cursor: pointer;
+    transition: background 0.18s, color 0.18s, border-color 0.18s;
+  }
+  .rh-menu__btn:hover, .rh-menu__li.abierto > .rh-menu__btn { background: rgba(255,255,255,0.06); color: #fff; }
+  .rh-menu__btn.activo { background: rgba(59,130,246,0.16); border-color: rgba(96,165,250,0.5); color: #fff; box-shadow: inset 0 1px 0 rgba(255,255,255,0.06); }
+  .rh-ico { width: 17px; height: 17px; flex-shrink: 0; fill: none; stroke: currentColor; stroke-width: 1.9; stroke-linecap: round; stroke-linejoin: round; }
+  .rh-menu__btn .rh-ico { color: #8fa3bd; }
+  .rh-menu__btn:hover .rh-ico, .rh-menu__btn.activo .rh-ico { color: #e2e8f0; }
+  .rh-chev { width: 14px; height: 14px; fill: none; stroke: currentColor; stroke-width: 2.2; stroke-linecap: round; stroke-linejoin: round; opacity: 0.7; transition: transform 0.2s; }
+  .rh-menu__li.abierto .rh-chev { transform: rotate(180deg); }
+
+  /* Desplegables */
+  .rh-drop {
+    position: absolute; top: calc(100% + 8px); left: 0; min-width: 230px;
+    background: #fff; border: 1px solid #e2e8f0; border-radius: 12px;
+    box-shadow: 0 16px 40px rgba(15,23,42,0.18); padding: 6px;
+    display: none; z-index: 80;
+  }
+  .rh-drop::before { content: ""; position: absolute; top: -10px; left: 0; right: 0; height: 10px; }
+  .rh-menu__li.abierto > .rh-drop { display: block; }
+  .rh-drop--der { left: auto; right: 0; }
+  .rh-drop a { display: block; padding: 9px 12px; border-radius: 8px; color: #334155; text-decoration: none; font-size: 14px; font-weight: 500; white-space: nowrap; }
+  .rh-drop a:hover { background: #f1f5f9; color: #0f172a; }
+  .rh-drop a.activo { background: #eff6ff; color: #1d4ed8; font-weight: 700; }
+  .rh-drop__grupo { display: flex; align-items: center; gap: 8px; padding: 10px 12px 4px; font-size: 11px; font-weight: 800; color: #64748b; text-transform: uppercase; letter-spacing: 0.07em; }
+  .rh-drop__grupo .rh-ico { width: 14px; height: 14px; }
+  .rh-drop__sep { height: 1px; background: #f1f5f9; margin: 6px 4px; }
+
+  /* Acciones de la derecha */
+  .rh-actions { display: flex; align-items: center; gap: 10px; margin-left: auto; flex-shrink: 0; }
+  .rh-iconbtn {
+    position: relative; width: 40px; height: 40px; border-radius: 10px;
+    border: 1px solid rgba(255,255,255,0.12); background: rgba(255,255,255,0.05);
+    color: #e2e8f0; display: flex; align-items: center; justify-content: center; cursor: pointer; transition: 0.18s;
+  }
+  .rh-iconbtn:hover { background: rgba(255,255,255,0.11); color: #fff; }
+  .rh-iconbtn svg { width: 19px; height: 19px; fill: none; stroke: currentColor; stroke-width: 1.9; stroke-linecap: round; stroke-linejoin: round; }
+  .rh-badge {
+    position: absolute; top: -6px; right: -6px; min-width: 19px; height: 19px; padding: 0 5px;
+    border-radius: 10px; background: #ef4444; color: #fff; font-size: 10.5px; font-weight: 800;
+    display: flex; align-items: center; justify-content: center; border: 2px solid #0f1f36;
+  }
+  .rh-user { display: flex; align-items: center; gap: 10px; padding: 5px 6px 5px 6px; border-radius: 12px; background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.1); }
+  .rh-avatar { width: 34px; height: 34px; border-radius: 50%; background: linear-gradient(135deg, #3b82f6, #1d4ed8); color: #fff; font-size: 13px; font-weight: 800; display: inline-flex; align-items: center; justify-content: center; letter-spacing: 0.02em; }
+  .rh-user__txt { line-height: 1.2; padding-right: 4px; }
+  .rh-user__name { display: block; color: #fff; font-size: 14px; font-weight: 700; white-space: nowrap; }
+  .rh-user__rol { display: block; color: #8fa3bd; font-size: 10.5px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.06em; }
+  .rh-salir { width: 34px; height: 34px; border-radius: 9px; background: #ef4444; color: #fff; display: flex; align-items: center; justify-content: center; transition: 0.18s; box-shadow: 0 2px 8px rgba(239,68,68,0.35); }
+  .rh-salir:hover { background: #dc2626; }
+  .rh-salir svg { width: 17px; height: 17px; fill: none; stroke: currentColor; stroke-width: 2.1; stroke-linecap: round; stroke-linejoin: round; }
+
+
+  /* ── Fila de pestañas de la sección ── */
+  .rh-sub {
+    height: var(--rh-sub-h); display: flex; align-items: center; gap: 18px;
+    padding: 0 20px; background: #fff; border-bottom: 1px solid #e2e8f0;
+    box-shadow: 0 1px 2px rgba(15,23,42,0.03);
+  }
+  .rh-crumb { display: flex; align-items: center; gap: 8px; font-size: 14px; color: #64748b; white-space: nowrap; padding-right: 6px; }
+  .rh-crumb a { color: #64748b; text-decoration: none; }
+  .rh-crumb a:hover { color: #0f172a; }
+  .rh-crumb svg { width: 14px; height: 14px; fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; color: #94a3b8; }
+  .rh-crumb strong { color: #0f172a; font-weight: 700; }
+  .rh-tabs { display: flex; align-items: center; gap: 4px; list-style: none; margin: 0; padding: 0; overflow-x: auto; scrollbar-width: none; }
+  .rh-tabs::-webkit-scrollbar { display: none; }
+  .rh-tab { display: inline-flex; align-items: center; height: 34px; padding: 0 14px; border-radius: 8px; color: #1e293b; text-decoration: none; font-size: 14px; font-weight: 500; white-space: nowrap; transition: 0.15s; }
+  .rh-tab:hover { background: #f1f5f9; }
+  .rh-tab.activo { background: #0f1f36; color: #fff; font-weight: 600; box-shadow: 0 2px 6px rgba(15,31,54,0.25); }
+  .rh-cta { margin-left: auto; display: inline-flex; align-items: center; gap: 8px; height: 36px; padding: 0 16px; border-radius: 8px; background: #e7f0ff; border: 1px solid #cfe0ff; color: #1d4ed8; font-size: 14px; font-weight: 600; text-decoration: none; white-space: nowrap; transition: 0.15s; }
+  .rh-cta:hover { background: #d8e7ff; }
+  .rh-cta svg { width: 16px; height: 16px; fill: none; stroke: currentColor; stroke-width: 2.2; stroke-linecap: round; }
+
+  /* Si no entra todo, se compacta la barra por pasos (lo decide el script de abajo según el espacio real) */
+  .rh-bar.rh--c1 .rh-user__txt { display: none; }
+  .rh-bar.rh--c2 .rh-menu__btn { padding: 0 9px; gap: 6px; }
+  .rh-bar.rh--c3 .rh-menu__btn .rh-ico { display: none; }
+
+  /* Celular y tablet: ☰ + logo + avisos (la navegación está en el menú lateral) */
+  @media (max-width: 1199px) {
+    .rh-burger { display: flex; }
+    .rh-menu, .rh-sub, .rh-user__txt { display: none !important; }
+    .rh-bar { padding: 0 14px; gap: 12px; position: relative; }
+    /* Logo centrado en la barra */
+    .rh-logo { position: absolute; left: 50%; top: 50%; transform: translate(-50%, -50%); padding: 0; }
+    .rh-logo img { height: 56px; }
+    .rh-user { padding: 0; background: none; border: 0; }
+  }
+  @media (max-width: 480px) {
+    .rh-logo img { height: auto; max-height: 50px; max-width: calc(100vw - 196px); }
+    .rh-user .rh-avatar { display: none; }
+    .rh-actions { gap: 8px; }
   }
 
   /* ============================================================
@@ -72,72 +190,6 @@
     z-index: 39;
     background-color: #ffffff;
     padding-bottom: 8px;
-  }
-  .topbar__actions {
-    display: flex;
-    align-items: center;
-    gap: 20px;
-  }
-  .topbar__notification-btn {
-    background: transparent;
-    border: none;
-    color: #64748b;
-    cursor: pointer;
-    position: relative;
-    padding: 8px;
-    border-radius: 8px;
-    transition: all 0.2s ease;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-  }
-  .topbar__notification-btn:hover {
-    background-color: #f1f5f9;
-    color: #0f172a;
-  }
-  .topbar__notification-btn svg {
-    width: 22px;
-    height: 22px;
-  }
-  .topbar__notification-dot {
-    position: absolute;
-    top: 2px;
-    right: 2px;
-    background-color: #ef4444;
-    color: white;
-    font-size: 10px;
-    font-weight: 700;
-    min-width: 16px;
-    height: 16px;
-    border-radius: 10px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    border: 2px solid white;
-    padding: 0 4px;
-  }
-  .topbar__user {
-    display: flex;
-    align-items: center;
-    gap: 16px;
-    padding-left: 20px;
-    border-left: 1px solid #e2e8f0;
-  }
-  .btn-salir {
-    background-color: #ef4444;
-    color: white;
-    padding: 8px 16px;
-    border-radius: 8px;
-    font-size: 13px;
-    font-weight: 700;
-    text-decoration: none;
-    transition: all 0.2s ease;
-    box-shadow: 0 2px 4px rgba(239, 68, 68, 0.2);
-  }
-  .btn-salir:hover {
-    background-color: #dc2626;
-    box-shadow: 0 4px 6px rgba(239, 68, 68, 0.3);
-    transform: translateY(-1px);
   }
 
   .notif-wrapper{
@@ -259,58 +311,184 @@
     text-align: center;
     color: #64748b;
 }
+
+.notif-item__msg{
+    overflow-wrap: anywhere;
+}
+
+/* ── Ajustes generales para celulares (este partial se incluye en todas las vistas) ── */
+.main-content { min-width: 0; }
+.data-card__header { flex-wrap: wrap; }
+@media (max-width: 600px){
+    /* vistas con relleno fijo de 40px (Ajustes, Repuestos, Detalle de alerta) */
+    .main-content[style*="padding: 40px"]{ padding: 16px !important; max-width: 100% !important; }
+    .settings-grid{ grid-template-columns: minmax(0, 1fr) !important; }
+    .settings-card{ padding: 16px !important; min-width: 0; }
+    .data-card__header > a[style*="margin-left"]{ margin-left: 0 !important; }
+    .data-card__header > a[style*="margin-left: auto"]{ margin-left: auto !important; }
+}
+
+/* En pantallas angostas el panel ocupa el ancho de la pantalla (sin salirse por la izquierda) */
+@media (max-width: 480px){
+    .notif-panel{
+        position: fixed;
+        top: calc(var(--topbar-height) + 6px);
+        left: 10px;
+        right: 10px;
+        width: auto;
+    }
+    .notif-panel__list{
+        max-height: calc(100vh - var(--topbar-height) - 140px);
+    }
+}
 </style>
 
-<header class="topbar">
-  <button class="topbar__menu-toggle" id="menu-toggle" aria-label="Abrir menú" aria-expanded="false" aria-controls="sidebar" style="background:none; border:none; color:#0f172a; cursor:pointer;">
-    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="24" height="24">
-      <line x1="3" y1="6"  x2="21" y2="6"/>
-      <line x1="3" y1="12" x2="21" y2="12"/>
-      <line x1="3" y1="18" x2="21" y2="18"/>
-    </svg>
+<div class="rh-top">
+<header class="rh-bar">
+  <button type="button" class="rh-burger" id="menu-toggle" aria-label="Abrir menú" aria-controls="mi-sidebar-blindado">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M4 6h16"/><path d="M4 12h16"/><path d="M4 18h16"/></svg>
   </button>
 
-  <div class="topbar__actions">
-    <div class="notif-wrapper" id="notif-wrapper">
-        <button class="topbar__notification-btn" id="notif-btn"
-                aria-label="Notificaciones" aria-expanded="false">
-            <svg viewBox="0 0 20 20" fill="currentColor"><path d="M10 2a6 6 0 00-6 6v3.586l-.707.707A1 1 0 004 14h12a1 1 0 00.707-1.707L16 11.586V8a6 6 0 00-6-6zM10 18a3 3 0 01-3-3h6a3 3 0 01-3 3z"/></svg>
-            <span class="topbar__notification-dot" id="notif-badge" style="display:none;">0</span>
-        </button>
+  <a href="<%= _secciones.length ? _secciones[0].items[0].href : '/Vehicles' %>" class="rh-logo" aria-label="Inicio">
+    <img src="/images/header/logo-recursos-hidricos-oscuro.png" alt="Administración Provincial de Recursos Hídricos" />
+  </a>
 
-        <div class="notif-panel" id="notif-panel" aria-hidden="true">
-            <div class="notif-panel__header">
-                <span class="notif-panel__title">Notificaciones</span>
-                <button class="notif-panel__marcar-todas" id="marcar-todas-btn">
-                    Marcar todas como leídas
-                </button>
-            </div>
-            <div class="notif-panel__list" id="notif-list">
-                <div class="notif-panel__loading">Cargando...</div>
-            </div>
-            <div class="notif-panel__footer">
-                <a href="/Alertas" class="notif-panel__ver-todas">Ver todas las alertas</a>
-            </div>
+  <ul class="rh-menu" id="rh-menu">
+    <% _principales.forEach(s => { const activa = _sub && _sub.id === s.id; %>
+      <li class="rh-menu__li">
+        <% if (s.items.length === 1) { %>
+          <a href="<%= s.items[0].href %>" class="rh-menu__btn<%= activa ? ' activo' : '' %>">
+            <svg class="rh-ico" viewBox="0 0 24 24"><%- s.icono %></svg><%= s.label %>
+          </a>
+        <% } else { %>
+          <button type="button" class="rh-menu__btn<%= activa ? ' activo' : '' %>" aria-haspopup="true" aria-expanded="false">
+            <svg class="rh-ico" viewBox="0 0 24 24"><%- s.icono %></svg><%= s.label %>
+            <svg class="rh-chev" viewBox="0 0 24 24"><path d="m6 9 6 6 6-6"/></svg>
+          </button>
+          <div class="rh-drop" role="menu">
+            <% s.items.forEach(i => { %>
+              <a href="<%= i.href %>" role="menuitem" class="<%= _ubic.item === i ? 'activo' : '' %>"><%= i.label %></a>
+            <% }) %>
+          </div>
+        <% } %>
+      </li>
+    <% }) %>
+    <% if (_mas.length) { %>
+      <li class="rh-menu__li">
+        <button type="button" class="rh-menu__btn<%= _masActivo ? ' activo' : '' %>" aria-haspopup="true" aria-expanded="false">
+          Más <svg class="rh-chev" viewBox="0 0 24 24"><path d="m6 9 6 6 6-6"/></svg>
+        </button>
+        <div class="rh-drop rh-drop--der" role="menu">
+          <% _mas.forEach((s, n) => { %>
+            <% if (n > 0) { %><div class="rh-drop__sep"></div><% } %>
+            <div class="rh-drop__grupo"><svg class="rh-ico" viewBox="0 0 24 24"><%- s.icono %></svg><%= s.label %></div>
+            <% s.items.forEach(i => { %>
+              <a href="<%= i.href %>" role="menuitem" class="<%= _ubic.item === i ? 'activo' : '' %>"><%= i.label %></a>
+            <% }) %>
+          <% }) %>
         </div>
+      </li>
+    <% } %>
+  </ul>
+
+  <div class="rh-actions">
+    <div class="notif-wrapper" id="notif-wrapper">
+      <button type="button" class="rh-iconbtn" id="notif-btn" aria-label="Notificaciones" aria-expanded="false">
+        <svg viewBox="0 0 24 24"><path d="M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9"/><path d="M10.3 21a1.94 1.94 0 0 0 3.4 0"/></svg>
+        <span class="rh-badge" id="notif-badge" style="display:none;">0</span>
+      </button>
+
+      <div class="notif-panel" id="notif-panel" aria-hidden="true">
+        <div class="notif-panel__header">
+          <span class="notif-panel__title">Notificaciones</span>
+          <button class="notif-panel__marcar-todas" id="marcar-todas-btn">Marcar todas como leídas</button>
+        </div>
+        <div class="notif-panel__list" id="notif-list">
+          <div class="notif-panel__loading">Cargando...</div>
+        </div>
+        <div class="notif-panel__footer">
+          <a href="/Alertas" class="notif-panel__ver-todas">Ver todas las alertas</a>
+        </div>
+      </div>
     </div>
-    
-    <div class="topbar__user" role="button" tabindex="0">
-      <% if (typeof usuarioLocal !== 'undefined' && usuarioLocal) { %>
-        <div class="topbar__user-name-wrapper" style="text-align: right; line-height: 1.3;">
-          <span class="topbar__user-name" style="display: block; font-weight: 700; font-size: 14px; color: #0f172a;"><%= usuarioLocal.nombre %> <%= usuarioLocal.apellido %></span>
-          <span style="font-size: 11px; font-weight: 700; color: #64748b; text-transform: uppercase; letter-spacing: 0.05em;"><%= usuarioLocal.rol %></span>
-        </div>
-        <a href="/CerrarSesion" class="btn-salir">Salir</a>
-      <% } else { %>
-        <div class="topbar__user-name-wrapper" style="text-align: right; line-height: 1.3;">
-          <span class="topbar__user-name" style="display: block; font-weight: 700; font-size: 14px; color: #0f172a;">Administrador Sistema</span>
-          <span style="font-size: 11px; font-weight: 700; color: #64748b; text-transform: uppercase; letter-spacing: 0.05em;">Administrador</span>
-        </div>
-        <a href="/CerrarSesion" class="btn-salir">Salir</a>
-      <% } %>
+
+    <div class="rh-user">
+      <span class="rh-avatar" title="<%= _usr ? (_usr.nombre + ' ' + _usr.apellido) : 'Administrador Sistema' %>"><%= _nav.iniciales(_usr) %></span>
+      <span class="rh-user__txt">
+        <span class="rh-user__name"><%= _usr ? (_usr.nombre + ' ' + _usr.apellido) : 'Administrador Sistema' %></span>
+        <span class="rh-user__rol"><%= _usr ? _usr.rol : 'Administrador' %></span>
+      </span>
+      <a href="/CerrarSesion" class="rh-salir" title="Cerrar sesión" aria-label="Cerrar sesión">
+        <svg viewBox="0 0 24 24"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><path d="m16 17 5-5-5-5"/><path d="M21 12H9"/></svg>
+      </a>
     </div>
   </div>
 </header>
+
+<% if (_sub) { %>
+<nav class="rh-sub" aria-label="Secciones de <%= _sub.label %>">
+  <div class="rh-crumb">
+    <a href="<%= _sub.items[0].href %>"><%= _sub.label %></a>
+    <svg viewBox="0 0 24 24"><path d="m9 18 6-6-6-6"/></svg>
+    <strong><%= _ubic.etiqueta %></strong>
+  </div>
+  <ul class="rh-tabs">
+    <% _sub.items.forEach(i => { %>
+      <li><a href="<%= i.href %>" class="rh-tab<%= _ubic.item === i ? ' activo' : '' %>"><%= i.label %></a></li>
+    <% }) %>
+  </ul>
+  <% if (_sub.cta) { %>
+    <a href="<%= _sub.cta.href %>" class="rh-cta">
+      <svg viewBox="0 0 24 24"><path d="M12 5v14"/><path d="M5 12h14"/></svg>
+      <%= _sub.cta.label %>
+    </a>
+  <% } %>
+</nav>
+<% } %>
+</div>
+
+<script>
+  // Desplegables de la barra superior: se abren al pasar el mouse (escritorio) o con clic/teclado
+  (function () {
+    const lis = document.querySelectorAll('#rh-menu .rh-menu__li');
+    const cerrarTodos = (excepto) => lis.forEach(li => { if (li !== excepto) { li.classList.remove('abierto'); const b = li.querySelector('button'); if (b) b.setAttribute('aria-expanded', 'false'); } });
+    lis.forEach(li => {
+      const btn = li.querySelector('button.rh-menu__btn');
+      if (!btn) return;
+      let t, abiertoPorMouse = 0;
+      const abrir = () => { clearTimeout(t); cerrarTodos(li); li.classList.add('abierto'); btn.setAttribute('aria-expanded', 'true'); };
+      const cerrar = () => { t = setTimeout(() => { li.classList.remove('abierto'); btn.setAttribute('aria-expanded', 'false'); }, 150); };
+      li.addEventListener('mouseenter', () => { if (window.matchMedia('(hover: hover)').matches) { abrir(); abiertoPorMouse = Date.now(); } });
+      li.addEventListener('mouseleave', () => { if (window.matchMedia('(hover: hover)').matches) cerrar(); });
+      btn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        // Un clic justo después de abrirlo con el mouse no lo vuelve a cerrar
+        if (li.classList.contains('abierto') && Date.now() - abiertoPorMouse > 600) { li.classList.remove('abierto'); btn.setAttribute('aria-expanded', 'false'); }
+        else abrir();
+      });
+    });
+    document.addEventListener('click', (e) => { if (!e.target.closest('#rh-menu')) cerrarTodos(null); });
+
+    // Compactar la barra solo lo necesario para que el menú no choque con los botones de la derecha
+    const barra = document.querySelector('.rh-bar');
+    const menu = document.getElementById('rh-menu');
+    const acciones = document.querySelector('.rh-actions');
+    const ajustarBarra = () => {
+      if (!barra || !menu || !acciones) return;
+      barra.classList.remove('rh--c1', 'rh--c2', 'rh--c3');
+      if (getComputedStyle(menu).display === 'none') return;
+      const entra = () => acciones.getBoundingClientRect().right <= barra.getBoundingClientRect().right - 16;
+      for (const paso of ['rh--c1', 'rh--c2', 'rh--c3']) {
+        if (entra()) break;
+        barra.classList.add(paso);
+      }
+    };
+    ajustarBarra();
+    window.addEventListener('resize', ajustarBarra);
+    if (document.fonts && document.fonts.ready) document.fonts.ready.then(ajustarBarra);
+    document.addEventListener('keydown', (e) => { if (e.key === 'Escape') cerrarTodos(null); });
+  })();
+</script>
 
 <script>window.CSRF_TOKEN = "<%= typeof csrfToken !== 'undefined' ? csrfToken : '' %>";</script>
 <script src="/js/csrf.js"></script>

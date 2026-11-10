@@ -17,6 +17,7 @@ const { safeJson, escapeHtml } = require("./utils/html");
 const fechas = require("./utils/fechas");
 const { asegurarToken, verificarToken } = require("./middlewares/csrfMiddleware");
 const flashMiddleware = require("./middlewares/flashMiddleware");
+const navegacion = require("./utils/navegacion");
 
 const app = express();
 const esProduccion = process.env.NODE_ENV === "production";
@@ -102,6 +103,7 @@ app.use(flashMiddleware);
 app.use((req, res, next) => {
   res.locals.currentPath = req.path;
   res.locals.usuarioLocal = req.session.usuarioLogueado || null;
+  res.locals.navegacion = navegacion;
   next();
 });
 

@@ -12,7 +12,7 @@
     "db:limpiar": "node scripts/limpiar-datos.js",
     "compartir": "node scripts/compartir.js",
     "db:instalacion": "node scripts/armar-instalacion-limpia.js",
-    "db:instalar": "node scripts/crear-usuarios.js"
+    "db:instalar": "node scripts/cargar-ejemplos.js"
   },
   "keywords": [],
   "author": "",

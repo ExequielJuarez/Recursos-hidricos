@@ -34,6 +34,10 @@
             .alerta-header { flex-direction: column; align-items: flex-start !important; gap: 16px; }
             .alerta-header > div:last-child { align-items: flex-start !important; flex-direction: row !important; }
         }
+        .alerta-header h2, .alerta-header p { overflow-wrap: anywhere; }
+        @media (max-width: 600px) {
+            .vehicle-profile { padding: 18px !important; }
+        }
     </style>
 </head>
 <body>
@@ -59,8 +63,8 @@
             </nav>
 
             <%
-            const LABELS = { licencia_vencida: 'Licencia vencida', licencia_proxima: 'Licencia próxima a vencer', mantenimiento_pendiente: 'Mantenimiento pendiente', mantenimiento_finalizado: 'Mantenimiento finalizado', documentacion_vencida: 'Documentación vencida', vehiculo_fuera_servicio: 'Vehículo fuera de servicio', herramienta_devuelta: 'Herramienta devuelta', prestamo_vencido: 'Préstamo vencido', asignacion_vencida: 'Asignación vencida', stock_bajo: 'Stock bajo', critica: 'Alerta crítica', informativa: 'Informativa' };
-            const ICONOS = { licencia_vencida: '⚠️', licencia_proxima: '🕐', mantenimiento_pendiente: '🔧', mantenimiento_finalizado: '✅', documentacion_vencida: '📄', vehiculo_fuera_servicio: '🚫', herramienta_devuelta: '🔙', prestamo_vencido: '📋', asignacion_vencida: '⏰', stock_bajo: '📦', critica: '🚨', informativa: 'ℹ️' };
+            const LABELS = { licencia_vencida: 'Licencia vencida', licencia_proxima: 'Licencia próxima a vencer', mantenimiento_pendiente: 'Mantenimiento pendiente', mantenimiento_finalizado: 'Mantenimiento finalizado', documentacion_vencida: 'Documentación vencida', vehiculo_fuera_servicio: 'Vehículo fuera de servicio', herramienta_devuelta: 'Herramienta devuelta', prestamo_vencido: 'Préstamo vencido', asignacion_vencida: 'Asignación vencida', stock_bajo: 'Stock bajo', critica: 'Alerta crítica', informativa: 'Informativa', mantenimiento_proximo: 'Service próximo', mantenimiento_vencido: 'Service vencido', vehiculo_en_mantenimiento: 'Vehículo en mantenimiento', siniestro_activo: 'Siniestro activo' };
+            const ICONOS = { mantenimiento_proximo: '🔧', mantenimiento_vencido: '⛔', vehiculo_en_mantenimiento: '🛠️', siniestro_activo: '💥', licencia_vencida: '⚠️', licencia_proxima: '🕐', mantenimiento_pendiente: '🔧', mantenimiento_finalizado: '✅', documentacion_vencida: '📄', vehiculo_fuera_servicio: '🚫', herramienta_devuelta: '🔙', prestamo_vencido: '📋', asignacion_vencida: '⏰', stock_bajo: '📦', critica: '🚨', informativa: 'ℹ️' };
             %>
 
             <article class="vehicle-profile" style="padding: 32px;">
