@@ -483,12 +483,44 @@
                                             </button>
                                         </form>
                                         <% } %>
-                                        <form action="/Mantenimientos/<%= m.id_mantenimiento %>/estado" method="POST" style="margin:0;">
-                                            <input type="hidden" name="estado" value="Realizado">
-                                            <button type="submit" style="width:100%; background-color: #16a34a; color: white; border: none; padding: 10px; font-size: 13px; font-weight: 700; border-radius: 6px; cursor: pointer;">
-                                                 Marcar como Realizado
-                                            </button>
-                                        </form>
+                                        <% const _u = unidadDe(m.vehiculo); const _kmFin = Math.max(Number(m.vehiculo?.km_actual) || 0, m.estado === 'Programado' ? 0 : Number(m.km_servicio) || 0); %>
+                                        <details class="fin-orden">
+                                            <summary class="fin-orden__btn">✓ Finalizar orden (cargar repuestos y costos)</summary>
+                                            <form action="/Mantenimientos/<%= m.id_mantenimiento %>/estado" method="POST" class="fin-form" data-mano-obra="<%= Number(m.mano_obra) || 0 %>" data-rep-previos="<%= Number(m.costo_repuestos) || 0 %>">
+                                                <input type="hidden" name="estado" value="Realizado">
+                                                <label class="fin-lbl"><%= _u === 'hs' ? 'Horas al finalizar' : 'Km al finalizar' %>
+                                                    <input type="number" name="km_servicio" min="<%= m.estado === 'Programado' ? (m.vehiculo?.km_actual || 0) : m.km_servicio %>" value="<%= _kmFin %>" required>
+                                                </label>
+                                                <label class="fin-lbl">Trabajo realizado
+                                                    <textarea name="descripcion" rows="2" placeholder="Ej: cambio de aceite y filtros, control de frenos..."><%= m.estado === 'En proceso' ? (m.descripcion || '') : '' %></textarea>
+                                                </label>
+
+                                                <div class="fin-sub">Repuestos usados <small>(se descuentan del stock)</small></div>
+                                                <% if (m.detalles && m.detalles.length) { %>
+                                                    <div class="fin-previos">Ya cargados en esta orden: <%= m.detalles.length %> repuesto(s) · <%= fmtMoneda(m.costo_repuestos) %></div>
+                                                <% } %>
+                                                <div class="fin-repuestos"></div>
+                                                <button type="button" class="fin-add">+ Agregar repuesto</button>
+
+                                                <label class="fin-lbl">Mano de obra ($)
+                                                    <input type="number" name="mano_obra" min="0" step="0.01" value="<%= Number(m.mano_obra) || '' %>" placeholder="0">
+                                                </label>
+                                                <label class="fin-lbl">Próximo service (<%= _u %>) <small>opcional</small>
+                                                    <input type="number" name="proximo_servicio_km" min="<%= _kmFin + 1 %>" placeholder="Ej: <%= _kmFin + (_u === 'hs' ? 250 : 10000) %>">
+                                                </label>
+                                                <div class="fin-grid">
+                                                    <label class="fin-lbl">Proveedor <input type="text" name="proveedor" maxlength="150" value="<%= m.proveedor || '' %>"></label>
+                                                    <label class="fin-lbl">N° de factura <input type="text" name="nro_factura" maxlength="50" value="<%= m.nro_factura || '' %>"></label>
+                                                    <label class="fin-lbl">N° de remito <input type="text" name="nro_remito" maxlength="50" value="<%= m.nro_remito || '' %>"></label>
+                                                    <label class="fin-lbl">N° de pedido <input type="text" name="nro_pedido" maxlength="50" value="<%= m.nro_pedido || '' %>"></label>
+                                                </div>
+                                                <label class="fin-lbl">Observaciones <small>opcional</small>
+                                                    <textarea name="observaciones" rows="2"></textarea>
+                                                </label>
+                                                <div class="fin-total">Total de la orden: <strong class="fin-total__valor">$ 0</strong></div>
+                                                <button type="submit" class="fin-submit">Guardar y marcar como Realizado</button>
+                                            </form>
+                                        </details>
                                         <% if (m.estado === 'Programado') { %>
                                         <form action="/Mantenimientos/<%= m.id_mantenimiento %>/estado" method="POST" style="margin:0;" onsubmit="return confirm('¿Cancelar este service programado?');">
                                             <input type="hidden" name="estado" value="Cancelado">
@@ -550,6 +582,76 @@
     </script>
 
     <script src="/js/sidebar.js"></script>
+
+    <!-- ── Finalizar orden: repuestos usados, mano de obra y datos de factura ── -->
+    <style>
+      .fin-orden { border: 1px solid #bbf7d0; border-radius: 8px; background: #f0fdf4; }
+      .fin-orden__btn { list-style: none; cursor: pointer; background: #16a34a; color: #fff; padding: 10px; font-size: 13px; font-weight: 700; border-radius: 7px; text-align: center; }
+      .fin-orden__btn::-webkit-details-marker { display: none; }
+      .fin-orden[open] .fin-orden__btn { border-radius: 7px 7px 0 0; }
+      .fin-form { padding: 12px; display: flex; flex-direction: column; gap: 10px; margin: 0; }
+      .fin-lbl { display: flex; flex-direction: column; gap: 4px; font-size: 11px; font-weight: 700; color: #475569; text-transform: uppercase; letter-spacing: .03em; }
+      .fin-lbl small, .fin-sub small { text-transform: none; font-weight: 500; color: #94a3b8; letter-spacing: 0; }
+      .fin-lbl input, .fin-lbl textarea, .fin-rep select, .fin-rep input { font: 500 13px 'DM Sans', sans-serif; color: #0f172a; padding: 8px 10px; border: 1px solid #cbd5e1; border-radius: 6px; background: #fff; text-transform: none; width: 100%; box-sizing: border-box; min-width: 0; }
+      .fin-sub { font-size: 12px; font-weight: 800; color: #166534; margin-top: 4px; }
+      .fin-previos { font-size: 12px; color: #475569; background: #fff; border: 1px dashed #cbd5e1; border-radius: 6px; padding: 6px 8px; }
+      .fin-rep { display: grid; grid-template-columns: minmax(0, 1fr) 58px 84px 28px; gap: 6px; align-items: center; }
+      .fin-rep button { border: 1px solid #fecaca; background: #fef2f2; color: #dc2626; border-radius: 6px; height: 34px; cursor: pointer; font-weight: 800; }
+      .fin-add { align-self: flex-start; background: #fff; color: #166534; border: 1px dashed #16a34a; border-radius: 6px; padding: 6px 10px; font-size: 12px; font-weight: 700; cursor: pointer; }
+      .fin-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+      .fin-total { font-size: 13px; color: #166534; background: #dcfce7; border-radius: 6px; padding: 8px 10px; }
+      .fin-total strong { font-size: 15px; }
+      .fin-submit { background: #16a34a; color: #fff; border: none; padding: 11px; font-size: 13px; font-weight: 800; border-radius: 6px; cursor: pointer; }
+      .fin-submit:hover { background: #15803d; }
+    </style>
+    <template id="tpl-fin-repuesto">
+      <div class="fin-rep">
+        <select name="id_repuesto" required>
+          <option value="" data-precio="0">-- Repuesto --</option>
+          <% (typeof repuestos !== 'undefined' ? repuestos : []).forEach(r => { %>
+            <option value="<%= r.id_repuesto %>" data-precio="<%= Number(r.costo_unitario) || 0 %>" <%= r.stock <= 0 ? 'disabled' : '' %>><%= r.nombre %> (stock <%= r.stock %>)</option>
+          <% }) %>
+        </select>
+        <input type="number" name="cantidad" min="1" value="1" required title="Cantidad">
+        <input type="number" name="costo_unitario" min="0" step="0.01" placeholder="$ c/u" required title="Costo unitario">
+        <button type="button" class="fin-quitar" title="Quitar">×</button>
+      </div>
+    </template>
+    <script>
+      (function () {
+        const tpl = document.getElementById('tpl-fin-repuesto');
+        const pesos = (n) => '$ ' + Number(n || 0).toLocaleString('es-AR', { maximumFractionDigits: 2 });
+        const recalcular = (form) => {
+          let rep = Number(form.dataset.repPrevios) || 0;
+          form.querySelectorAll('.fin-rep').forEach(f => {
+            rep += (Number(f.querySelector('[name=cantidad]').value) || 0) * (Number(f.querySelector('[name=costo_unitario]').value) || 0);
+          });
+          const mo = Number(form.querySelector('[name=mano_obra]').value) || 0;
+          form.querySelector('.fin-total__valor').textContent = pesos(rep + mo);
+        };
+        document.querySelectorAll('.fin-form').forEach(form => {
+          recalcular(form);
+          form.querySelector('.fin-add').addEventListener('click', () => {
+            form.querySelector('.fin-repuestos').appendChild(tpl.content.cloneNode(true));
+          });
+          form.addEventListener('click', (e) => {
+            if (e.target.classList.contains('fin-quitar')) { e.target.closest('.fin-rep').remove(); recalcular(form); }
+          });
+          form.addEventListener('change', (e) => {
+            if (e.target.name === 'id_repuesto') {
+              const precio = e.target.selectedOptions[0]?.dataset.precio;
+              const costo = e.target.closest('.fin-rep').querySelector('[name=costo_unitario]');
+              if (precio && Number(precio) > 0) costo.value = precio;
+            }
+            recalcular(form);
+          });
+          form.addEventListener('input', () => recalcular(form));
+          form.addEventListener('submit', (e) => {
+            if (!confirm('¿Finalizar la orden? Los repuestos cargados se descuentan del stock.')) e.preventDefault();
+          });
+        });
+      })();
+    </script>
     <script>
     /* ── FIX BOTÓN HAMBURGUESA BLINDADO ── */
     document.addEventListener('DOMContentLoaded', () => {

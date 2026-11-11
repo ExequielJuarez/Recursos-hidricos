@@ -85,7 +85,9 @@ const vehicleController = {
 
       const sumar = req.body.cantidad === undefined || req.body.cantidad === "" ? 0 : Number(req.body.cantidad);
       const minimo = req.body.stock_minimo === undefined || req.body.stock_minimo === "" ? repuesto.stock_minimo : Number(req.body.stock_minimo);
-      if (!Number.isInteger(sumar) || sumar < 0) throw new ErrorNegocio("La cantidad a reponer debe ser un entero mayor o igual a 0.");
+      // Positivo: se reponen unidades. Negativo: se descuentan (rotura, pérdida, uso fuera de una orden).
+      if (!Number.isInteger(sumar)) throw new ErrorNegocio("La cantidad debe ser un número entero (positivo para sumar, negativo para descontar).");
+      if (repuesto.stock + sumar < 0) throw new ErrorNegocio(`No se pueden descontar ${-sumar} unidades de "${repuesto.nombre}": hay ${repuesto.stock} en stock.`);
       if (!Number.isInteger(minimo) || minimo < 0) throw new ErrorNegocio("El stock mínimo debe ser un entero mayor o igual a 0.");
       if (sumar === 0 && minimo === repuesto.stock_minimo) throw new ErrorNegocio("No hay cambios para guardar.");
 
@@ -98,10 +100,17 @@ const vehicleController = {
         "EDITAR",
         anterior,
         { stock: repuesto.stock, stock_minimo: repuesto.stock_minimo },
-        `Ajuste de repuesto ${repuesto.nombre}: ${sumar ? `se repusieron ${sumar} unidades` : "cambio de stock mínimo"}`,
+        `Ajuste de repuesto ${repuesto.nombre}: ${sumar > 0 ? `se repusieron ${sumar} unidades` : sumar < 0 ? `se descontaron ${-sumar} unidades` : "cambio de stock mínimo"}`,
       );
       await alertaService.generarAlertasStock();
-      req.flash("ok", sumar ? `Se repusieron ${sumar} unidades de "${repuesto.nombre}" (stock: ${repuesto.stock}).` : "Stock mínimo actualizado.");
+      req.flash(
+        "ok",
+        sumar > 0
+          ? `Se repusieron ${sumar} unidades de "${repuesto.nombre}" (stock: ${repuesto.stock}).`
+          : sumar < 0
+            ? `Se descontaron ${-sumar} unidades de "${repuesto.nombre}" (stock: ${repuesto.stock}).`
+            : "Stock mínimo actualizado.",
+      );
     } catch (error) {
       if (!(error instanceof ErrorNegocio)) console.log("Error ajustando repuesto:", error);
       req.flash("error", error instanceof ErrorNegocio ? error.message : "No se pudo ajustar el repuesto.");
@@ -153,16 +162,18 @@ const vehicleController = {
   Mantenimientos: async (req, res) => {
     try {
       const mantenimientos = await vehicleService.getAllMantenimientos();
-      res.render("Mantenimientos", { mantenimientos });
+      // Repuestos para el formulario de "Finalizar orden" (repuestos usados en el taller)
+      const repuestos = await db.Repuesto.findAll({ order: [["nombre", "ASC"]], raw: true });
+      res.render("Mantenimientos", { mantenimientos, repuestos });
     } catch (error) {
       console.error(error);
-      res.render("Mantenimientos", { mantenimientos: [] });
+      res.render("Mantenimientos", { mantenimientos: [], repuestos: [] });
     }
   },
 
   updateEstadoMantenimiento: async (req, res) => {
     try {
-      const { mantenimiento, anterior } = await maintenanceService.cambiarEstado(req.params.id, req.body.estado, req.body.km_servicio);
+      const { mantenimiento, anterior } = await maintenanceService.cambiarEstado(req.params.id, req.body.estado, req.body);
 
       await auditoriaService.desdeRequest(
         req,

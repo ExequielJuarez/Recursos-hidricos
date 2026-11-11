@@ -353,6 +353,6 @@ CREATE TABLE `auditoria` (
 INSERT INTO `rol` (`id_rol`,`nombre`,`descripcion`,`permisos`) VALUES
  (1,'Administrador','Acceso total al sistema','Vehicles,Choferes,Mantenimientos,Tools,Alertas,Reportes,Usuarios,Roles,Auditoria,Siniestros'),
  (2,'Jefe de Taller','Acceso a mantenimientos, repuestos y herramientas','Vehicles,Mantenimientos,Tools,Alertas'),
- (3,'Principal','Acceso de supervisión general y reportes','Vehicles,Choferes,Reportes,Alertas,Siniestros');
+ (3,'Supervisor','Acceso de supervisión general y reportes','Vehicles,Choferes,Reportes,Alertas,Siniestros');
 
 SET FOREIGN_KEY_CHECKS = 1;

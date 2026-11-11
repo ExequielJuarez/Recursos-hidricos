@@ -71,7 +71,7 @@
                 <tr>
                   <th>Nombre / Descripción</th>
                   <th>Stock Disponible</th>
-                  <th>Mínimo / Reponer</th>
+                  <th>Ajustar stock (+/-) / Mínimo</th>
                   <th>Costo Unit. Referencia</th>
                   <th style="text-align: right;">Acciones</th>
                 </tr>
@@ -90,7 +90,7 @@
                       </td>
                       <td>
                         <form action="/Repuestos/Ajustar/<%= r.id_repuesto %>" method="POST" style="margin:0; display:flex; gap:6px; align-items:center; flex-wrap:nowrap; white-space:nowrap;">
-                          <input type="number" name="cantidad" min="0" placeholder="+ unid." title="Unidades a reponer" style="width:76px; padding:6px 8px; border:1px solid #cbd5e1; border-radius:6px; font-size:12px;">
+                          <input type="number" name="cantidad" step="1" placeholder="+/- unid." title="Unidades a sumar (ej: 5) o a descontar (ej: -2)" style="width:84px; padding:6px 8px; border:1px solid #cbd5e1; border-radius:6px; font-size:12px;">
                           <input type="number" name="stock_minimo" min="0" value="<%= r.stock_minimo %>" title="Stock mínimo para avisar" style="width:62px; padding:6px 8px; border:1px solid #cbd5e1; border-radius:6px; font-size:12px;">
                           <button type="submit" style="background:#eff6ff; color:#1d4ed8; border:1px solid #bfdbfe; padding:6px 10px; border-radius:6px; font-size:12px; font-weight:700; cursor:pointer;">Guardar</button>
                         </form>

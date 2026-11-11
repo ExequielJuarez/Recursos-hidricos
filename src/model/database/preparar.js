@@ -90,6 +90,23 @@ async function migrar(conexion) {
     KEY idx_documento_entidad (entidad, id_entidad)
   ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci`);
 
+  // Préstamos y asignaciones devueltos se guardan como "Finalizado" (versiones anteriores de los datos de ejemplo usaban "Devuelto")
+  await conexion.query("UPDATE prestamo SET estado_prestamo = 'Finalizado' WHERE estado_prestamo = 'Devuelto'");
+  await conexion.query("UPDATE asignacion_vehiculo SET estado = 'Finalizado' WHERE estado = 'Devuelto'");
+
+  // Categorías de licencia: sólo las que ofrece el formulario (A, B, B1, B2, C, D, E, G).
+  // Datos de ejemplo anteriores usaban subcategorías (A2, C1, D1, E1) que bloqueaban las asignaciones.
+  await conexion.query(
+    "UPDATE licencia_chofer SET categoria = CASE categoria WHEN 'A2' THEN 'A' WHEN 'C1' THEN 'C' WHEN 'D1' THEN 'D' WHEN 'E1' THEN 'E' END WHERE categoria IN ('A2','C1','D1','E1')",
+  );
+
+  // Transmisión: el formulario de alta guardaba "Automatica" sin tilde, valor que después no pasaba la edición
+  await conexion.query("UPDATE vehiculo SET transmision = 'Automática' WHERE transmision = 'Automatica'");
+
+  // Rol "Principal" pasó a llamarse "Supervisor" (mismo rol y permisos: supervisión general y reportes)
+  const [[rolSupervisor]] = await conexion.query("SELECT COUNT(*) n FROM rol WHERE nombre = 'Supervisor'");
+  if (!rolSupervisor.n) await conexion.query("UPDATE rol SET nombre = 'Supervisor' WHERE nombre = 'Principal'");
+
   // Mantenimientos: "Pendiente" pasó a llamarse "Programado"
   await conexion.query("UPDATE mantenimiento SET estado='Programado' WHERE estado='Pendiente'");
 }

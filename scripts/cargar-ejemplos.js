@@ -116,22 +116,22 @@ const VEHICULOS = [
   { patente: "MQ002JD", marca: "John Deere", modelo: "Tractor 5075E", anio: 2020, tipo: "Maquinaria Pesada", comb: "Diésel", trans: "Manual", km: 3120, svc: [3000, 250, 6], programado: 3250, rto: null, seguro: 20, estado: "Disponible", distrito: "Caucete", area: "Canales y Desagües", cia: "Provincia Seguros", docs: ["acta_afectacion"], fotos: [0, 0, 1], obs: "Desmalezado de canales. Faltan pocas horas para el service." },
   { patente: "AI234QR", marca: "Ford", modelo: "Transit 2.2 TDCi Furgón", anio: 2020, tipo: "Utilitario", comb: "Diésel", trans: "Manual", km: 97800, svc: [90000, 10000, 6], rto: 45, seguro: 7, estado: "En mantenimiento", enProceso: ["Cambio de embrague", "Patina el embrague en pendiente. Se reemplaza kit completo."], distrito: "Rawson", area: "Taller Central", cia: "Federación Patronal", docs: ["comodato", "acta_afectacion"], fotos: [1, 1, 1], obs: "En taller (embrague). Seguro vence en una semana." },
   { patente: "AJ567ST", marca: "Peugeot", modelo: "208 Allure 1.6", anio: 2024, tipo: "Auto", comb: "Nafta", trans: "Manual", km: 12400, svc: [10000, 10000, 1], rto: 700, seguro: 340, estado: "Disponible", distrito: "Capital", area: "Administración", cia: "La Segunda", docs: [], fotos: [0, 0, 0], obs: "Alta reciente: falta cargar la documentación." },
-  { patente: "AK890UV", marca: "Mercedes-Benz", modelo: "Sprinter 415 CDI", anio: 2021, tipo: "Utilitario", comb: "Diésel", trans: "Manual", km: 76500, svc: [70000, 10000, 6], rto: 5, seguro: -2, estado: "En uso", distrito: "Chimbas", area: "Obras Hidráulicas", cia: "Sancor Seguros", docs: ["comodato", "acta_afectacion", "acta_entrega"], fotos: [1, 1, 1], obs: "Traslado de cuadrillas. Póliza vencida hace 2 días." },
+  { patente: "AK890UV", marca: "Mercedes-Benz", modelo: "Sprinter 415 CDI", anio: 2021, tipo: "Utilitario", comb: "Diésel", trans: "Manual", km: 76500, svc: [70000, 10000, 6], rto: 5, seguro: 12, estado: "En uso", distrito: "Chimbas", area: "Obras Hidráulicas", cia: "Sancor Seguros", docs: ["comodato", "acta_afectacion", "acta_entrega"], fotos: [1, 1, 1], obs: "Traslado de cuadrillas. RTO por vencer: sacar turno." },
 ];
 
 // ───────────────────────── choferes ─────────────────────────
 // lic: días hasta el vencimiento de la licencia vigente. previa: tuvo una licencia anterior (historial).
 const CHOFERES = [
-  { nombre: "Carlos", apellido: "Rodríguez", dni: "28456123", lic: 400, cat: "D1", estado: "Activo", turno: "Mañana", carnet: true, previa: true },
+  { nombre: "Carlos", apellido: "Rodríguez", dni: "28456123", lic: 400, cat: "D", estado: "Activo", turno: "Mañana", carnet: true, previa: true },
   { nombre: "María", apellido: "González", dni: "31789456", lic: -20, cat: "B1", estado: "Activo", turno: "Mañana", carnet: false },
-  { nombre: "Jorge", apellido: "Fernández", dni: "25123789", lic: 12, cat: "E1", estado: "Activo", turno: "Tarde", carnet: true },
+  { nombre: "Jorge", apellido: "Fernández", dni: "25123789", lic: 12, cat: "E", estado: "Activo", turno: "Tarde", carnet: true },
   { nombre: "Laura", apellido: "Martínez", dni: "33456789", lic: 0, cat: "B1", estado: "Activo", turno: "Mañana", carnet: false },
-  { nombre: "Diego", apellido: "López", dni: "29876543", lic: 700, cat: "C1", estado: "Activo", turno: "Rotativo", carnet: true },
+  { nombre: "Diego", apellido: "López", dni: "29876543", lic: 700, cat: "C", estado: "Activo", turno: "Rotativo", carnet: true },
   { nombre: "Ana", apellido: "Pérez", dni: "35234567", lic: 25, cat: "B1", estado: "Licencia Vacaciones/Medica", turno: "Tarde", carnet: false },
-  { nombre: "Ricardo", apellido: "Sánchez", dni: "22345678", lic: -3, cat: "E1", estado: "Activo", turno: "Mañana", carnet: true, previa: true },
-  { nombre: "Sofía", apellido: "Romero", dni: "36789012", lic: 300, cat: "D1", estado: "Activo", turno: "Tarde", carnet: true },
+  { nombre: "Ricardo", apellido: "Sánchez", dni: "22345678", lic: -3, cat: "E", estado: "Activo", turno: "Mañana", carnet: true, previa: true },
+  { nombre: "Sofía", apellido: "Romero", dni: "36789012", lic: 300, cat: "D", estado: "Activo", turno: "Tarde", carnet: true },
   { nombre: "Martín", apellido: "Díaz", dni: "27654321", lic: -100, cat: "B1", estado: "Inactivo", turno: "Mañana", carnet: false, motivo: "Renuncia voluntaria" },
-  { nombre: "Lucía", apellido: "Torres", dni: "34567123", lic: 180, cat: "A2", estado: "Activo", turno: "Mañana", carnet: true },
+  { nombre: "Lucía", apellido: "Torres", dni: "34567123", lic: 180, cat: "A", estado: "Activo", turno: "Mañana", carnet: true },
   { nombre: "Pablo", apellido: "Álvarez", dni: "30123456", lic: 5, cat: "G", estado: "Activo", turno: "Rotativo", carnet: true },
   { nombre: "Gabriela", apellido: "Ruiz", dni: "32987654", lic: 900, cat: "B1", estado: "Activo", turno: "Tarde", carnet: false },
 ];
@@ -183,7 +183,7 @@ const SERVICIOS_CORRECTIVOS = [
     const hashEj = bcrypt.hashSync(CLAVE_EMPLEADO, 10);
     for (const [u, n, a, rol] of [
       ["taller_jefe", "Roberto", "Ocampo", "Jefe de Taller"],
-      ["supervisor", "Silvia", "Montaño", "Principal"],
+      ["supervisor", "Silvia", "Montaño", "Supervisor"],
     ]) {
       const [[r]] = await c.query("SELECT id_rol FROM rol WHERE nombre=?", [rol]);
       if (!r) continue;
@@ -416,7 +416,7 @@ const SERVICIOS_CORRECTIVOS = [
       ["AJ567ST", 12, -8, 1], ["GHI789", 9, -220, 10], ["AK890UV", 8, -14, 3], ["AC456EF", 1, -30, 2],
     ];
     for (const [pat, ch, dias, duracion] of historicas) {
-      await ins("asignacion_vehiculo", { id_vehiculo: V(pat), id_chofer: CH(ch), fecha_salida: fechaHora(dias, "07:00:00"), fecha_estimada_devolucion: null, fecha_devolucion: fechaHora(dias + duracion, "17:30:00"), destino_area: SECTORES[(dias * -1) % SECTORES.length], observaciones: "Devuelto sin novedades", estado: "Devuelto" });
+      await ins("asignacion_vehiculo", { id_vehiculo: V(pat), id_chofer: CH(ch), fecha_salida: fechaHora(dias, "07:00:00"), fecha_estimada_devolucion: null, fecha_devolucion: fechaHora(dias + duracion, "17:30:00"), destino_area: SECTORES[(dias * -1) % SECTORES.length], observaciones: "Devuelto sin novedades", estado: "Finalizado" });
     }
 
     // ── Siniestros
@@ -424,7 +424,7 @@ const SERVICIOS_CORRECTIVOS = [
     const foto = () => copiarImagen(path.join(DIR_VEH, "seguro.png"), DIR_SIN, "siniestro");
     const SINIESTROS = [
       { pat: "AF345KL", ch: 3, dias: -6, ubic: "Ruta Nacional 40 km 3210, Pocito", estado: "EN PROCESO", relato: "Al ingresar a la colectora, un automóvil se cruzó de carril e impactó el lateral derecho del camión.", danos: "Puerta derecha, guardabarros y espejo destruidos. Eje delantero a revisar.", tercero: ["Renault Sandero AB987CD", "Mercantil Andina", "Luis Herrera", "264-4123456"], archivos: [denuncia("Denuncia policial AF345KL"), foto(), foto()] },
-      { pat: "AD789GH", ch: 11, dias: -2, ubic: "Av. Circunvalación y Av. España, Capital", estado: "EN PROCESO", relato: "Roce con un poste de alumbrado al maniobrar en la colectora.", danos: "Paragolpes trasero abollado, faro trasero izquierdo roto.", tercero: [null, null, null, null], archivos: [foto()] },
+      { pat: "AD789GH", ch: 11, dias: -2, ubic: "Av. Circunvalación y Av. España, Capital", estado: "RESUELTO", relato: "Roce con un poste de alumbrado al maniobrar en la colectora.", danos: "Paragolpes trasero abollado, faro trasero izquierdo roto.", tercero: [null, null, null, null], archivos: [foto()] },
       { pat: "AB123CD", ch: 2, dias: -120, ubic: "Calle 5 y Mendoza, Pocito", estado: "RESUELTO", relato: "Choque leve en intersección, el tercero no respetó la prioridad de paso.", danos: "Paragolpes delantero y óptica izquierda.", tercero: ["VW Gol Trend AA321BC", "La Caja", "Marcela Ortiz", "264-5987412"], archivos: [denuncia("Denuncia AB123CD"), foto()] },
       { pat: "PQR234", ch: 7, dias: -260, ubic: "Ruta Provincial 20, Santa Lucía", estado: "CERRADO", relato: "Despiste por ripio suelto en curva, sin lesionados.", danos: "Llanta y neumático delantero derecho, tren delantero desalineado.", tercero: [null, null, null, null], archivos: [] },
       { pat: "GHI789", ch: 9, dias: -400, ubic: "Av. Rawson 1200, Capital", estado: "CERRADO", relato: "Fue chocado estando estacionado frente a la repartición.", danos: "Puerta trasera izquierda.", tercero: ["Fiat Cronos AE111FF", "Sancor Seguros", "Desconocido", null], archivos: [denuncia("Denuncia GHI789")] },
@@ -461,15 +461,15 @@ const SERVICIOS_CORRECTIVOS = [
       [2, "Ramón Videla", -20, -3, null, "Obras Hidráulicas", "Activo"], // vencido
       [3, "Nicolás Castro", -2, 5, null, "Riego", "Activo"],
       [8, "Sergio Olivera", -1, 6, null, "Hidrometría", "Activo"],
-      [1, "Mariano Godoy", -30, -25, -26, "Canales y Desagües", "Devuelto"],
-      [4, "Fabián Peralta", -15, -14, -14, "Taller Central", "Devuelto"],
-      [5, "Esteban Navarro", -9, -8, -7, "Taller Central", "Devuelto"],
-      [6, "Héctor Quiroga", -45, -40, -38, "Taller Central", "Devuelto"],
-      [9, "Ramón Videla", -60, -50, -52, "Obras Hidráulicas", "Devuelto"],
-      [0, "Mariano Godoy", -70, -65, -66, "Canales y Desagües", "Devuelto"],
+      [1, "Mariano Godoy", -30, -25, -26, "Canales y Desagües", "Finalizado"],
+      [4, "Fabián Peralta", -15, -14, -14, "Taller Central", "Finalizado"],
+      [5, "Esteban Navarro", -9, -8, -7, "Taller Central", "Finalizado"],
+      [6, "Héctor Quiroga", -45, -40, -38, "Taller Central", "Finalizado"],
+      [9, "Ramón Videla", -60, -50, -52, "Obras Hidráulicas", "Finalizado"],
+      [0, "Mariano Godoy", -70, -65, -66, "Canales y Desagües", "Finalizado"],
     ];
     for (const [h, op, salida, estim, real, sector, est] of PRESTAMOS) {
-      await ins("prestamo", { id_herramienta: idsHerr[h], nombre_operario: op, fecha_salida: fechaHora(salida), fecha_devolucion_estimada: fechaHora(estim, "18:00:00"), fecha_devolucion_real: real === null ? null : fechaHora(real, "16:45:00"), sector_destino: sector, observaciones: est === "Devuelto" ? "Devuelta en buen estado" : null, estado_prestamo: est });
+      await ins("prestamo", { id_herramienta: idsHerr[h], nombre_operario: op, fecha_salida: fechaHora(salida), fecha_devolucion_estimada: fechaHora(estim, "18:00:00"), fecha_devolucion_real: real === null ? null : fechaHora(real, "16:45:00"), sector_destino: sector, observaciones: est === "Finalizado" ? "Devuelta en buen estado" : null, estado_prestamo: est });
     }
 
     // ── Auditoría de ejemplo
@@ -507,7 +507,7 @@ const SERVICIOS_CORRECTIVOS = [
     await alerta("mantenimiento_finalizado", "baja", "Service finalizado y vehículo disponible", "Vehiculo", V("AH901OP"), nombreV("AH901OP"), 0, -1);
     await alerta("mantenimiento_pendiente", "media", "Service de 3.250 hs programado: confirmar turno", "Vehiculo", V("MQ002JD"), nombreV("MQ002JD"), 0, -1);
     await alerta("herramienta_devuelta", "baja", "Herramienta devuelta: Taladro percutor Makita (Esteban Navarro)", "Herramienta", idsHerr[5], "Taladro percutor Makita (HR-006)", 1, -7);
-    await alerta("critica", "alta", "Vehículo circulando con RTO y seguro vencidos", "Vehiculo", V("PQR234"), nombreV("PQR234"), 0, 0);
+    await alerta("critica", "alta", "RTO y seguro vencidos: el vehículo no puede salir a la calle", "Vehiculo", V("PQR234"), nombreV("PQR234"), 0, 0);
     await alerta("informativa", "baja", "Recordatorio: vence el convenio de comodato de 4 unidades a fin de mes", null, null, null, 0, -2);
     await alerta("informativa", "baja", "Se actualizaron los precios de repuestos del proveedor", null, null, null, 1, -20);
   } finally {

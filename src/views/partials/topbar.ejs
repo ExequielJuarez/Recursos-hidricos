@@ -264,6 +264,12 @@
 
 .notif-item__body{
     flex: 1;
+    text-decoration: none;
+    color: inherit;
+    min-width: 0;
+}
+.notif-item__body:hover .notif-item__msg{
+    color: #1d4ed8;
 }
 
 .notif-item__tipo{
@@ -326,6 +332,26 @@
     .settings-card{ padding: 16px !important; min-width: 0; }
     .data-card__header > a[style*="margin-left"]{ margin-left: 0 !important; }
     .data-card__header > a[style*="margin-left: auto"]{ margin-left: auto !important; }
+}
+
+/* ── IMPRESIÓN (todas las vistas) ──
+   En PC las vistas de listado + ficha tienen paneles con alto fijo y scroll propio: al imprimir se liberan
+   para que la ficha salga completa (en varias hojas si hace falta) y se ocultan barra, menú, listado y botones. */
+@media print {
+    @page { margin: 12mm; }
+    * { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+    .rh-top, #mi-sidebar-blindado, #sb-overlay-blindado, .notif-panel, .vehicle-list-panel,
+    #detail-back-btn, #vehicle-actions-bar, .tool-actions, .vehicle-detail__breadcrumb,
+    .data-card__see-all, .no-print, .vehicle-profile button, .fin-orden, .data-card__header > a { display: none !important; }
+    html, body { height: auto !important; min-height: 0 !important; overflow: visible !important; background: #fff !important; }
+    body .app-wrapper { margin: 0 !important; width: 100% !important; height: auto !important; min-height: 0 !important; overflow: visible !important; display: block !important; }
+    .main-content { display: block !important; height: auto !important; min-height: 0 !important; overflow: visible !important; padding: 0 !important; max-width: none !important; }
+    .vehicle-detail { display: block !important; position: static !important; width: 100% !important; height: auto !important; overflow: visible !important; padding: 0 !important; background: #fff !important; }
+    .detail-columns { display: block !important; padding: 0 !important; }
+    .detail-columns > *, .detail-main-column > *, .detail-side-column > * { margin-bottom: 14px; }
+    .vehicle-profile, .data-card, .alerts-card, .info-card { box-shadow: none !important; border: 1px solid #94a3b8 !important; break-inside: avoid; }
+    .data-table-wrapper { overflow: visible !important; }
+    .data-table__th, .data-table__td { white-space: normal !important; }
 }
 
 /* En pantallas angostas el panel ocupa el ancho de la pantalla (sin salirse por la izquierda) */
@@ -556,11 +582,11 @@ async function cargarNotificaciones() {
         notifList.innerHTML = data.alertas.map(a => `
             <div class="notif-item notif-item--noleida" data-id="${a.id_alerta}">
                 <div class="notif-item__dot"></div>
-                <div class="notif-item__body">
+                <a class="notif-item__body" href="/Alertas/${Number(a.id_alerta)}" title="Ver detalle de la alerta">
                     <span class="notif-item__tipo">${escaparHtml(TIPO_LABEL[a.tipo] || a.tipo)}</span>
                     <p class="notif-item__msg">${escaparHtml(a.mensaje)}</p>
                     <span class="notif-item__fecha">${new Date(a.createdAt).toLocaleDateString('es-AR')}</span>
-                </div>
+                </a>
                 <button class="notif-item__marcar" data-id="${a.id_alerta}" title="Marcar como leída">
                     <svg viewBox="0 0 20 20" fill="currentColor" width="14" height="14">
                         <path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"/>

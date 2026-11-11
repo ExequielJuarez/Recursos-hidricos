@@ -15,7 +15,11 @@ const prestamoService = {
 
       const activos = await db.Prestamo.count({ where: { id_herramienta: herramienta.id_herramienta, estado_prestamo: "Activo" }, transaction });
       if (activos >= herramienta.stock) {
-        throw new ErrorNegocio("Esta herramienta no tiene unidades disponibles: todas están en préstamo activo.");
+        throw new ErrorNegocio(
+          herramienta.stock === 0
+            ? "Esta herramienta no tiene stock (0 unidades)."
+            : `No hay unidades disponibles: las ${herramienta.stock} unidad(es) están prestadas. Registrá una devolución primero.`,
+        );
       }
 
       // Operario y sector se toman del catálogo (el formulario envía sus ids)
@@ -39,6 +43,8 @@ const prestamoService = {
 
       const salida = data.fecha_salida || hoyISO();
       if (!esFechaValida(salida)) throw new ErrorNegocio("La fecha de salida no es válida.");
+      // El préstamo descuenta la unidad en el momento: la salida no puede ser futura
+      if (salida > hoyISO()) throw new ErrorNegocio("La fecha de salida no puede ser futura: registrá el préstamo cuando la herramienta sale del pañol.");
       if (!data.fecha_devolucion_estimada || !esFechaValida(data.fecha_devolucion_estimada)) {
         throw new ErrorNegocio("La fecha de devolución estimada no es válida.");
       }

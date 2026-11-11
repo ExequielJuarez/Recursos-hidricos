@@ -73,6 +73,25 @@
     .data-table { min-width: 900px; }
 }
     </style>
+<style>
+    .alertas-tabla .alerta-row { cursor: pointer; }
+    .alertas-tabla .alerta-row:hover { background-color: #eff6ff !important; }
+    .alertas-tabla .alerta-desc { white-space: normal; min-width: 220px; max-width: 420px; line-height: 1.4; }
+    .alertas-tabla .data-table__th, .alertas-tabla .data-table__td { padding-left: 12px; padding-right: 12px; }
+    .alertas-tabla td[data-label="Entidad"] .badge { white-space: normal; text-align: left; line-height: 1.3; max-width: 220px; }
+    .alertas-tabla td[data-label="Acciones"] > div { flex-wrap: nowrap; }
+    @media (max-width: 760px) {
+        .alertas-tabla thead { display: none; }
+        .alertas-tabla table, .alertas-tabla tbody, .alertas-tabla tr, .alertas-tabla td { display: block; width: 100%; box-sizing: border-box; }
+        .alertas-tabla .alerta-row { border: 1px solid #e2e8f0; border-radius: 10px; margin: 0 0 10px; padding: 10px 12px; }
+        .alertas-tabla .alerta-row td { border: 0 !important; padding: 4px 0 !important; text-align: left !important; max-width: none !important; }
+        .alertas-tabla td[data-label="Fecha"]::before, .alertas-tabla td[data-label="Entidad"]::before { content: attr(data-label) ": "; font-size: 11px; font-weight: 700; color: #94a3b8; text-transform: uppercase; }
+        .alertas-tabla td[data-label="Prioridad"], .alertas-tabla td[data-label="Estado"] { display: inline-block; width: auto; margin-right: 6px; }
+        .alertas-tabla td[data-label="Acciones"] > div { justify-content: flex-start !important; }
+        .data-table-wrapper.alertas-tabla { overflow: visible !important; }
+        .alertas-tabla table, .alertas-tabla .alerta-desc { min-width: 0 !important; }
+    }
+</style>
 </head>
 <body>
 
@@ -171,7 +190,7 @@
             </div>
 
             <div class="data-card">
-                <div class="data-table-wrapper">
+                <div class="data-table-wrapper alertas-tabla">
                     <table class="data-table">
                         <thead class="data-table__head">
                             <tr>
@@ -204,18 +223,20 @@
                                     data-estado="<%= alerta.leida ? 'leida' : 'no_leida' %>"
                                     data-fecha="<%= fechaISO %>"
                                     data-buscar="<%= textoBusqueda %>"
+                                    data-href="<%= alerta.tipo === 'siniestro_activo' ? '/Siniestros' : '/Alertas/' + alerta.id_alerta %>"
+                                    title="Abrir alerta"
                                     style="<%= alerta.leida ? 'opacity: 0.7;' : 'background-color: #f8fafc;' %>">
                                     
                                     <td class="data-table__td" data-label="Tipo">
                                         <%
-                                        const ICONOS = { licencia_vencida: '⚠️', licencia_proxima: '🕐', mantenimiento_pendiente: '🔧', mantenimiento_finalizado: '✅', mantenimiento_proximo: '⏳', mantenimiento_vencido: '🛠️', documentacion_vencida: '📄', vehiculo_fuera_servicio: '🚫', herramienta_devuelta: '🔙', prestamo_vencido: '📋', asignacion_vencida: '⏰', stock_bajo: '📦', siniestro_activo: '💥', critica: '🚨', informativa: 'ℹ️' };
-                                        const LABELS = { licencia_vencida: 'Licencia vencida', licencia_proxima: 'Licencia próxima', mantenimiento_pendiente: 'Mant. pendiente', mantenimiento_finalizado: 'Mant. finalizado', mantenimiento_proximo: 'Mant. próximo', mantenimiento_vencido: 'Mant. vencido', documentacion_vencida: 'Doc. vencida', vehiculo_fuera_servicio: 'Fuera de servicio', herramienta_devuelta: 'Devolución', prestamo_vencido: 'Préstamo vencido', asignacion_vencida: 'Asignación vencida', stock_bajo: 'Stock bajo', siniestro_activo: 'Siniestro Activo', critica: 'Crítica', informativa: 'Informativa' };
+                                        const ICONOS = { licencia_vencida: '⚠️', licencia_proxima: '🕐', mantenimiento_pendiente: '🔧', mantenimiento_finalizado: '✅', vehiculo_en_mantenimiento: '🛠️', mantenimiento_proximo: '⏳', mantenimiento_vencido: '🛠️', documentacion_vencida: '📄', vehiculo_fuera_servicio: '🚫', herramienta_devuelta: '🔙', prestamo_vencido: '📋', asignacion_vencida: '⏰', stock_bajo: '📦', siniestro_activo: '💥', critica: '🚨', informativa: 'ℹ️' };
+                                        const LABELS = { licencia_vencida: 'Licencia vencida', licencia_proxima: 'Licencia próxima', mantenimiento_pendiente: 'Mant. pendiente', mantenimiento_finalizado: 'Mant. finalizado', vehiculo_en_mantenimiento: 'En mantenimiento', mantenimiento_proximo: 'Mant. próximo', mantenimiento_vencido: 'Mant. vencido', documentacion_vencida: 'Doc. vencida', vehiculo_fuera_servicio: 'Fuera de servicio', herramienta_devuelta: 'Devolución', prestamo_vencido: 'Préstamo vencido', asignacion_vencida: 'Asignación vencida', stock_bajo: 'Stock bajo', siniestro_activo: 'Siniestro Activo', critica: 'Crítica', informativa: 'Informativa' };
                                         %>
                                         <span style="font-size: 16px; margin-right: 6px;"><%= ICONOS[alerta.tipo] || 'ℹ️' %></span>
                                         <strong style="color: var(--color-text-primary);"><%= LABELS[alerta.tipo] || alerta.tipo %></strong>
                                     </td>
 
-                                    <td class="data-table__td" data-label="Descripción" style="max-width: 300px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">
+                                    <td class="data-table__td alerta-desc" data-label="Descripción">
                                         <span style="font-weight: <%= alerta.leida ? '400' : '600' %>; color: var(--color-text-secondary);">
                                             <%= alerta.mensaje %>
                                         </span>
@@ -325,7 +346,12 @@
         // Marcar leída dinámicamente
         document.getElementById('alertas-tbody').addEventListener('click', async (e) => {
             const btn = e.target.closest('.btn-marcar-leida');
-            if (!btn) return;
+            if (!btn) {
+                // Tocar la fila (fuera de los botones) abre la alerta
+                const fila = e.target.closest('.alerta-row');
+                if (fila && fila.dataset.href && !e.target.closest('a, button')) window.location.href = fila.dataset.href;
+                return;
+            }
 
             const id = btn.dataset.id;
             const fila = document.querySelector(`.alerta-row[data-id="${id}"]`);

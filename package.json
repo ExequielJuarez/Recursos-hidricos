@@ -12,7 +12,8 @@
     "db:limpiar": "node scripts/limpiar-datos.js",
     "compartir": "node scripts/compartir.js",
     "db:instalacion": "node scripts/armar-instalacion-limpia.js",
-    "db:instalar": "node scripts/cargar-ejemplos.js"
+    "db:instalar": "node scripts/cargar-ejemplos.js",
+    "db:basico": "node scripts/cargar-basico.js"
   },
   "keywords": [],
   "author": "",

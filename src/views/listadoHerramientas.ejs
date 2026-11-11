@@ -139,7 +139,7 @@
           
                   <div class="vehicle-card__meta" style="flex-direction: row; align-items: center; gap: 10px; margin-top: 6px;">
                     <span class="badge <%= getBadgeClass(herramienta.estado) %>"><%= herramienta.estado %></span>
-                    <span class="vehicle-card__km" style="font-weight: 600; color: #0f172a;">Stock: <%= herramienta.stock %></span>
+                    <span class="vehicle-card__km" style="font-weight: 600; color: <%= (herramienta.dataValues.disponibles || 0) > 0 ? '#0f172a' : '#dc2626' %>;" title="Unidades disponibles de las <%= herramienta.stock %> del pañol">Disp.: <%= herramienta.dataValues.disponibles || 0 %>/<%= herramienta.stock %></span>
                   </div>
                 </div>
               </a>
@@ -168,15 +168,17 @@
 
           <% if (herramientaSeleccionada) { %>
             <div style="display: flex; gap: 10px;">
-              <% if (herramientaSeleccionada.estado !== 'En uso') { %>
+              <% var _disp = herramientaSeleccionada.dataValues.disponibles || 0; var _prest = herramientaSeleccionada.dataValues.prestadas || 0; %>
+              <% if (_disp > 0) { %>
                 <a href="/Tools/Prestamo/<%= herramientaSeleccionada.id_herramienta %>" style="background-color: #0f172a; color: white; text-decoration: none; padding: 8px 16px; font-size: 13px; font-weight: 700; border-radius: 8px; transition: background 0.2s;">
                   Registrar Préstamo
                 </a>
-              <% } else { %>
+              <% } %>
+              <% if (_prest > 0) { %>
                 <form action="/Tools/Devolucion" method="POST" style="margin: 0;">
                   <input type="hidden" name="id_herramienta" value="<%= herramientaSeleccionada.id_herramienta %>">
                   <button type="submit" style="background-color: #059669; color: white; border: none; padding: 8px 16px; border-radius: 8px; font-weight: 700; font-size: 13px; cursor: pointer; transition: background-color 0.2s;" onmouseover="this.style.backgroundColor='#047857'" onmouseout="this.style.backgroundColor='#059669'">
-                    ✓ Marcar Devuelto
+                    ✓ Registrar devolución<%= _prest > 1 ? ' (1 de ' + _prest + ')' : '' %>
                   </button>
                 </form>
               <% } %>
@@ -229,8 +231,10 @@
                   <dd class="vehicle-profile__spec-value"><%= herramientaSeleccionada.sector %></dd>
                 </div>
                 <div class="vehicle-profile__spec-row">
-                  <dt class="vehicle-profile__spec-label">Stock Físico</dt>
-                  <dd class="vehicle-profile__spec-value" style="color: #0f172a; font-weight: 700;"><%= herramientaSeleccionada.stock %> unidades</dd>
+                  <dt class="vehicle-profile__spec-label">Stock</dt>
+                  <dd class="vehicle-profile__spec-value" style="color: #0f172a; font-weight: 700;">
+                    <span style="color: <%= _disp > 0 ? '#059669' : '#dc2626' %>;"><%= _disp %> disponible(s)</span> · <%= _prest %> prestada(s) · <%= herramientaSeleccionada.stock %> en total
+                  </dd>
                 </div>
               </dl>
 
@@ -246,7 +250,7 @@
                 <div class="vehicle-profile__spec-row">
                   <dt class="vehicle-profile__spec-label">Responsable Actual</dt>
                   <dd class="vehicle-profile__spec-value" style="color: #2563eb; font-weight: 600;">
-                     <%= herramientaSeleccionada.estado === 'En uso' && herramientaSeleccionada.prestamos && herramientaSeleccionada.prestamos[0] ? herramientaSeleccionada.prestamos[0].nombre_operario : 'En Pañol' %>
+                     <% const _activos = (herramientaSeleccionada.prestamos || []).filter(p => p.estado_prestamo === 'Activo'); %><%= _activos.length ? _activos.map(p => p.nombre_operario).join(', ') : 'En pañol' %>
                   </dd>
                 </div>
               </dl>
@@ -298,7 +302,7 @@
                           </td>
                           <td class="data-table__td" data-label="Estado">
                             <span class="badge <%= p.estado_prestamo === 'Activo' ? 'badge--warning' : 'badge--success' %>">
-                              <%= p.estado_prestamo %>
+                              <%= p.estado_prestamo === 'Activo' ? 'Activo' : 'Devuelto' %>
                             </span>
                           </td>
                         </tr>
@@ -327,23 +331,32 @@
                 <h3 class="data-card__title" style="color: #b45309;">Alertas de Stock</h3>
               </header>
               <ul class="alert-list">
-                <% if (herramientaSeleccionada.stock <= 2 && herramientaSeleccionada.stock > 0) { %>
+                <% if (['En Reparación', 'Baja'].includes(herramientaSeleccionada.estado)) { %>
+                  <li class="alert-item alert-item--danger">
+                    <div class="alert-item__content">
+                      <div class="alert-item__text">
+                        <strong class="alert-item__label" style="color: #991b1b;">No disponible para préstamo</strong>
+                        <span class="alert-item__desc">La herramienta está "<%= herramientaSeleccionada.estado %>".</span>
+                      </div>
+                    </div>
+                  </li>
+                <% } else if (_disp > 0 && _disp <= 1 && herramientaSeleccionada.stock > 1) { %>
                   <li class="alert-item alert-item--warning">
                     <div class="alert-item__content">
                       <svg class="alert-item__icon" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clip-rule="evenodd"/></svg>
                       <div class="alert-item__text">
                         <strong class="alert-item__label" style="color: #92400e;">Stock Bajo</strong>
-                        <span class="alert-item__desc">Quedan solo <%= herramientaSeleccionada.stock %> unidades disponibles en pañol.</span>
+                        <span class="alert-item__desc">Queda <%= _disp %> unidad disponible de <%= herramientaSeleccionada.stock %> (<%= _prest %> prestadas).</span>
                       </div>
                     </div>
                   </li>
-                <% } else if (herramientaSeleccionada.stock === 0) { %>
+                <% } else if (_disp === 0) { %>
                   <li class="alert-item alert-item--danger">
                     <div class="alert-item__content">
                       <svg class="alert-item__icon" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z" clip-rule="evenodd"/></svg>
                       <div class="alert-item__text">
-                        <strong class="alert-item__label" style="color: #991b1b;">Sin Stock Físico</strong>
-                        <span class="alert-item__desc">No hay unidades disponibles para préstamo.</span>
+                        <strong class="alert-item__label" style="color: #991b1b;">Sin unidades disponibles</strong>
+                        <span class="alert-item__desc"><%= herramientaSeleccionada.stock === 0 ? 'No hay stock cargado.' : 'Todas las unidades están prestadas: vuelven a estar disponibles al registrar la devolución.' %></span>
                       </div>
                     </div>
                   </li>

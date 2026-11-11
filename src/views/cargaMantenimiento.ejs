@@ -74,7 +74,7 @@
           </div>
         </section>
 
-        <section class="form-section bloque-estado" data-estados="Programado En proceso Realizado" style="display:none;">
+        <section class="form-section bloque-estado" data-estados="Programado|En proceso|Realizado" style="display:none;">
           <h3>2. Vehículo y Servicio</h3>
 
           <div class="form-row">
@@ -124,7 +124,7 @@
         </section>
 
         <!-- ───── EN PROCESO / REALIZADO ───── -->
-        <section class="form-section bloque-estado" data-estados="En proceso Realizado" style="display:none;">
+        <section class="form-section bloque-estado" data-estados="En proceso|Realizado" style="display:none;">
           <h3>3. Fecha y Seguimiento de Kilometraje</h3>
           <div class="form-row">
             <div class="form-group">
@@ -146,7 +146,7 @@
           </div>
         </section>
 
-        <section class="form-section bloque-estado" data-estados="En proceso Realizado" style="display:none;">
+        <section class="form-section bloque-estado" data-estados="En proceso|Realizado" style="display:none;">
           <h3>4. Detalle del Trabajo</h3>
           <div class="form-group">
             <label>Descripción de tareas realizadas <span class="req">*</span></label>
@@ -168,7 +168,7 @@
           <div class="form-group"><label>N° de Expediente</label><input type="text" name="nro_expediente" maxlength="50" placeholder="Ej: 4012-123456/2026"></div>
         </section>
 
-        <section class="form-section bloque-estado" data-estados="En proceso Realizado" style="display:none;">
+        <section class="form-section bloque-estado" data-estados="En proceso|Realizado" style="display:none;">
           <h3>5. Desglose de Costos y Repuestos</h3>
           
           <div style="background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 8px; padding: 16px; margin-bottom: 20px;">
@@ -252,7 +252,7 @@
     function aplicarEstado() {
       const estado = selectEstado.value;
       document.querySelectorAll('.bloque-estado').forEach(bloque => {
-        const visible = estado !== '' && bloque.dataset.estados.split(' ').includes(estado);
+        const visible = estado !== '' && bloque.dataset.estados.split('|').includes(estado);
         bloque.style.display = visible ? '' : 'none';
         bloque.querySelectorAll('input, select, textarea').forEach(campo => { campo.disabled = !visible; });
       });

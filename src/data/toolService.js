@@ -12,12 +12,42 @@ const texto = (valor) => {
 const prestamosActivos = (id_herramienta, transaction) =>
   db.Prestamo.count({ where: { id_herramienta, estado_prestamo: "Activo" }, transaction });
 
+// STOCK: `stock` son las unidades TOTALES del pañol (incluidas las prestadas).
+// Cada préstamo activo es 1 unidad afuera: disponibles = stock - prestadas.
+// Una herramienta En Reparación o de Baja no tiene unidades disponibles para prestar.
+const calcularDisponibilidad = (herramienta, prestadas) => {
+  const total = Number(herramienta.stock) || 0;
+  const prestables = !["En Reparación", "Baja"].includes(herramienta.estado);
+  return { total, prestadas, disponibles: prestables ? Math.max(0, total - prestadas) : 0 };
+};
+
+// Agrega total / prestadas / disponibles a cada herramienta (para mostrarlos en las vistas)
+const conDisponibilidad = async (herramientas) => {
+  const lista = Array.isArray(herramientas) ? herramientas : [herramientas];
+  const ids = lista.filter(Boolean).map((h) => h.id_herramienta);
+  if (!ids.length) return herramientas;
+  const filas = await db.Prestamo.findAll({
+    attributes: ["id_herramienta", [db.sequelize.fn("COUNT", db.sequelize.col("id_prestamo")), "n"]],
+    where: { id_herramienta: { [Op.in]: ids }, estado_prestamo: "Activo" },
+    group: ["id_herramienta"],
+    raw: true,
+  });
+  const porId = new Map(filas.map((f) => [f.id_herramienta, Number(f.n)]));
+  for (const h of lista.filter(Boolean)) {
+    const d = calcularDisponibilidad(h, porId.get(h.id_herramienta) || 0);
+    h.setDataValue("prestadas", d.prestadas);
+    h.setDataValue("disponibles", d.disponibles);
+  }
+  return herramientas;
+};
+
 const toolService = {
   ESTADOS_HERRAMIENTA,
+  calcularDisponibilidad,
 
   getAll: async function () {
     try {
-      return await db.Herramienta.findAll({ order: [["nombre", "ASC"]] });
+      return await conDisponibilidad(await db.Herramienta.findAll({ order: [["nombre", "ASC"]] }));
     } catch (error) {
       console.log("Error en toolService.getAll:", error);
       return [];
@@ -26,7 +56,8 @@ const toolService = {
 
   getOne: async function (id) {
     try {
-      return await db.Herramienta.findByPk(id);
+      const herramienta = await db.Herramienta.findByPk(id);
+      return herramienta ? await conDisponibilidad(herramienta) : null;
     } catch (error) {
       console.log("Error en toolService.getOne:", error);
       return null;
@@ -34,13 +65,14 @@ const toolService = {
   },
 
   getWithPrestamos: async function (id) {
-    return db.Herramienta.findByPk(id, {
+    const herramienta = await db.Herramienta.findByPk(id, {
       include: [{ association: "prestamos" }],
       order: [
         [{ model: db.Prestamo, as: "prestamos" }, "fecha_salida", "DESC"],
         [{ model: db.Prestamo, as: "prestamos" }, "id_prestamo", "DESC"],
       ],
     });
+    return herramienta ? await conDisponibilidad(herramienta) : null;
   },
 
   _validar: async function (data, idActual = null) {
@@ -56,9 +88,11 @@ const toolService = {
     if (idActual) where.id_herramienta = { [Op.ne]: idActual };
     if (await db.Herramienta.findOne({ where })) throw new ErrorNegocio(`Ya existe una herramienta con el código "${codigo}".`);
 
+    // El sector es obligatorio y sólo puede ser uno de los cargados en Herramientas → Ajustes base
     const sector = texto(data.sector);
-    if (sector && !(await db.Sector.findOne({ where: { nombre: sector } }))) {
-      throw new ErrorNegocio("El sector seleccionado no existe. Cargalo primero en Ajustes.");
+    if (!sector) throw new ErrorNegocio("Seleccioná el sector de la herramienta (los sectores se cargan en Herramientas → Ajustes base).");
+    if (!(await db.Sector.findOne({ where: { nombre: sector } }))) {
+      throw new ErrorNegocio("El sector seleccionado no existe. Cargalo primero en Herramientas → Ajustes base.");
     }
 
     return { codigo, nombre, stock, sector };
@@ -67,6 +101,7 @@ const toolService = {
   create: async function (req) {
     const data = req.body;
     const { codigo, nombre, stock, sector } = await toolService._validar(data);
+    if (stock < 1) throw new ErrorNegocio("Al dar de alta una herramienta el stock debe ser de al menos 1 unidad.");
 
     const estado = data.estado || "Disponible";
     if (!["Disponible", "En Reparación", "Baja"].includes(estado)) throw new ErrorNegocio("El estado inicial no es válido.");
@@ -94,7 +129,7 @@ const toolService = {
     if (!ESTADOS_HERRAMIENTA.includes(data.estado)) throw new ErrorNegocio("El estado seleccionado no es válido.");
 
     const activos = await prestamosActivos(id);
-    if (stock < activos) throw new ErrorNegocio(`El stock no puede ser menor a los préstamos activos (${activos}).`);
+    if (stock < activos) throw new ErrorNegocio(`El stock total no puede ser menor a las unidades prestadas ahora (${activos}). Registrá primero las devoluciones.`);
 
     let estado = data.estado;
     if (activos > 0 && ["En Reparación", "Baja"].includes(estado)) {

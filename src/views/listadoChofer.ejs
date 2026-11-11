@@ -415,7 +415,7 @@
               <span class="badge ${getEstadoClass(c.estado)}" style="font-size:11px;margin-top:4px;">${esc(c.estado)}</span>
             </div>
           </div>
-          <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center;">
+          <div class="no-print" style="display:flex;gap:8px;flex-wrap:wrap;align-items:center;">
             <button onclick="window.print()" style="background-color:#f1f5f9;color:#334155;border:1px solid #cbd5e1;padding:8px 14px;font-size:12px;font-weight:700;border-radius:6px;">Imprimir</button>
             <a href="/Choferes/${c.id_chofer}/editar" style="background-color:#eff6ff;color:#2563eb;border:1px solid #bfdbfe;padding:8px 14px;font-size:12px;font-weight:700;border-radius:6px;text-decoration:none;">Editar</a>
             ${estadoBtn}

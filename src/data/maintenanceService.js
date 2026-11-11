@@ -39,6 +39,44 @@ const datosAdministrativos = (body) => {
   return datos;
 };
 
+// Lee las filas de repuestos del formulario (id_repuesto[], cantidad[], costo_unitario[]),
+// valida el stock y bloquea esos repuestos dentro de la transacción.
+const leerRepuestos = async (body, transaction) => {
+  const ids = aLista(body.id_repuesto);
+  const cantidades = aLista(body.cantidad);
+  const costos = aLista(body.costo_unitario);
+  const lineas = [];
+  const acumulado = new Map(); // total pedido por repuesto (mismo repuesto en varias filas)
+  for (let i = 0; i < ids.length; i++) {
+    if (!ids[i]) continue;
+    const cantidad = Number(cantidades[i] === undefined || cantidades[i] === "" ? 1 : cantidades[i]);
+    const costo = Number(costos[i] === undefined || costos[i] === "" ? 0 : costos[i]);
+    if (!Number.isInteger(cantidad) || cantidad < 1) throw new ErrorNegocio("La cantidad de cada repuesto debe ser un entero mayor a 0.");
+    if (!Number.isFinite(costo) || costo < 0) throw new ErrorNegocio("El costo unitario no puede ser negativo.");
+    lineas.push({ id_repuesto: Number(ids[i]), cantidad, costo });
+    acumulado.set(Number(ids[i]), (acumulado.get(Number(ids[i])) || 0) + cantidad);
+  }
+  const repuestos = new Map();
+  for (const [idRepuesto, pedido] of acumulado) {
+    const repuesto = await db.Repuesto.findByPk(idRepuesto, { transaction, lock: transaction.LOCK.UPDATE });
+    if (!repuesto) throw new ErrorNegocio("Uno de los repuestos seleccionados no existe.");
+    if (repuesto.stock < pedido) throw new ErrorNegocio(`Stock insuficiente de "${repuesto.nombre}": pedís ${pedido} y hay ${repuesto.stock}.`);
+    repuestos.set(idRepuesto, repuesto);
+  }
+  return { lineas, acumulado, repuestos };
+};
+
+// Guarda las líneas de repuestos de una orden y descuenta el stock
+const guardarRepuestos = async (id_mantenimiento, { lineas, acumulado, repuestos }, transaction) => {
+  for (const l of lineas) {
+    await db.DetalleMantenimiento.create({ id_mantenimiento, id_repuesto: l.id_repuesto, cantidad: l.cantidad, costo_unitario: l.costo }, { transaction });
+  }
+  for (const [idRepuesto, pedido] of acumulado) {
+    const repuesto = repuestos.get(idRepuesto);
+    await repuesto.update({ stock: repuesto.stock - pedido }, { transaction });
+  }
+};
+
 const maintenanceService = {
   ESTADOS_MANTENIMIENTO,
   CAMPOS_ADMIN,
@@ -157,31 +195,8 @@ const maintenanceService = {
       }
 
       // ── Detalle de repuestos ──
-      const ids = aLista(body.id_repuesto);
-      const cantidades = aLista(body.cantidad);
-      const costos = aLista(body.costo_unitario);
-      const lineas = [];
-      const acumulado = new Map(); // total pedido por repuesto (mismo repuesto en varias filas)
-
-      for (let i = 0; i < ids.length; i++) {
-        if (!ids[i]) continue;
-        const cantidad = Number(cantidades[i] === undefined || cantidades[i] === "" ? 1 : cantidades[i]);
-        const costo = Number(costos[i] === undefined || costos[i] === "" ? 0 : costos[i]);
-        if (!Number.isInteger(cantidad) || cantidad < 1) throw new ErrorNegocio("La cantidad de cada repuesto debe ser un entero mayor a 0.");
-        if (!Number.isFinite(costo) || costo < 0) throw new ErrorNegocio("El costo unitario no puede ser negativo.");
-        lineas.push({ id_repuesto: Number(ids[i]), cantidad, costo });
-        acumulado.set(Number(ids[i]), (acumulado.get(Number(ids[i])) || 0) + cantidad);
-      }
-
-      const repuestos = new Map();
-      for (const [idRepuesto, pedido] of acumulado) {
-        const repuesto = await db.Repuesto.findByPk(idRepuesto, { transaction, lock: transaction.LOCK.UPDATE });
-        if (!repuesto) throw new ErrorNegocio("Uno de los repuestos seleccionados no existe.");
-        if (repuesto.stock < pedido) {
-          throw new ErrorNegocio(`Stock insuficiente de "${repuesto.nombre}": pedís ${pedido} y hay ${repuesto.stock}.`);
-        }
-        repuestos.set(idRepuesto, repuesto);
-      }
+      const detalle = await leerRepuestos(body, transaction);
+      const { lineas } = detalle;
 
       const costoRepuestos = redondear(lineas.reduce((t, l) => t + l.cantidad * l.costo, 0));
       const costoTotal = redondear(costoRepuestos + manoObra);
@@ -206,21 +221,7 @@ const maintenanceService = {
         { transaction },
       );
 
-      for (const l of lineas) {
-        await db.DetalleMantenimiento.create(
-          {
-            id_mantenimiento: mantenimiento.id_mantenimiento,
-            id_repuesto: l.id_repuesto,
-            cantidad: l.cantidad,
-            costo_unitario: l.costo,
-          },
-          { transaction },
-        );
-      }
-      for (const [idRepuesto, pedido] of acumulado) {
-        const repuesto = repuestos.get(idRepuesto);
-        await repuesto.update({ stock: repuesto.stock - pedido }, { transaction });
-      }
+      await guardarRepuestos(mantenimiento.id_mantenimiento, detalle, transaction);
 
       // ── Estado y kilometraje del vehículo ──
       const cambios = {};
@@ -255,8 +256,12 @@ const maintenanceService = {
     }
   },
 
-  // Cambio de estado de una orden existente: Programado → En proceso → Realizado
-  cambiarEstado: async function (id, nuevoEstado, kmServicio) {
+  // Cambio de estado de una orden existente: Programado → En proceso → Realizado.
+  // Al finalizar (Realizado) `datos` puede traer lo que se hizo en el taller: km, trabajo realizado, repuestos usados
+  // (descuentan stock), mano de obra, próximo service, datos de factura/remito y observaciones.
+  cambiarEstado: async function (id, nuevoEstado, datos = {}) {
+    if (typeof datos !== "object" || datos === null) datos = { km_servicio: datos };
+    const kmServicio = datos.km_servicio;
     const transaction = await db.sequelize.transaction();
     try {
       if (!ESTADOS_MANTENIMIENTO.includes(nuevoEstado)) throw new ErrorNegocio("El estado de la orden no es válido.");
@@ -286,7 +291,9 @@ const maintenanceService = {
             throw new ErrorNegocio(`No se puede iniciar: el vehículo está "${vehiculo.estado_actual}".`);
           }
           if (vehiculo.estado_actual === "En uso") {
-            throw new ErrorNegocio("El vehículo está en uso (asignado a un chofer): finalizá la asignación antes de enviarlo al taller.");
+            throw new ErrorNegocio(
+              "El vehículo está asignado a un chofer. Para enviarlo al taller, primero registrá la devolución en Vehículos → Asignar a chofer. Si el service ya se hizo, usá «Finalizar orden».",
+            );
           }
           if (vehiculo.estado_actual === "Disponible") cambiosVehiculo.estado_actual = "En mantenimiento";
           cambiosOrden.km_servicio = vehiculo.km_actual; // entra al taller con el km actual
@@ -296,6 +303,9 @@ const maintenanceService = {
       } else {
         // Realizado
         cambiosOrden.fecha_fin = hoyISO();
+        if (kmServicio !== undefined && kmServicio !== "" && !/^\d+$/.test(String(kmServicio))) {
+          throw new ErrorNegocio("El kilometraje al finalizar debe ser un número entero.");
+        }
         let km = kmServicio !== undefined && kmServicio !== "" ? Number(kmServicio) : mantenimiento.km_servicio;
         if (eraProgramado) {
           // Un service programado se realiza al km real del vehículo
@@ -303,7 +313,40 @@ const maintenanceService = {
           cambiosOrden.km_servicio = km;
           cambiosOrden.fecha_inicio = hoyISO();
           cambiosOrden.proximo_km = null;
+        } else if (Number.isInteger(km)) {
+          if (km < mantenimiento.km_servicio) throw new ErrorNegocio(`El km al finalizar (${km}) no puede ser menor al km de ingreso al taller (${mantenimiento.km_servicio}).`);
+          cambiosOrden.km_servicio = km;
         }
+
+        // ── Lo que se hizo en el taller (todo opcional) ──
+        const trabajo = String(datos.descripcion || "").trim();
+        if (trabajo) cambiosOrden.descripcion = trabajo;
+        const obs = String(datos.observaciones || "").trim();
+        if (obs) cambiosOrden.observaciones = [mantenimiento.observaciones, obs].filter(Boolean).join(" | ");
+
+        if (datos.proximo_servicio_km !== undefined && datos.proximo_servicio_km !== "") {
+          if (!/^\d+$/.test(String(datos.proximo_servicio_km))) throw new ErrorNegocio("El próximo service debe ser un número entero.");
+          const proximo = Number(datos.proximo_servicio_km);
+          if (proximo <= km) throw new ErrorNegocio(`El próximo service (${proximo}) debe ser mayor al km de este service (${km}).`);
+          cambiosOrden.proximo_km = proximo;
+        }
+
+        let manoObra = Number(mantenimiento.mano_obra) || 0;
+        if (datos.mano_obra !== undefined && datos.mano_obra !== "") {
+          manoObra = Number(datos.mano_obra);
+          if (!Number.isFinite(manoObra) || manoObra < 0) throw new ErrorNegocio("La mano de obra no puede ser negativa.");
+        }
+        const detalle = await leerRepuestos(datos, transaction);
+        const nuevosRepuestos = detalle.lineas.reduce((t, l) => t + l.cantidad * l.costo, 0);
+        const costoRepuestos = redondear((Number(mantenimiento.costo_repuestos) || 0) + nuevosRepuestos);
+        cambiosOrden.costo_repuestos = costoRepuestos;
+        cambiosOrden.mano_obra = redondear(manoObra);
+        cambiosOrden.costo_total = redondear(costoRepuestos + manoObra);
+        await guardarRepuestos(mantenimiento.id_mantenimiento, detalle, transaction);
+
+        // Datos de factura / remito: sólo se pisan los que se completaron
+        const admin = datosAdministrativos(datos);
+        for (const [campo, valor] of Object.entries(admin)) if (valor) cambiosOrden[campo] = valor;
         if (vehiculo) {
           if (Number.isInteger(km) && km > vehiculo.km_actual) {
             cambiosVehiculo.km_actual = km;

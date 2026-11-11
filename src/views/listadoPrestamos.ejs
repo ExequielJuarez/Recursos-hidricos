@@ -137,7 +137,7 @@
             <option value="">Todos los estados</option>
             <option value="Activo">Activo (En calle)</option>
             <option value="Devuelto">Devuelto (En pañol)</option>
-            <option value="Devuelto con daño">Devuelto con daño</option>
+            <option value="Vencido">Vencido (no devuelto a tiempo)</option>
           </select>
         </div>
         <div class="filtro-group">
@@ -167,9 +167,13 @@
               <% if (prestamos && prestamos.length > 0) { %>
                 <% prestamos.forEach(p => { %>
                   <tr class="data-table__row fila-datos">
-                    <td class="data-table__td">
-                      <strong class="celda-codigo" style="font-family: var(--font-mono); color: var(--color-primary);"><%= p.codigo_herramienta %></strong><br>
-                      <span class="celda-nombre" style="font-size: 11px; color: var(--color-text-muted);"><%= p.nombre_herramienta %></span>
+                    <td class="data-table__td" data-label="Herramienta">
+                      <% if (p.herramienta) { %>
+                        <a href="/Tools/<%= p.herramienta.id_herramienta %>" style="text-decoration: none;"><strong class="celda-codigo" style="font-family: var(--font-mono); color: var(--color-primary);"><%= p.herramienta.codigo_activo %></strong></a><br>
+                        <span class="celda-nombre" style="font-size: 12px; color: var(--color-text-secondary);"><%= p.herramienta.nombre %></span>
+                      <% } else { %>
+                        <span class="celda-codigo" style="color: var(--color-text-muted);">—</span><span class="celda-nombre" style="font-size: 11px; color: var(--color-text-muted);">Herramienta eliminada</span>
+                      <% } %>
                     </td>
                     <td class="data-table__td" data-label="Operario" style="font-weight: 600; color: var(--color-text-secondary);">
                       <%= p.nombre_operario %>
@@ -184,16 +188,18 @@
                       <% if (p.fecha_devolucion_real) { %>
                         <span style="color: #059669; font-weight: 700;">Real: <%= new Date(p.fecha_devolucion_real).toLocaleDateString('es-AR') %></span>
                       <% } else { %>
-                        <span style="color: #d97706;">Estimada: <%= new Date(p.fecha_devolucion_estimada).toLocaleDateString('es-AR') %></span>
+                        <span style="color: #d97706;">Estimada: <%= p.fecha_devolucion_estimada ? new Date(p.fecha_devolucion_estimada).toLocaleDateString('es-AR') : '—' %></span>
                       <% } %>
                     </td>
                     <td class="data-table__td" data-label="Estado">
                       <%
+                        // En la base: Activo (prestado) o Finalizado (devuelto). Un activo con la fecha estimada pasada está vencido.
+                        const vencido = p.estado_prestamo === 'Activo' && p.fecha_devolucion_estimada && new Date(p.fecha_devolucion_estimada) < new Date();
+                        const textoEstado = p.estado_prestamo === 'Activo' ? (vencido ? 'Vencido' : 'Activo') : 'Devuelto';
                         let badgeClass = 'badge--success';
-                        if (p.estado_prestamo === 'Activo') badgeClass = 'badge--warning';
-                        if (p.estado_prestamo === 'Devuelto con daño') badgeClass = 'badge--danger';
+                        if (p.estado_prestamo === 'Activo') badgeClass = vencido ? 'badge--danger' : 'badge--warning';
                       %>
-                      <span class="badge <%= badgeClass %>"><%= p.estado_prestamo %></span>
+                      <span class="badge <%= badgeClass %>"><%= textoEstado %></span>
                     </td>
                     <td class="data-table__td" data-label="Acción">
                       <% if (p.estado_prestamo === 'Activo') { %>

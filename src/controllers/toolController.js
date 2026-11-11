@@ -180,7 +180,8 @@ const toolController = {
         `Préstamo de ${herramienta.nombre} a ${prestamo.nombre_operario} (${prestamo.sector_destino})`,
       );
       await alertaService.generarAlertasPrestamos();
-      return "Préstamo registrado.";
+      const h = await toolService.getOne(herramienta.id_herramienta);
+      return `Préstamo registrado. Quedan ${h.dataValues.disponibles} de ${h.stock} unidad(es) disponibles.`;
     },
     "No se pudo registrar el préstamo.",
   ),
@@ -202,7 +203,8 @@ const toolController = {
         `Devolución de ${herramienta ? herramienta.nombre : "herramienta"} por ${prestamo.nombre_operario}`,
       );
       await alertaService.generarAlertasPrestamos();
-      return "Devolución registrada.";
+      const h = herramienta ? await toolService.getOne(herramienta.id_herramienta) : null;
+      return h ? `Devolución registrada. Ahora hay ${h.dataValues.disponibles} de ${h.stock} unidad(es) disponibles.` : "Devolución registrada.";
     },
     "No se pudo registrar la devolución.",
   ),

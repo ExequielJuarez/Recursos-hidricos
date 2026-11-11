@@ -74,8 +74,10 @@
               <span style="color: #475569; font-size: 14px; margin-left: 8px;"><%= herramienta.nombre %></span>
             </div>
             <div style="text-align: right;">
-              <span style="font-size: 11px; font-weight: 700; color: #64748b; text-transform: uppercase; letter-spacing: 0.05em; display: block; margin-bottom: 4px;">Stock Físico Restante</span>
-              <span style="font-size: 16px; font-weight: 800; color: #2563eb;"><%= herramienta.stock %> unidades</span>
+              <% const _disp = herramienta.dataValues.disponibles || 0; const _prest = herramienta.dataValues.prestadas || 0; %>
+              <span style="font-size: 11px; font-weight: 700; color: #64748b; text-transform: uppercase; letter-spacing: 0.05em; display: block; margin-bottom: 4px;">Disponibles para prestar</span>
+              <span style="font-size: 16px; font-weight: 800; color: <%= _disp > 0 ? '#2563eb' : '#dc2626' %>;"><%= _disp %> de <%= herramienta.stock %> unidades</span>
+              <span style="display:block; font-size: 12px; color: #64748b;"><%= _prest %> prestada(s) ahora</span>
             </div>
           </div>
 
@@ -135,14 +137,18 @@
             <svg viewBox="0 0 20 20" fill="currentColor" style="width: 24px; height: 24px; color: var(--color-amber); flex-shrink: 0;"><path fill-rule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clip-rule="evenodd"/></svg>
             <div>
               <h4 style="color: var(--color-amber-text); margin-bottom: 4px; font-size: 14px; font-weight: 800;">Registro Automático</h4>
-              <p style="color: #92400e; font-size: 12px; margin: 0; line-height: 1.5;">Al guardar este formulario, el stock físico de la herramienta se descontará en <strong>1 unidad</strong> automáticamente y su estado general pasará a <strong>"En uso"</strong> en caso de agotar su stock.</p>
+              <p style="color: #92400e; font-size: 12px; margin: 0; line-height: 1.5;">Al guardar este formulario, las unidades <strong>disponibles</strong> de la herramienta bajan en <strong>1</strong> (vuelven a subir al registrar la devolución). Si se prestan todas, su estado pasa a <strong>"En uso"</strong>.</p>
             </div>
           </div>
         </section>
 
+        <% const _motivo = ['En Reparación', 'Baja'].includes(herramienta.estado) ? ('La herramienta está "' + herramienta.estado + '": no se puede prestar.') : ((herramienta.dataValues.disponibles || 0) <= 0 ? 'No hay unidades disponibles: todas están prestadas. Registrá una devolución primero.' : ((!operarios || !operarios.length || !sectores || !sectores.length) ? 'Faltan operarios o sectores: cargalos en Herramientas → Ajustes base.' : '')); %>
+        <% if (_motivo) { %>
+          <div style="background:#fef2f2; border:1px solid #fecaca; color:#991b1b; border-radius:8px; padding:12px 14px; margin-bottom:12px; font-size:13px; font-weight:600;"><%= _motivo %></div>
+        <% } %>
         <div class="acciones">
           <a href="/Tools/<%= herramienta.id_herramienta %>" class="boton-secundario">Cancelar</a>
-          <button type="submit" class="boton-primario">Confirmar Entrega</button>
+          <button type="submit" class="boton-primario" <%= _motivo ? 'disabled' : '' %>>Confirmar Entrega</button>
         </div>
       </form>
     </main>
@@ -174,7 +180,7 @@
     document.getElementById('fecha_salida').value = hoy;
     document.getElementById('fecha_devolucion_estimada').value = manana;
     
-    document.getElementById('fecha_devolucion_estimada').min = hoy;
+    document.getElementById('fecha_devolucion_estimada').min = hoy; document.getElementById('fecha_salida').max = hoy; // la salida no puede ser futura
   </script>
 </body>
 </html>

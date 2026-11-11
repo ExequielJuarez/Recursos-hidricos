@@ -49,6 +49,11 @@ const sincronizarGrupo = async (deseadas, existentes, claveDe) => {
       const cambios = { ...datos };
       if (cambioImportante) cambios.leida = false;
       await actual.update(cambios);
+      // Una alerta que se reabre (cambió el tipo o la prioridad) vuelve a ser "nueva": sube arriba en el panel y en el listado
+      if (cambioImportante) {
+        // (se copia updatedAt, que Sequelize acaba de guardar, para respetar la misma zona horaria)
+        await db.sequelize.query("UPDATE alerta SET createdAt = updatedAt WHERE id_alerta = ?", { replacements: [actual.id_alerta] });
+      }
     }
   }
 
@@ -93,7 +98,12 @@ const alertaService = {
 
       const { count, rows } = await db.Alerta.findAndCountAll({
         where,
-        order: [["createdAt", "DESC"]],
+        // Primero las no leídas (las nuevas arriba), después las ya leídas
+        order: [
+          ["leida", "ASC"],
+          ["createdAt", "DESC"],
+          ["id_alerta", "DESC"],
+        ],
         limit: limite,
         offset: offset,
         distinct: true,
@@ -116,7 +126,10 @@ const alertaService = {
     try {
       return await db.Alerta.findAll({
         where: { leida: false },
-        order: [["createdAt", "DESC"]],
+        order: [
+          ["createdAt", "DESC"],
+          ["id_alerta", "DESC"],
+        ],
         limit: limite,
       });
     } catch (error) {

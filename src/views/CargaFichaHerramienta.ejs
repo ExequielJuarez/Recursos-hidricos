@@ -90,21 +90,19 @@
                   <% sectores.forEach(s => { %>
                     <option value="<%= s.nombre %>"><%= s.nombre %></option>
                   <% }) %>
-                <% } else { %>
-                  <option value="Taller Mecánico">Taller Mecánico</option>
-                  <option value="Construcción A">Construcción A</option>
-                  <option value="Espacios Verdes">Espacios Verdes</option>
-                  <option value="Mantenimiento General">Mantenimiento General</option>
-                  <option value="Depósito Central">Depósito Central</option>
                 <% } %>
               </select>
+              <% if (typeof sectores === 'undefined' || sectores.length === 0) { %>
+                <span class="error" style="display:block; margin-top:6px;">No hay sectores cargados. Agregalos en <a href="/Tools/Ajustes">Herramientas → Ajustes base</a> para poder dar de alta herramientas.</span>
+              <% } %>
             </div>
           </div>
 
           <div class="form-row">
             <div class="form-group">
-              <label>Cantidad (Stock Físico) <span class="req">*</span></label>
-              <input name="stock" type="number" placeholder="Ej: 5" required min="0">
+              <label>Cantidad (unidades en el pañol) <span class="req">*</span></label>
+              <input name="stock" type="number" placeholder="Ej: 5" required min="1" step="1">
+              <small style="color:#64748b; font-size:12px;">Al prestar una unidad baja la cantidad disponible; al devolverla vuelve a subir.</small>
             </div>
             <div class="form-group">
               <label>Fecha de Ingreso</label>
@@ -138,7 +136,7 @@
 
         <div class="acciones">
           <a href="/Tools" class="boton-secundario">Cancelar</a>
-          <button type="submit" class="boton-primario">Guardar Herramienta</button>
+          <button type="submit" class="boton-primario" <%= (typeof sectores === 'undefined' || sectores.length === 0) ? 'disabled title="Primero cargá al menos un sector en Ajustes base"' : '' %>>Guardar Herramienta</button>
         </div>
       </form>
     </main>

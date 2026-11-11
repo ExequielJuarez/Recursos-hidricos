@@ -56,10 +56,11 @@
                                     <%= rol.nombre %>
                                 </td>
                                 <td class="data-table__td" style="color: var(--color-text-secondary); line-height: 1.6;">
+                                    <% const NOMBRE_PERMISO = { Vehicles: 'Vehículos', Choferes: 'Choferes', Mantenimientos: 'Mantenimientos', Tools: 'Herramientas', Alertas: 'Alertas', Reportes: 'Reportes', Siniestros: 'Siniestros', Usuarios: 'Usuarios', Roles: 'Roles', Auditoria: 'Auditoría' }; %>
                                     <% if (rol.permisos) { %>
                                         <% rol.permisos.split(',').forEach(p => { %>
                                             <span class="badge" style="background: #f1f5f9; color: #475569; border: 1px solid #cbd5e1; margin-bottom: 4px; margin-right: 4px; display: inline-block;">
-                                                <%= p.trim() %>
+                                                <%= NOMBRE_PERMISO[p.trim()] || p.trim() %>
                                             </span>
                                         <% }) %>
                                     <% } else { %>

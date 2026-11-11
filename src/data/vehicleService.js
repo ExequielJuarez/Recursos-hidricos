@@ -11,6 +11,13 @@ const texto = (valor) => {
   return v === "" ? null : v;
 };
 
+// "Automatica" (sin tilde, versiones anteriores del formulario) se guarda como "Automática"
+const normalizarTransmision = (body) => {
+  if (body && /^autom[aá]tica$/i.test(String(body.transmision || "").trim())) body.transmision = "Automática";
+  if (body && /^manual$/i.test(String(body.transmision || "").trim())) body.transmision = "Manual";
+  return body;
+};
+
 const errorPorDuplicado = (error) => {
   if (error && error.name === "SequelizeUniqueConstraintError") {
     const campo = error.errors && error.errors[0] ? error.errors[0].path : "";
@@ -55,6 +62,7 @@ const vehicleService = {
 
   // Valida los datos del alta y devuelve la lista de errores (vacía si está todo bien)
   validarAlta: async function (body) {
+    normalizarTransmision(body);
     const errores = [];
     const anioNum = parseInt(body.anio, 10);
     const anioActual = new Date().getFullYear() + 1;
@@ -108,7 +116,7 @@ const vehicleService = {
   },
 
   create: async function (req) {
-    const body = req.body;
+    const body = normalizarTransmision(req.body);
     try {
       return await db.Vehiculo.create({
         patente: String(body.patente).replace(/\s+/g, "").toUpperCase(),
@@ -141,6 +149,7 @@ const vehicleService = {
   },
 
   update: async function (id, body, files = {}) {
+    normalizarTransmision(body);
     const transaction = await db.sequelize.transaction();
     try {
       const vehiculo = await db.Vehiculo.findByPk(id, { transaction, lock: transaction.LOCK.UPDATE });
