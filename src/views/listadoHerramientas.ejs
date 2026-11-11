@@ -270,7 +270,7 @@
           </div>
         </article>
 
-        <div class="detail-columns" style="padding: 0 24px 24px 24px;">
+        <div class="detail-columns" style="padding: 0 24px 24px 24px;<%= _disp === 0 ? '' : ' grid-template-columns: minmax(0, 1fr);' %>">
           <div class="detail-main-column">
             <section class="data-card" aria-label="Préstamos y uso recientes">
               <header class="data-card__header">
@@ -328,51 +328,28 @@
             </section>
           </div>
 
-          <aside class="detail-side-column" aria-label="Alertas e información adicional">
+          <%# Sólo se muestra cuando no queda ninguna unidad para prestar %>
+          <% if (_disp === 0) { %>
+          <aside class="detail-side-column" aria-label="Alertas de stock">
             <section class="alerts-card" aria-label="Alertas de la herramienta">
               <header class="data-card__header">
                 <svg class="data-card__icon" viewBox="0 0 20 20" fill="currentColor" style="color: #d97706;"><path d="M10 2a6 6 0 00-6 6v3.586l-.707.707A1 1 0 004 14h12a1 1 0 00.707-1.707L16 11.586V8a6 6 0 00-6-6zM10 18a3 3 0 01-3-3h6a3 3 0 01-3 3z"/></svg>
                 <h3 class="data-card__title" style="color: #b45309;">Alertas de Stock</h3>
               </header>
               <ul class="alert-list">
-                <% if (['En Reparación', 'Baja'].includes(herramientaSeleccionada.estado)) { %>
-                  <li class="alert-item alert-item--danger">
-                    <div class="alert-item__content">
-                      <div class="alert-item__text">
-                        <strong class="alert-item__label" style="color: #991b1b;">No disponible para préstamo</strong>
-                        <span class="alert-item__desc">La herramienta está "<%= herramientaSeleccionada.estado %>".</span>
-                      </div>
+                <li class="alert-item alert-item--danger">
+                  <div class="alert-item__content">
+                    <svg class="alert-item__icon" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z" clip-rule="evenodd"/></svg>
+                    <div class="alert-item__text">
+                      <strong class="alert-item__label" style="color: #991b1b;">Sin unidades disponibles</strong>
+                      <span class="alert-item__desc"><%= ['En Reparación', 'Baja'].includes(herramientaSeleccionada.estado) ? 'La herramienta está "' + herramientaSeleccionada.estado + '": no se puede prestar.' : herramientaSeleccionada.stock === 0 ? 'No hay stock cargado.' : 'Todas las unidades están prestadas: vuelven a estar disponibles al registrar la devolución.' %></span>
                     </div>
-                  </li>
-                <% } else if (_disp > 0 && _disp <= 1 && herramientaSeleccionada.stock > 1) { %>
-                  <li class="alert-item alert-item--warning">
-                    <div class="alert-item__content">
-                      <svg class="alert-item__icon" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clip-rule="evenodd"/></svg>
-                      <div class="alert-item__text">
-                        <strong class="alert-item__label" style="color: #92400e;">Stock Bajo</strong>
-                        <span class="alert-item__desc">Queda <%= _disp %> unidad disponible de <%= herramientaSeleccionada.stock %> (<%= _prest %> prestadas).</span>
-                      </div>
-                    </div>
-                  </li>
-                <% } else if (_disp === 0) { %>
-                  <li class="alert-item alert-item--danger">
-                    <div class="alert-item__content">
-                      <svg class="alert-item__icon" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z" clip-rule="evenodd"/></svg>
-                      <div class="alert-item__text">
-                        <strong class="alert-item__label" style="color: #991b1b;">Sin unidades disponibles</strong>
-                        <span class="alert-item__desc"><%= herramientaSeleccionada.stock === 0 ? 'No hay stock cargado.' : 'Todas las unidades están prestadas: vuelven a estar disponibles al registrar la devolución.' %></span>
-                      </div>
-                    </div>
-                  </li>
-                <% } else { %>
-                  <div style="padding: 20px; text-align: center; color: #64748b; font-size: 13px;">
-                    <span style="font-size: 24px; display: block; margin-bottom: 5px;">✅</span>
-                    Stock saludable
                   </div>
-                <% } %>
+                </li>
               </ul>
             </section>
           </aside>
+          <% } %>
         </div>
 
         <% } else { %>
