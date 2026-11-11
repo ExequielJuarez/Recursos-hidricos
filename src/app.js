@@ -107,7 +107,8 @@ app.use((req, res, next) => {
   next();
 });
 
-app.get("/favicon.ico", (req, res) => res.status(204).end());
+// Ícono de la pestaña del navegador (el logo de Recursos Hídricos)
+app.get("/favicon.ico", (req, res) => res.type("png").sendFile(path.join(__dirname, "../public/favicon-32.png")));
 
 app.use("/", indexRouter);
 
