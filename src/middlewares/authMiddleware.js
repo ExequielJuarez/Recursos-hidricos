@@ -1,6 +1,6 @@
 // src/middlewares/authMiddleware.js
 const db = require("../model/database/models");
-const { resolverPermisos, ROL_ADMIN } = require("../utils/permisos");
+const { resolverPermisos, ROL_ADMIN, pestanaParaRuta, puedePestana } = require("../utils/permisos");
 const { escapeHtml } = require("../utils/html");
 
 // Prefijos en minúsculas: la comparación NO distingue mayúsculas (Express tampoco las distingue)
@@ -82,6 +82,11 @@ async function authMiddleware(req, res, next) {
     const permisoNecesario = permisoParaRuta(req.path);
     if (permisoNecesario && !user.permisos.includes(permisoNecesario)) {
       return res.status(403).send(pantallaDenegada("No tienes los privilegios necesarios para acceder a esta sección."));
+    }
+    // Pestañas: si el usuario sólo tiene algunas pestañas del módulo, las demás quedan bloqueadas
+    const pestana = pestanaParaRuta(normalizarRuta(req.path));
+    if (pestana && !puedePestana(user.permisos, pestana.modulo, pestana.clave)) {
+      return res.status(403).send(pantallaDenegada("No tienes acceso a esta pestaña del módulo. Pedile al administrador que la habilite."));
     }
 
     return next();

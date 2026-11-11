@@ -80,7 +80,7 @@
         </a>
       </div>
 
-      <form class="form" action="/Vehicles/Editar/<%= vehiculo.id_vehiculo %>" method="post" id="form-editar" novalidate>
+      <form class="form" action="/Vehicles/Editar/<%= vehiculo.id_vehiculo %>" method="post" id="form-editar" enctype="multipart/form-data" novalidate>
 
         <section class="form-section readonly-section">
           <h3>Información Básica <span style="font-size:12px;color:#94a3b8;font-weight:400;">(Bloqueada por Seguridad)</span></h3>
@@ -140,35 +140,53 @@
           </div>
         </section>
 
-        <section class="form-section">
-          <h3>Documentación Legal <span style="font-size:12px;color:#16a34a;font-weight:400;">(Editable)</span></h3>
+        <% const _esAdmin = typeof usuarioLocal !== 'undefined' && usuarioLocal && usuarioLocal.rol === 'Administrador'; const _ro = _esAdmin ? '' : 'readonly class="readonly-field"'; %>
+        <section class="form-section <%= _esAdmin ? '' : 'readonly-section' %>">
+          <h3>Documentación Legal <span style="font-size:12px;color:<%= _esAdmin ? '#16a34a' : '#64748b' %>;font-weight:400;"><%= _esAdmin ? '(Editable · administrador)' : '(Sólo el administrador puede modificarla)' %></span></h3>
           
           <div class="form-row">
             <div class="form-group">
               <label>Número de Cédula</label>
-              <input name="cedula_numero" type="text" value="<%= vehiculo.cedula_numero || '' %>" placeholder="Ej: 001234567">
+              <input name="cedula_numero" type="text" value="<%= vehiculo.cedula_numero || '' %>" placeholder="Ej: 001234567" <%- _ro %>>
             </div>
             <div class="form-group">
               <label>Titular / Empresa</label>
-              <input name="cedula_titular" type="text" value="<%= vehiculo.cedula_titular || '' %>" placeholder="Ej: Municipalidad">
+              <input name="cedula_titular" type="text" value="<%= vehiculo.cedula_titular || '' %>" placeholder="Ej: Municipalidad" <%- _ro %>>
             </div>
           </div>
 
           <div class="form-row">
             <div class="form-group">
               <label>Compañía de Seguro</label>
-              <input name="seguro_compania" type="text" value="<%= vehiculo.seguro_compania || '' %>" placeholder="Ej: Federación Patronal">
+              <input name="seguro_compania" type="text" value="<%= vehiculo.seguro_compania || '' %>" placeholder="Ej: Federación Patronal" <%- _ro %>>
             </div>
             <div class="form-group">
               <label>Vencimiento del Seguro</label>
-              <input name="seguro_vencimiento" type="date" value="<%= vehiculo.seguro_vencimiento || '' %>">
+              <input name="seguro_vencimiento" type="date" value="<%= vehiculo.seguro_vencimiento || '' %>" <%- _ro %>>
             </div>
           </div>
 
           <div class="form-group small">
             <label>Vencimiento RTO / VTV</label>
-            <input name="rto_vencimiento" type="date" value="<%= vehiculo.rto_vencimiento || '' %>">
+            <input name="rto_vencimiento" type="date" value="<%= vehiculo.rto_vencimiento || '' %>" <%- _ro %>>
           </div>
+
+          <% if (_esAdmin) { %>
+          <div class="form-row">
+            <% [['foto_cedula', 'Cédula'], ['foto_titulo', 'Título'], ['foto_rto', 'Póliza de seguro']].forEach(([campo, etiqueta]) => { %>
+            <div class="form-group">
+              <label><%= etiqueta %> (foto o PDF)</label>
+              <% if (vehiculo[campo]) { %>
+                <a href="/img/vehiculos/<%= vehiculo[campo] %>" target="_blank" rel="noopener" style="font-size:12px; font-weight:700; color:#2563eb; margin-bottom:6px; display:inline-block;">Ver archivo actual</a>
+              <% } else { %>
+                <span style="font-size:12px; color:#94a3b8; margin-bottom:6px; display:inline-block;">Sin archivo cargado</span>
+              <% } %>
+              <input type="file" name="<%= campo %>" accept=".pdf,.jpg,.jpeg,.png,.webp">
+              <small style="color:#64748b; font-size:12px;">Si elegís un archivo, reemplaza al actual.</small>
+            </div>
+            <% }) %>
+          </div>
+          <% } %>
         </section>
       
         <section class="form-section">

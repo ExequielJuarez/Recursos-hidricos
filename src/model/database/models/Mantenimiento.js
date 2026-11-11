@@ -59,6 +59,8 @@ module.exports = (sequelize, DataTypes) => {
         type: DataTypes.STRING(20),
         defaultValue: "Realizado",
       },
+      // Taller donde se hizo el trabajo
+      taller: { type: DataTypes.STRING(150) },
       // Datos administrativos (historial de mantenimiento)
       nro_remito: { type: DataTypes.STRING(50) },
       nro_factura: { type: DataTypes.STRING(50) },

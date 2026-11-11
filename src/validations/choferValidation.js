@@ -23,11 +23,24 @@ const reglaTurno = () => body('Turno')
     .optional({ checkFalsy: true })
     .isIn(TURNOS).withMessage('Turno inválido');
 
+// Si el chofer NO está Activo (Inactivo o de Licencia) hay que indicar el motivo y desde qué fecha
+const noActivo = (value, { req }) => ['Inactivo', 'Licencia Vacaciones/Medica'].includes(req.body['activo-inactivo']);
+
 const reglaMotivoBaja = () => body('motivoBaja')
-    .if(body('activo-inactivo').equals('Inactivo'))
+    .if(noActivo)
     .trim()
-    .notEmpty().withMessage('El motivo de baja es obligatorio al desactivar un chofer')
+    .notEmpty().withMessage('Indicá el motivo (inactivo o de licencia)')
     .isLength({ max: 500 }).withMessage('El motivo no puede superar los 500 caracteres');
+
+const reglaFechaInactivo = () => body('fecha_inactivo')
+    .if(noActivo)
+    .notEmpty().withMessage('Indicá desde qué fecha está inactivo o de licencia').bail()
+    .isDate().withMessage('Fecha inválida').bail()
+    .custom((value, { req }) => {
+        if (value > hoyISO()) throw new Error('La fecha no puede ser futura');
+        if (req.body.fechaIngreso && value < req.body.fechaIngreso) throw new Error('La fecha no puede ser anterior a la fecha de ingreso');
+        return true;
+    });
 
 // ─────────────────────────────────────────────
 // VALIDACIÓN DE CREACIÓN
@@ -134,6 +147,8 @@ const choferVAlidation = () => [
         
     reglaMotivoBaja(),
 
+    reglaFechaInactivo(),
+
     body('fecha_vencimiento')
         .notEmpty().withMessage('La fecha de vencimiento es obligatoria').bail()
         .isDate().withMessage('Fecha de vencimiento inválida').bail()
@@ -234,6 +249,8 @@ const choferEditValidation = () => [
     reglaTurno(),
 
     reglaMotivoBaja(),
+
+    reglaFechaInactivo(),
 
     body('numero_licencia')
         .trim()

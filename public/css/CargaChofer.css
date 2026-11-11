@@ -628,3 +628,10 @@
 .app-wrapper--collapsed { margin-left: 0; }
 
 img { display: block; }
+/* Los botones finales ocupan todo el ancho de la grilla del formulario (no se estiran al alto de la sección de al lado) */
+.form > .acciones {
+  grid-column: 1 / -1;
+  align-self: start;
+  align-items: center;
+  justify-content: flex-end;
+}

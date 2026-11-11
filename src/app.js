@@ -56,6 +56,7 @@ app.locals.unidadDe = (v) => (v && v.TipoVehiculo && v.TipoVehiculo.unidad) || "
 app.locals.fmtUso = (n, v) => Number(n || 0).toLocaleString("es-AR") + " " + app.locals.unidadDe(v);
 app.locals.diasHasta = fechas.diasHasta;
 app.locals.aISO = fechas.aISO;
+app.locals.PESTANAS = require("./utils/permisos").PESTANAS; // pestañas de cada módulo (permisos por pestaña)
 
 // Cabeceras de seguridad básicas
 app.use((req, res, next) => {

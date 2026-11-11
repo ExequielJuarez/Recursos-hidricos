@@ -114,6 +114,45 @@ async function migrar(conexion) {
     await conexion.query(`UPDATE \`${tabla}\` SET \`${columna}\` = \`${columna}\` + INTERVAL 15 HOUR WHERE \`${columna}\` IS NOT NULL AND TIME(\`${columna}\`) = '00:00:00'`);
   }
 
+  // Vehículos: fecha en que se cargaron en el sistema (distinta de la fecha de alta física en la empresa).
+  // Para los ya cargados se toma la fecha de su alta en la auditoría; si no hay, el día de hoy.
+  if (!(await existeColumna("vehiculo", "fecha_alta_sistema"))) {
+    await conexion.query("ALTER TABLE vehiculo ADD COLUMN fecha_alta_sistema DATE NULL AFTER fecha_baja");
+    await conexion.query(
+      "UPDATE vehiculo v SET v.fecha_alta_sistema = COALESCE((SELECT MIN(a.fecha) FROM auditoria a WHERE a.tabla_afectada = 'vehiculo' AND a.accion = 'CREAR' AND a.id_registro_afectado = v.id_vehiculo), CURDATE())",
+    );
+  }
+
+  // Tipos de vehículo: licencias que habilitan a manejarlos (antes fijas en el código). Se cargan los valores que había.
+  if (!(await existeColumna("tipo_vehiculo", "licencias"))) {
+    await conexion.query("ALTER TABLE tipo_vehiculo ADD COLUMN licencias VARCHAR(60) NULL AFTER unidad");
+  }
+  {
+    const { categoriasPermitidas } = require("../../utils/licencias");
+    const [sinLicencias] = await conexion.query("SELECT id_tipo, descripcion FROM tipo_vehiculo WHERE licencias IS NULL");
+    for (const t of sinLicencias) {
+      await conexion.query("UPDATE tipo_vehiculo SET licencias = ? WHERE id_tipo = ?", [(categoriasPermitidas(t.descripcion) || []).join(","), t.id_tipo]);
+    }
+  }
+
+  // Choferes: fecha desde la que están Inactivos o de Licencia
+  if (!(await existeColumna("chofer", "fecha_inactivo"))) {
+    await conexion.query("ALTER TABLE chofer ADD COLUMN fecha_inactivo DATE NULL AFTER motivoBaja");
+  }
+
+  // Mantenimientos: taller donde se hizo el trabajo
+  if (!(await existeColumna("mantenimiento", "taller"))) {
+    await conexion.query("ALTER TABLE mantenimiento ADD COLUMN taller VARCHAR(150) NULL AFTER mano_obra");
+  }
+
+  // Catálogo de tipos de servicio de mantenimiento (Mantenimientos → Repuestos / Servicios)
+  await conexion.query(`CREATE TABLE IF NOT EXISTS tipos_servicio (
+    id_tipo_servicio INT NOT NULL AUTO_INCREMENT,
+    nombre VARCHAR(100) NOT NULL,
+    PRIMARY KEY (id_tipo_servicio),
+    UNIQUE KEY uq_tipo_servicio_nombre (nombre)
+  ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci`);
+
   // Rol "Principal" pasó a llamarse "Supervisor" (mismo rol y permisos: supervisión general y reportes)
   const [[rolSupervisor]] = await conexion.query("SELECT COUNT(*) n FROM rol WHERE nombre = 'Supervisor'");
   if (!rolSupervisor.n) await conexion.query("UPDATE rol SET nombre = 'Supervisor' WHERE nombre = 'Principal'");

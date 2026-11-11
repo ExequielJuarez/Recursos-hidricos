@@ -45,6 +45,7 @@ CREATE TABLE `tipo_vehiculo` (
   `id_tipo` int(11) NOT NULL AUTO_INCREMENT,
   `descripcion` varchar(100) NOT NULL,
   `unidad` varchar(10) NOT NULL DEFAULT 'km',
+  `licencias` varchar(60) DEFAULT NULL,
   PRIMARY KEY (`id_tipo`),
   UNIQUE KEY `uq_tipo_descripcion` (`descripcion`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
@@ -99,6 +100,7 @@ CREATE TABLE `vehiculo` (
   `imagen_url` varchar(255) DEFAULT NULL,
   `fecha_alta` date NOT NULL,
   `fecha_baja` date DEFAULT NULL,
+  `fecha_alta_sistema` date DEFAULT NULL,
   `foto_cedula` varchar(255) DEFAULT NULL,
   `foto_titulo` varchar(255) DEFAULT NULL,
   `foto_rto` varchar(255) DEFAULT NULL,
@@ -145,6 +147,7 @@ CREATE TABLE `chofer` (
   `foto_documento` varchar(255) DEFAULT NULL,
   `imagen` varchar(255) DEFAULT NULL,
   `motivoBaja` text DEFAULT NULL,
+  `fecha_inactivo` date DEFAULT NULL,
   `tiene_carnet_oficial` tinyint(1) NOT NULL DEFAULT 0,
   PRIMARY KEY (`id_chofer`),
   UNIQUE KEY `dni` (`dni`),
@@ -193,6 +196,13 @@ CREATE TABLE `repuestos` (
   PRIMARY KEY (`id_repuesto`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
+CREATE TABLE `tipos_servicio` (
+  `id_tipo_servicio` int(11) NOT NULL AUTO_INCREMENT,
+  `nombre` varchar(100) NOT NULL,
+  PRIMARY KEY (`id_tipo_servicio`),
+  UNIQUE KEY `uq_tipo_servicio_nombre` (`nombre`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+
 CREATE TABLE `mantenimiento` (
   `id_mantenimiento` int(11) NOT NULL AUTO_INCREMENT,
   `id_vehiculo` int(11) NOT NULL,
@@ -209,6 +219,7 @@ CREATE TABLE `mantenimiento` (
   `estado` varchar(20) NOT NULL DEFAULT 'Realizado',
   `mano_obra` decimal(12,2) DEFAULT 0.00,
   `costo_repuestos` decimal(12,2) DEFAULT 0.00,
+  `taller` varchar(150) DEFAULT NULL,
   `nro_remito` varchar(50) DEFAULT NULL,
   `nro_factura` varchar(50) DEFAULT NULL,
   `proveedor` varchar(150) DEFAULT NULL,

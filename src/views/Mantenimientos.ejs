@@ -406,6 +406,10 @@
                                             <dt class="vehicle-profile__spec-label">Patente</dt>
                                             <dd class="vehicle-profile__spec-value" style="font-family: var(--font-mono); font-size: 16px; font-weight: 800; color: #2563eb;"><%= m.vehiculo?.patente || '—' %></dd>
                                         </div>
+                                        <div class="vehicle-profile__spec-row">
+                                            <dt class="vehicle-profile__spec-label">Taller</dt>
+                                            <dd class="vehicle-profile__spec-value"><%= m.taller || 'No especificado' %></dd>
+                                        </div>
                                     </dl>
                                     <dl class="vehicle-profile__spec-group">
                                         <div class="vehicle-profile__spec-row">
@@ -508,6 +512,9 @@
                                                 <label class="fin-lbl">Próximo service (<%= _u %>) <small>opcional</small>
                                                     <input type="number" name="proximo_servicio_km" min="<%= _kmFin + 1 %>" placeholder="Ej: <%= _kmFin + (_u === 'hs' ? 250 : 10000) %>">
                                                 </label>
+                                                <label class="fin-lbl">Taller <small>opcional</small>
+                                                    <input type="text" name="taller" maxlength="150" value="<%= m.taller || '' %>" placeholder="Ej: Taller Central (propio)">
+                                                </label>
                                                 <div class="fin-grid">
                                                     <label class="fin-lbl">Proveedor <input type="text" name="proveedor" maxlength="150" value="<%= m.proveedor || '' %>"></label>
                                                     <label class="fin-lbl">N° de factura <input type="text" name="nro_factura" maxlength="50" value="<%= m.nro_factura || '' %>"></label>
@@ -535,31 +542,6 @@
                                 </aside>
                             </div>
 
-                            <!-- ══════════════════════════════════════════════
-                                 NUEVO: Historial / Ficha de mantenimientos del vehículo
-                                 Va abajo de todo, dentro de cada orden seleccionada
-                                 ══════════════════════════════════════════════ -->
-                            <section class="informe-section">
-                                <div class="informe-section__header">
-                                    <span class="informe-section__title">Historial de Mantenimientos del Vehículo</span>
-                                    <div class="informe-actions no-print">
-                                        <button type="button"
-                                                class="btn-informe btn-generar-informe"
-                                                data-patente="<%= m.vehiculo?.patente %>"
-                                                data-target="informe-resultado-<%= index %>">
-                                            Generar informe últimos 3 años
-                                        </button>
-                                        <button type="button" class="btn-informe btn-informe--secondary btn-imprimir-informe" style="display: none;">
-                                            Imprimir informe
-                                        </button>
-                                    </div>
-                                </div>
-                                <div class="informe-section__body">
-                                    <div class="informe-resultado" id="informe-resultado-<%= index %>">
-                                        <p class="informe-empty">Tocá "Generar informe últimos 3 años" para ver el historial de este vehículo.</p>
-                                    </div>
-                                </div>
-                            </section>
                         </div>
                     <% }) %>
                 <% } %>

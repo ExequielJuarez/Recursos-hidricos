@@ -7,7 +7,8 @@ const auditoriaService = require("../data/auditoriaService");
 const documentoService = require("../data/documentoService");
 const alertaService = require("../data/alertaService");
 const { validationResult } = require("express-validator");
-const { aISO } = require("../utils/fechas");
+const { aISO, hoyISO, esFechaValida } = require("../utils/fechas");
+const { ErrorNegocio } = require("../utils/errores");
 
 const DIR_UPLOADS = path.join(__dirname, "../../public/img/licencias");
 
@@ -163,6 +164,7 @@ const choferController = {
           "activo-inactivo": chofer.estado,
           Turno: chofer.turno,
           motivoBaja: chofer.motivoBaja || "",
+          fecha_inactivo: aISO(chofer.fecha_inactivo),
           numero_licencia: licencia.numero || "",
           categoria: licencia.categoria || "",
           fecha_emision: aISO(licencia.fecha_emision),
@@ -234,7 +236,8 @@ const choferController = {
         tiene_carnet_oficial: tieneCarnet,
         ...(fotoDocumento && { foto_documento: fotoDocumento }),
         ...(fotoPerfil && { imagen: fotoPerfil }),
-        motivoBaja: nuevoEstado === "Inactivo" ? body.motivoBaja || null : null,
+        motivoBaja: nuevoEstado !== "Activo" ? body.motivoBaja || null : null,
+        fecha_inactivo: nuevoEstado !== "Activo" ? body.fecha_inactivo || null : null,
       });
       if (fotoDocumento) borrarImagenAnterior(chofer.foto_documento);
       // Documentación: DNI adicional y carnet de la provincia
@@ -294,16 +297,36 @@ const choferController = {
         req.flash("error", "El chofer no existe.");
         return res.redirect("/Choferes");
       }
-      if (chofer.estado === "Inactivo") return res.redirect("/Choferes");
+      if (chofer.estado !== "Activo") return res.redirect("/Choferes");
+
+      // Igual que en Editar chofer: se pide el nuevo estado (Inactivo o Licencia), el motivo y desde qué fecha
+      const estado = req.body.estado === "Licencia Vacaciones/Medica" ? "Licencia Vacaciones/Medica" : "Inactivo";
+      const motivo = String(req.body.motivoBaja || "").trim();
+      const fecha = String(req.body.fecha_inactivo || "").trim();
+      const hoy = hoyISO();
+      if (!motivo) throw new ErrorNegocio("Indicá el motivo.");
+      if (motivo.length > 500) throw new ErrorNegocio("El motivo no puede superar los 500 caracteres.");
+      if (!esFechaValida(fecha)) throw new ErrorNegocio("Indicá desde qué fecha está inactivo o de licencia.");
+      if (fecha > hoy) throw new ErrorNegocio("La fecha no puede ser futura.");
+      if (chofer.fechaIngreso && fecha < aISO(chofer.fechaIngreso)) throw new ErrorNegocio("La fecha no puede ser anterior a la fecha de ingreso del chofer.");
 
       const cerradas = await assignmentService.finalizarActivasDeChofer(
         chofer.id_chofer,
-        'Cierre automático: el chofer fue desactivado',
+        `Cierre automático: el chofer pasó a estado "${estado}"`,
       );
-      await choferService.update(chofer.id_chofer, {
-        estado: "Inactivo",
-        motivoBaja: chofer.motivoBaja || "Desactivado desde el listado",
-      });
+      await choferService.update(chofer.id_chofer, { estado, motivoBaja: motivo, fecha_inactivo: fecha });
+
+      if (estado === "Inactivo") {
+        await db.Alerta.create({
+          tipo: "informativa",
+          prioridad: "media",
+          mensaje: `Chofer ${chofer.nombre} ${chofer.apellido} dado de baja. Motivo: ${motivo}`.slice(0, 255),
+          entidad_tipo: "Chofer",
+          entidad_id: chofer.id_chofer,
+          entidad_nombre: `${chofer.nombre} ${chofer.apellido}`.slice(0, 100),
+          generada_automaticamente: false,
+        });
+      }
 
       await auditoriaService.desdeRequest(
         req,
@@ -311,16 +334,17 @@ const choferController = {
         chofer.id_chofer,
         "EDITAR",
         { estado: chofer.estado },
-        { estado: "Inactivo" },
-        `Desactivación de chofer ID: ${chofer.id_chofer}` + (cerradas ? ` — se cerró ${cerradas} asignación(es) activa(s)` : ""),
+        { estado, motivoBaja: motivo, fecha_inactivo: fecha },
+        `Chofer ID: ${chofer.id_chofer} pasa a "${estado}" desde el ${fecha.split("-").reverse().join("/")}. Motivo: ${motivo}` +
+          (cerradas ? ` — se cerró ${cerradas} asignación(es) activa(s)` : ""),
       );
 
       await alertaService.generarAlertasLicencias();
-      req.flash("ok", "Chofer desactivado.");
+      req.flash("ok", estado === "Inactivo" ? "Chofer desactivado." : "Chofer marcado de licencia.");
       return res.redirect("/Choferes");
     } catch (error) {
-      console.log(error);
-      req.flash("error", "No se pudo desactivar el chofer.");
+      if (!(error instanceof ErrorNegocio)) console.log(error);
+      req.flash("error", error instanceof ErrorNegocio ? error.message : "No se pudo desactivar el chofer.");
       return res.redirect("/Choferes");
     }
   },
@@ -333,7 +357,7 @@ const choferController = {
         return res.redirect("/Choferes");
       }
 
-      await choferService.update(chofer.id_chofer, { estado: "Activo", motivoBaja: null });
+      await choferService.update(chofer.id_chofer, { estado: "Activo", motivoBaja: null, fecha_inactivo: null });
 
       await auditoriaService.desdeRequest(
         req,

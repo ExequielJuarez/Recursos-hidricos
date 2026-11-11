@@ -77,10 +77,50 @@ const guardarRepuestos = async (id_mantenimiento, { lineas, acumulado, repuestos
   }
 };
 
+// Taller donde se hizo (o se hará) el trabajo: texto opcional
+const leerTaller = (body) => {
+  const taller = String((body && body.taller) || "").trim();
+  if (taller.length > 150) throw new ErrorNegocio("El nombre del taller no puede superar los 150 caracteres.");
+  return taller || null;
+};
+
 const maintenanceService = {
   ESTADOS_MANTENIMIENTO,
   CAMPOS_ADMIN,
   datosAdministrativos,
+
+  // El kilometraje sólo puede crecer con el tiempo. Un service cargado con fecha F y km K es imposible si:
+  //   · hay un registro ANTERIOR a F con MÁS km que K (ej: hace una semana tenía 3.000 km y lo cargo hace 2 días con 2.000), o
+  //   · hay un registro POSTERIOR a F con MENOS km que K.
+  // Se comparan los mantenimientos ya cargados (Realizados / En proceso) y el historial de kilometraje del vehículo.
+  verificarCronologiaKm: async function (vehiculo, fecha, km, transaction, excluirId = null) {
+    const whereMant = { id_vehiculo: vehiculo.id_vehiculo, estado: { [Op.in]: ["Realizado", "En proceso"] } };
+    if (excluirId) whereMant.id_mantenimiento = { [Op.ne]: excluirId };
+    const mantenimientos = await db.Mantenimiento.findAll({ where: whereMant, attributes: ["fecha_inicio", "km_servicio", "tipo_servicio"], transaction });
+    const lecturas = await db.HistorialKm.findAll({ where: { id_vehiculo: vehiculo.id_vehiculo }, attributes: ["fecha", "km_nuevo"], transaction });
+    const unidad = (await db.TipoVehiculo.findByPk(vehiculo.id_tipo, { attributes: ["unidad"], transaction }))?.unidad === "hs" ? "hs" : "km";
+    const puntos = [
+      ...mantenimientos.map((m) => ({ fecha: aISO(m.fecha_inicio), km: m.km_servicio, que: `el service «${m.tipo_servicio}»` })),
+      ...lecturas.map((l) => ({ fecha: aISO(l.fecha), km: l.km_nuevo, que: "una carga de kilometraje" })),
+    ].filter((p) => p.fecha && Number.isInteger(p.km));
+    const fmt = (iso) => iso.split("-").reverse().join("/");
+    const num = (n) => Number(n).toLocaleString("es-AR");
+
+    const anteriorMayor = puntos.filter((p) => p.fecha < fecha && p.km > km).sort((a, b) => b.km - a.km)[0];
+    if (anteriorMayor) {
+      throw new ErrorNegocio(
+        `No puede ser: el ${fmt(anteriorMayor.fecha)} (${anteriorMayor.que}) el vehículo ya tenía ${num(anteriorMayor.km)} ${unidad}, ` +
+          `así que el ${fmt(fecha)} no pudo tener ${num(km)} ${unidad}. Revisá la fecha o el kilometraje.`,
+      );
+    }
+    const posteriorMenor = puntos.filter((p) => p.fecha > fecha && p.km < km).sort((a, b) => a.km - b.km)[0];
+    if (posteriorMenor) {
+      throw new ErrorNegocio(
+        `No puede ser: el ${fmt(posteriorMenor.fecha)} (${posteriorMenor.que}) el vehículo tenía ${num(posteriorMenor.km)} ${unidad}, ` +
+          `así que antes, el ${fmt(fecha)}, no pudo tener ${num(km)} ${unidad}. Revisá la fecha o el kilometraje.`,
+      );
+    }
+  },
 
   // Un vehículo sólo puede tener UNA orden "En proceso" (está en el taller una sola vez).
   // Lo que se agregue a esa visita (más repuestos, otro arreglo) se carga en esa orden desde "Finalizar orden".
@@ -123,6 +163,10 @@ const maintenanceService = {
       const tipo = String(body.tipo_servicio || "").trim();
       if (!tipo) throw new ErrorNegocio("Indicá el tipo de servicio.");
       if (tipo.length > 100) throw new ErrorNegocio("El tipo de servicio no puede superar los 100 caracteres.");
+      // El tipo de servicio se elige del catálogo (Mantenimientos → Repuestos / Servicios) para no tener el mismo servicio escrito de dos formas
+      if (!(await db.TipoServicio.findOne({ where: { nombre: tipo }, transaction }))) {
+        throw new ErrorNegocio(`El tipo de servicio "${tipo}" no está en el catálogo. Agregalo primero en Mantenimientos → Repuestos / Servicios.`);
+      }
 
       // ───────── Service PROGRAMADO: se maneja sólo por kilometraje ─────────
       if (estado === "Programado") {
@@ -152,6 +196,7 @@ const maintenanceService = {
             proximo_km: kmProgramado,
             descripcion: String(body.descripcion || "").trim() || `Service programado a los ${kmProgramado} km`,
             observaciones: String(body.observaciones || "").trim() || null,
+            taller: leerTaller(body),
             costo_repuestos: 0,
             mano_obra: 0,
             costo_total: 0,
@@ -203,6 +248,9 @@ const maintenanceService = {
         }
       }
 
+      // Un service Realizado viejo puede tener menos km que hoy, pero tiene que respetar el orden en el tiempo
+      if (estado === "Realizado") await maintenanceService.verificarCronologiaKm(vehiculo, body.fecha_inicio, kmServicio, transaction);
+
       const abierta = estado === "En proceso";
       if (abierta && vehiculo.estado_actual === "En uso") {
         throw new ErrorNegocio("El vehículo está en uso (asignado a un chofer): finalizá la asignación antes de enviarlo a mantenimiento.");
@@ -230,6 +278,7 @@ const maintenanceService = {
           proximo_km: proximoKm,
           descripcion,
           observaciones: String(body.observaciones || "").trim() || null,
+          taller: leerTaller(body),
           costo_repuestos: costoRepuestos,
           mano_obra: redondear(manoObra),
           costo_total: costoTotal,
@@ -364,6 +413,8 @@ const maintenanceService = {
         await guardarRepuestos(mantenimiento.id_mantenimiento, detalle, transaction);
 
         // Datos de factura / remito: sólo se pisan los que se completaron
+        const taller = leerTaller(datos);
+        if (taller) cambiosOrden.taller = taller;
         const admin = datosAdministrativos(datos);
         for (const [campo, valor] of Object.entries(admin)) if (valor) cambiosOrden[campo] = valor;
         if (vehiculo) {

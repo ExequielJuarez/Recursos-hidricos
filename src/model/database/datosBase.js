@@ -63,7 +63,10 @@ async function asegurarDatosBase(conexion, { adminPassword = CLAVE_ADMIN, emplea
   // Tipos de vehículo base (solo si no hay ninguno)
   const [[{ n }]] = await conexion.query("SELECT COUNT(*) n FROM tipo_vehiculo");
   if (n === 0) {
-    for (const [descripcion, unidad] of TIPOS_BASE) await conexion.query("INSERT INTO tipo_vehiculo (descripcion, unidad) VALUES (?, ?)", [descripcion, unidad]);
+    const { categoriasPermitidas } = require("../../utils/licencias");
+    for (const [descripcion, unidad] of TIPOS_BASE) {
+      await conexion.query("INSERT INTO tipo_vehiculo (descripcion, unidad, licencias) VALUES (?, ?, ?)", [descripcion, unidad, (categoriasPermitidas(descripcion) || []).join(",")]);
+    }
     resultado.tipos = TIPOS_BASE.length;
   }
   return resultado;

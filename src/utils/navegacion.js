@@ -26,9 +26,9 @@ const SECCIONES = [
       { label: "Alta de vehículo", href: "/CargaVehiculo" },
       { label: "Asignar a chofer", href: "/asignaciones" },
       { label: "Carga de kilometraje", href: "/ActualizarKm" },
+      { label: "Ajustes", href: "/Vehicles/Ajustes" },
     ],
     extras: [
-      { label: "Ajustes", href: "/Vehicles/Ajustes" },
       { label: "Editar vehículo", href: "/Vehicles/Editar" },
     ],
     cta: { label: "Nuevo vehículo", href: "/CargaVehiculo" },
@@ -51,7 +51,7 @@ const SECCIONES = [
       { label: "Historial técnico", href: "/Mantenimientos" },
       { label: "Registrar orden", href: "/Mantenimientos/carga" },
       { label: "Historial administrativo", href: "/Mantenimientos/Historial" },
-      { label: "Repuestos", href: "/Repuestos/Gestionar" },
+      { label: "Repuestos / Servicios", href: "/Repuestos/Gestionar" },
     ],
     cta: { label: "Nueva orden", href: "/Mantenimientos/carga" },
   },
@@ -124,14 +124,24 @@ const puede = (usuario, perm) => {
   return (Array.isArray(perm) ? perm : [perm]).some((p) => propios.includes(p));
 };
 
+// ¿Puede abrir esta dirección? (pestañas habilitadas por el administrador; sin pestañas cargadas = todas)
+const puedeRuta = (usuario, href) => {
+  if (!usuario || usuario.rol === "Administrador") return true;
+  const { pestanaParaRuta, puedePestana } = require("./permisos");
+  const pestana = pestanaParaRuta(href);
+  if (!pestana) return true;
+  const propios = Array.isArray(usuario.permisos) ? usuario.permisos : String(usuario.permisos || "").split(",");
+  return puedePestana(propios, pestana.modulo, pestana.clave);
+};
+
 // Secciones (y pestañas) que puede ver el usuario
 const seccionesVisibles = (usuario) =>
   SECCIONES.filter((s) => puede(usuario, s.perm))
     .map((s) => ({
       ...s,
       icono: ICONOS[s.id],
-      items: s.items.filter((i) => puede(usuario, i.perm)),
-      cta: s.cta && puede(usuario, s.cta.perm) ? s.cta : null,
+      items: s.items.filter((i) => puede(usuario, i.perm) && puedeRuta(usuario, i.href)),
+      cta: s.cta && puede(usuario, s.cta.perm) && puedeRuta(usuario, s.cta.href) ? s.cta : null,
     }))
     .filter((s) => s.items.length);
 

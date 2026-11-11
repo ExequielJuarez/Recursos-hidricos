@@ -15,6 +15,16 @@
     .settings-card h3 { margin-top: 0; color: #0f172a; border-bottom: 1px solid #f1f5f9; padding-bottom: 12px; margin-bottom: 20px; font-size: 16px; font-weight: 800; }
     .list-item { display: flex; justify-content: space-between; align-items: center; padding: 12px 0; border-bottom: 1px solid #f1f5f9; font-size: 14px; font-weight: 600; color: #475569; }
     .list-item:last-child { border-bottom: none; }
+    .tipo-item { flex-wrap: wrap; row-gap: 6px; }
+    .tipo-licencias { flex: 1 0 100%; display: flex; align-items: center; gap: 6px; flex-wrap: wrap; font-size: 12px; font-weight: 600; color: #64748b; }
+    .chip-lic { background: #eff6ff; color: #1d4ed8; border: 1px solid #bfdbfe; border-radius: 6px; padding: 2px 7px; font-size: 11px; font-weight: 800; }
+    .tipo-licencias details { margin-left: auto; }
+    .tipo-licencias summary { cursor: pointer; color: #2563eb; font-weight: 700; list-style: none; }
+    .tipo-licencias summary::-webkit-details-marker { display: none; }
+    .lic-form { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; margin-top: 8px; background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 8px; padding: 8px 10px; }
+    .lic-form label, .lic-alta label { display: inline-flex; align-items: center; gap: 4px; font-size: 12px; font-weight: 700; color: #334155; cursor: pointer; }
+    .lic-form button { background: #2563eb; color: #fff; border: 0; border-radius: 6px; padding: 5px 10px; font-size: 12px; font-weight: 700; cursor: pointer; }
+    .lic-alta { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; margin-top: 10px; font-size: 12px; color: #475569; }
     .btn-add { background: #2563eb; color: white; border: none; padding: 10px 16px; border-radius: 8px; font-weight: 700; font-size: 13px; cursor: pointer; transition: 0.2s; white-space: nowrap; }
     .btn-add:hover { background: #1d4ed8; }
     .input-add { flex: 1; padding: 10px 14px; border: 1px solid #cbd5e1; border-radius: 8px; font-size: 13px; outline: none; transition: 0.2s; font-family: 'DM Sans', sans-serif; color: #0f172a; }
@@ -92,7 +102,8 @@
           <div style="max-height: 250px; overflow-y: auto; padding-right: 10px; margin-bottom: 10px;">
             <% if (typeof tiposVehiculo !== 'undefined' && tiposVehiculo.length > 0) { %>
               <% tiposVehiculo.forEach(t => { %>
-                <div class="list-item">
+                <% const _lics = (t.licencias || '').split(',').filter(Boolean); %>
+                <div class="list-item tipo-item">
                   <span><%= t.descripcion || t.nombre %></span>
                   <div style="display:flex; gap:6px; align-items:center;">
                   <form action="/Vehicles/Ajustes/Tipos/Editar/<%= t.id_tipo || t.id %>" method="POST" style="margin:0;">
@@ -106,6 +117,19 @@
                     <button type="submit" class="btn-delete" title="Eliminar Tipo" onclick="return confirm('¿Eliminar este tipo de vehículo?');">X</button>
                   </form>
                   </div>
+                  <div class="tipo-licencias">
+                    Licencia requerida:
+                    <% if (_lics.length) { _lics.forEach(c => { %><span class="chip-lic"><%= c %></span><% }) } else { %><span>cualquier licencia vigente</span><% } %>
+                    <details>
+                      <summary>Cambiar</summary>
+                      <form action="/Vehicles/Ajustes/Tipos/Licencias/<%= t.id_tipo %>" method="POST" class="lic-form">
+                        <% (categoriasLicencia || []).forEach(c => { %>
+                          <label><input type="checkbox" name="licencias" value="<%= c %>" <%= _lics.includes(c) ? 'checked' : '' %>> <%= c %></label>
+                        <% }) %>
+                        <button type="submit">Guardar</button>
+                      </form>
+                    </details>
+                  </div>
                 </div>
               <% }) %>
             <% } else { %>
@@ -114,7 +138,7 @@
               </div>
             <% } %>
           </div>
-          <form action="/Vehicles/Ajustes/Tipos" method="POST" class="form-add">
+          <form action="/Vehicles/Ajustes/Tipos" method="POST" class="form-add" id="form-alta-tipo">
             <input type="text" name="descripcion" class="input-add" placeholder="Ej: Motocicleta..." required>
             <select name="unidad" title="Unidad de medida de uso" class="input-add" style="flex: 0 0 auto;">
               <option value="km">km</option>
@@ -122,6 +146,13 @@
             </select>
             <button type="submit" class="btn-add">+ Añadir Tipo</button>
           </form>
+          <div class="lic-alta" id="lic-alta">
+            <strong>Licencias que lo habilitan:</strong>
+            <% (categoriasLicencia || []).forEach(c => { %>
+              <label><input type="checkbox" name="licencias" value="<%= c %>" form="form-alta-tipo"> <%= c %></label>
+            <% }) %>
+            <span style="color:#94a3b8;">(si no marcás ninguna, sirve cualquier licencia vigente)</span>
+          </div>
         </div>
 
       </div>

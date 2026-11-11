@@ -1,3 +1,4 @@
+const db = require("../model/database/models");
 const assignmentService = require("../data/assignmentService");
 const auditoriaService = require("../data/auditoriaService");
 const alertaService = require("../data/alertaService");
@@ -10,12 +11,15 @@ const assignmentController = {
     try {
       const { vehiculos, choferes, categoriasPorTipo } = await assignmentService.getFormData();
       const asignaciones = await assignmentService.getActiveAssignments();
+      // Destinos posibles: los distritos / ubicaciones cargados en Vehículos → Ajustes
+      const distritos = await db.Distrito.findAll({ order: [["nombre", "ASC"]] });
 
       res.render("AsignacionVehiculo", {
         vehiculos,
         choferes,
         categoriasPorTipo,
         asignaciones,
+        distritos,
         error: req.query.error || null,
         success: req.query.success || null,
       });
@@ -23,6 +27,54 @@ const assignmentController = {
       console.log(error);
       req.flash("error", "Error al cargar el formulario de asignación.");
       res.redirect("/Vehicles");
+    }
+  },
+
+  // Historial de asignaciones de un vehículo (Vehículos → ficha → Asignaciones → Ver todas)
+  historialVehiculo: async (req, res) => {
+    try {
+      const vehiculo = await db.Vehiculo.findByPk(req.params.id);
+      if (!vehiculo) {
+        req.flash("error", "El vehículo no existe.");
+        return res.redirect("/Vehicles");
+      }
+      const asignaciones = await assignmentService.historial({ id_vehiculo: vehiculo.id_vehiculo });
+      res.render("HistorialAsignaciones", { de: "vehiculo", vehiculo, asignaciones });
+    } catch (error) {
+      console.log(error);
+      req.flash("error", "Error al cargar las asignaciones del vehículo.");
+      res.redirect("/Vehicles");
+    }
+  },
+
+  // Historial de asignaciones de un chofer
+  historialChofer: async (req, res) => {
+    try {
+      const chofer = await db.Chofer.findByPk(req.params.id);
+      if (!chofer) {
+        req.flash("error", "El chofer no existe.");
+        return res.redirect("/Choferes");
+      }
+      const asignaciones = await assignmentService.historial({ id_chofer: chofer.id_chofer });
+      // La ficha del chofer (que se arma en el navegador) pide las últimas en JSON
+      if (req.query.formato === "json") {
+        return res.json({
+          total: asignaciones.length,
+          asignaciones: asignaciones.slice(0, 3).map((a) => ({
+            fecha_salida: a.fecha_salida,
+            fecha_devolucion: a.fecha_devolucion,
+            estado: a.estado,
+            destino: a.destino_area,
+            patente: a.vehiculo ? a.vehiculo.patente : "",
+            vehiculo: a.vehiculo ? `${a.vehiculo.marca} ${a.vehiculo.modelo}` : "",
+          })),
+        });
+      }
+      res.render("HistorialAsignaciones", { de: "chofer", chofer, asignaciones });
+    } catch (error) {
+      console.log(error);
+      req.flash("error", "Error al cargar las asignaciones del chofer.");
+      res.redirect("/Choferes");
     }
   },
 

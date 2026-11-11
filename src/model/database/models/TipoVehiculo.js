@@ -14,6 +14,11 @@ module.exports = (sequelize, dataTypes) => {
             type: dataTypes.STRING(10),
             allowNull: false,
             defaultValue: 'km'
+        },
+        // Categorías de licencia que habilitan a manejar este tipo (ej: "C,E"). Vacío = cualquier licencia vigente
+        licencias: {
+            type: dataTypes.STRING(60),
+            allowNull: true
         }
     };
     const config = {

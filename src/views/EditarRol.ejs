@@ -78,17 +78,7 @@
                     <% } else { %>
                         <p style="font-size: 13px; color: var(--color-text-muted); margin-bottom: 12px;">Seleccioná las secciones que estarán visibles para este grupo:</p>
                         
-                        <div class="permisos-grid">
-                            <label class="permiso-label"><input type="checkbox" name="vistas" value="Vehicles" <%= permisosActuales.includes('Vehicles') ? 'checked' : '' %>> Vehículos / Flota</label>
-                            <label class="permiso-label"><input type="checkbox" name="vistas" value="Choferes" <%= permisosActuales.includes('Choferes') ? 'checked' : '' %>> Choferes</label>
-                            <label class="permiso-label"><input type="checkbox" name="vistas" value="Mantenimientos" <%= permisosActuales.includes('Mantenimientos') ? 'checked' : '' %>> Mantenimientos</label>
-                            <label class="permiso-label"><input type="checkbox" name="vistas" value="Tools" <%= permisosActuales.includes('Tools') ? 'checked' : '' %>> Herramientas Locales</label>
-                            <label class="permiso-label"><input type="checkbox" name="vistas" value="Alertas" <%= permisosActuales.includes('Alertas') ? 'checked' : '' %>> Panel de Alertas</label>
-                            <label class="permiso-label"><input type="checkbox" name="vistas" value="Reportes" <%= permisosActuales.includes('Reportes') ? 'checked' : '' %>> Reportes y Análisis</label>
-                            <label class="permiso-label"><input type="checkbox" name="vistas" value="Siniestros" <%= permisosActuales.includes('Siniestros') ? 'checked' : '' %>> Siniestros / Seguros</label>
-                            
-                            <label class="permiso-label" style="border-color: #fecaca; background: #fef2f2; color: #991b1b;"><input type="checkbox" name="vistas" value="Auditoria" <%= permisosActuales.includes('Auditoria') ? 'checked' : '' %>> Log de Auditoría</label>
-                        </div>
+                        <%- include('./partials/permisosPestanas', { seleccionados: permisosActuales, modulos: [['Vehicles', 'Vehículos / Flota'], ['Choferes', 'Choferes'], ['Mantenimientos', 'Mantenimientos'], ['Tools', 'Herramientas'], ['Alertas', 'Panel de Alertas'], ['Reportes', 'Reportes y Análisis'], ['Siniestros', 'Siniestros / Seguros']].concat([['Auditoria', 'Log de Auditoría', true]]) }) %>
                     <% } %>
                 </section>
 

@@ -1,7 +1,7 @@
 const db = require("../model/database/models");
 const bcrypt = require("bcryptjs");
 const auditoriaService = require("../data/auditoriaService");
-const { PERMISOS_DISPONIBLES, ROL_ADMIN, normalizarVistas, resolverPermisos, listaDesdeTexto } = require("../utils/permisos");
+const { PERMISOS_DISPONIBLES, ROL_ADMIN, PESTANAS, normalizarVistas, resolverPermisos, listaDesdeTexto, incluyePermiso } = require("../utils/permisos");
 
 // Permisos que sólo un Administrador puede otorgar
 const PERMISOS_RESTRINGIDOS = ["Usuarios", "Roles", "Auditoria"];
@@ -53,6 +53,9 @@ const HASH_RELLENO = bcrypt.hashSync("relleno-no-usar", 10);
 
 const destinoSegunPermisos = (rol, permisos) => {
   if (rol === ROL_ADMIN) return "/Vehicles";
+  // Primera pestaña habilitada del menú (respeta las pestañas que el administrador le dejó ver)
+  const secciones = require("../utils/navegacion").seccionesVisibles({ rol, permisos });
+  if (secciones.length && secciones[0].items.length) return secciones[0].items[0].href;
   const orden = [
     ["Vehicles", "/Vehicles"],
     ["Choferes", "/Choferes"],
@@ -265,7 +268,7 @@ const userController = {
         permisos = [...PERMISOS_DISPONIBLES];
       } else if (!admin) {
         const propios = req.session.usuarioLogueado.permisos;
-        const noPermitidos = permisos.filter((p) => PERMISOS_RESTRINGIDOS.includes(p) || !propios.includes(p));
+        const noPermitidos = permisos.filter((p) => PERMISOS_RESTRINGIDOS.includes(p.split(":")[0]) || !incluyePermiso(propios, p));
         if (noPermitidos.length) {
           return volverConError(
             `No podés otorgar permisos que no tenés o que sólo puede dar un Administrador: ${noPermitidos.join(", ")}.`,
@@ -423,7 +426,7 @@ const userController = {
         } else {
           const propios = req.session.usuarioLogueado.permisos;
           const noPermitidos = pedidos.filter(
-            (p) => !existentes.includes(p) && (PERMISOS_RESTRINGIDOS.includes(p) || !propios.includes(p)),
+            (p) => !existentes.includes(p) && (PERMISOS_RESTRINGIDOS.includes(p.split(":")[0]) || !incluyePermiso(propios, p)),
           );
           if (noPermitidos.length) {
             return volverConError(
@@ -431,7 +434,7 @@ const userController = {
             );
           }
           // Los permisos restringidos que ya tenía no se tocan (el formulario no los muestra)
-          permisos = [...new Set([...pedidos, ...existentes.filter((p) => PERMISOS_RESTRINGIDOS.includes(p))])];
+          permisos = [...new Set([...pedidos, ...existentes.filter((p) => PERMISOS_RESTRINGIDOS.includes(p.split(":")[0]))])];
         }
         permisosStr = permisosParaGuardar(rolNuevo, permisos);
 

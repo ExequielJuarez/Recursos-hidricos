@@ -1,0 +1,101 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <link rel="icon" type="image/png" sizes="32x32" href="/favicon-32.png">
+  <link rel="icon" type="image/png" sizes="64x64" href="/favicon.png">
+  <link rel="apple-touch-icon" href="/apple-touch-icon.png">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Historial de Asignaciones - Gestión de Flota</title>
+  <link rel="stylesheet" href="/css/ListadoVehiculos.css">
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500;600;700&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
+  <style>
+    .ha-resumen { display: grid; grid-template-columns: repeat(auto-fit, minmax(190px, 1fr)); gap: 14px; margin-bottom: 22px; }
+    .ha-kpi { background: #fff; border: 1px solid var(--color-border); border-radius: var(--radius-lg); padding: 14px 16px; }
+    .ha-kpi__label { display: block; font-size: 11px; font-weight: 700; color: var(--color-text-muted); text-transform: uppercase; letter-spacing: .05em; margin-bottom: 4px; }
+    .ha-kpi__value { font-size: 20px; font-weight: 800; color: #0f172a; }
+    .ha-vacio { text-align: center; color: #64748b; padding: 40px 20px; background: #fff; border: 1px dashed var(--color-border); border-radius: var(--radius-lg); }
+    .ha-tabla td, .ha-tabla th { white-space: nowrap; }
+    .ha-tabla td.ha-obs { white-space: normal; min-width: 180px; color: #475569; }
+  </style>
+</head>
+<body>
+  <%- include('./partials/sidebar') %>
+
+  <div class="app-wrapper" id="app-wrapper">
+    <%- include('./partials/topbar') %>
+
+    <%
+      // `de`: 'vehiculo' o 'chofer'. `asignaciones`: ordenadas de la más reciente a la más vieja.
+      const esVehiculo = de === 'vehiculo';
+      const dias = (a) => {
+        const desde = new Date(a.fecha_salida); const hasta = a.fecha_devolucion ? new Date(a.fecha_devolucion) : new Date();
+        return Math.max(0, Math.round((hasta - desde) / 86400000));
+      };
+      const activa = asignaciones.find(a => a.estado === 'Activo');
+      const ultima = asignaciones[0];
+    %>
+
+    <main class="main-content" style="display: block; overflow-y: auto; padding: 40px; max-width: 1200px; margin: 0 auto;">
+      <div class="page-header" style="margin-bottom: 24px; display: flex; justify-content: space-between; align-items: flex-end; gap: 16px; flex-wrap: wrap;">
+        <div>
+          <% if (esVehiculo) { %>
+            <h2 class="page-title">Asignaciones de <span style="font-family: var(--font-mono);"><%= vehiculo.patente %></span></h2>
+            <p class="page-subtitle"><%= vehiculo.marca %> <%= vehiculo.modelo %> · <%= vehiculo.anio %> · <%= vehiculo.estado_actual %></p>
+          <% } else { %>
+            <h2 class="page-title">Asignaciones de <%= chofer.nombre %> <%= chofer.apellido %></h2>
+            <p class="page-subtitle">DNI <%= chofer.dni %> · <%= chofer.estado %></p>
+          <% } %>
+        </div>
+        <a href="<%= esVehiculo ? '/Vehicles/' + vehiculo.id_vehiculo : '/Choferes?buscar=' + chofer.dni %>" style="background-color: #f1f5f9; color: #334155; border: 1px solid #cbd5e1; padding: 8px 14px; font-size: 12px; font-weight: 700; border-radius: 6px; text-decoration: none;">← Volver a la ficha</a>
+      </div>
+
+      <section class="ha-resumen">
+        <div class="ha-kpi"><span class="ha-kpi__label">Asignaciones registradas</span><span class="ha-kpi__value"><%= asignaciones.length %></span></div>
+        <div class="ha-kpi"><span class="ha-kpi__label"><%= esVehiculo ? 'Chofer actual' : 'Vehículo actual' %></span><span class="ha-kpi__value" style="font-size: 16px;"><%= activa ? (esVehiculo ? (activa.Chofer ? activa.Chofer.apellido + ', ' + activa.Chofer.nombre : '—') : (activa.vehiculo ? activa.vehiculo.patente : '—')) : 'Ninguno' %></span></div>
+        <div class="ha-kpi"><span class="ha-kpi__label">Última salida</span><span class="ha-kpi__value" style="font-size: 16px;"><%= ultima ? fmtFecha(ultima.fecha_salida) : '—' %></span></div>
+      </section>
+
+      <% if (!asignaciones.length) { %>
+        <div class="ha-vacio">No hay asignaciones registradas.</div>
+      <% } else { %>
+        <section class="data-card">
+          <div class="data-table-wrapper">
+            <table class="data-table ha-tabla">
+              <thead class="data-table__head">
+                <tr>
+                  <th class="data-table__th">Salida</th>
+                  <th class="data-table__th">Devolución</th>
+                  <th class="data-table__th"><%= esVehiculo ? 'Chofer' : 'Vehículo' %></th>
+                  <th class="data-table__th">Destino</th>
+                  <th class="data-table__th">Días</th>
+                  <th class="data-table__th">Estado</th>
+                  <th class="data-table__th">Observaciones</th>
+                </tr>
+              </thead>
+              <tbody class="data-table__body">
+                <% asignaciones.forEach(a => { %>
+                  <tr class="data-table__row">
+                    <td class="data-table__td" data-label="Salida"><%= fmtFecha(a.fecha_salida) %></td>
+                    <td class="data-table__td" data-label="Devolución"><%= a.fecha_devolucion ? fmtFecha(a.fecha_devolucion) : 'En curso' %></td>
+                    <td class="data-table__td" data-label="<%= esVehiculo ? 'Chofer' : 'Vehículo' %>" style="font-weight: 700;">
+                      <% if (esVehiculo) { %><%= a.Chofer ? a.Chofer.apellido + ', ' + a.Chofer.nombre : '—' %><% } else { %>
+                        <% if (a.vehiculo) { %><a href="/Vehicles/<%= a.vehiculo.id_vehiculo %>" style="color: #2563eb; text-decoration: none; font-family: var(--font-mono);"><%= a.vehiculo.patente %></a> <span style="font-weight: 500; color: #64748b;"><%= a.vehiculo.marca %> <%= a.vehiculo.modelo %></span><% } else { %>—<% } %>
+                      <% } %>
+                    </td>
+                    <td class="data-table__td" data-label="Destino"><%= a.destino_area || '—' %></td>
+                    <td class="data-table__td" data-label="Días"><%= dias(a) %></td>
+                    <td class="data-table__td" data-label="Estado"><span class="badge <%= a.estado === 'Activo' ? 'badge--info' : 'badge--success' %>"><%= a.estado === 'Activo' ? 'En curso' : 'Devuelto' %></span></td>
+                    <td class="data-table__td ha-obs" data-label="Observaciones"><%= a.observaciones || '—' %></td>
+                  </tr>
+                <% }) %>
+              </tbody>
+            </table>
+          </div>
+        </section>
+      <% } %>
+    </main>
+  </div>
+  <script src="/js/sidebar.js"></script>
+</body>
+</html>

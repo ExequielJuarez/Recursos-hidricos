@@ -127,6 +127,11 @@ module.exports = (sequelize, DataTypes) => {
         type: DataTypes.DATEONLY,
       },
 
+      // Día en que el vehículo se cargó en el sistema (fecha_alta es el alta física en la empresa)
+      fecha_alta_sistema: {
+        type: DataTypes.DATEONLY,
+      },
+
       foto_cedula: {
         type: DataTypes.STRING(255),
         allowNull: true,

@@ -142,19 +142,20 @@
               <% } %>
           </div>
 
-          <% const mostrarMotivo = old?.['activo-inactivo'] === 'Inactivo'; %>
-          <div class="form-group" id="grupo-motivo-baja"
-              style="<%= mostrarMotivo ? 'display:block' : 'display:none' %>">
-              <label>Motivo de baja <small>(requerido al desactivar)</small></label>
-              <textarea
-                  class="input input-textarea <%= errors?.motivoBaja ? 'input-error' : '' %>"
-                  name="motivoBaja"
-                  rows="3"
-                  placeholder="Explicá el motivo por el que se da de baja al chofer..."
-              ><%= old?.motivoBaja || chofer?.motivoBaja || '' %></textarea>
-              <% if (errors?.motivoBaja) { %>
-                  <span class="error"><%= errors.motivoBaja.msg %></span>
-              <% } %>
+          </div>
+
+          <% const _noActivo = ['Inactivo', 'Licencia Vacaciones/Medica'].includes(old?.['activo-inactivo']); %>
+          <div class="form-row" id="grupo-motivo-baja" style="<%= _noActivo ? '' : 'display:none' %>">
+            <div class="form-group">
+              <label>Desde qué fecha <span class="req">*</span></label>
+              <input class="<%= errors?.fecha_inactivo ? 'input-error' : '' %>" name="fecha_inactivo" type="date" value="<%= old?.fecha_inactivo || '' %>">
+              <% if (errors?.fecha_inactivo) { %><span class="error"><%= errors.fecha_inactivo.msg %></span><% } %>
+            </div>
+            <div class="form-group">
+              <label>Motivo <span class="req">*</span> <small>(baja, licencia médica, vacaciones...)</small></label>
+              <textarea class="<%= errors?.motivoBaja ? 'input-error' : '' %>" name="motivoBaja" rows="3" placeholder="Explicá el motivo por el que el chofer queda inactivo o de licencia..."><%= old?.motivoBaja || '' %></textarea>
+              <% if (errors?.motivoBaja) { %><span class="error"><%= errors.motivoBaja.msg %></span><% } %>
+            </div>
           </div>
 
           <div class="form-row">
@@ -276,20 +277,20 @@
       });
     });
 
+    // Fecha y motivo: sólo cuando el chofer no queda Activo (Inactivo o de Licencia)
     document.addEventListener('DOMContentLoaded', () => {
-        const selectEstado    = document.getElementById('select-estado');
-        const grupoMotivoBaja = document.getElementById('grupo-motivo-baja');
-
-        if (selectEstado && grupoMotivoBaja) {
-            selectEstado.addEventListener('change', function () {
-                if (this.value === 'Inactivo') {
-                    grupoMotivoBaja.style.display = 'block';
-                } else {
-                    grupoMotivoBaja.style.display = 'none';
-                    grupoMotivoBaja.querySelector('textarea').value = '';
-                }
-            });
-        }
+      const selectEstado = document.querySelector('select[name="activo-inactivo"]');
+      const grupo = document.getElementById('grupo-motivo-baja');
+      if (!selectEstado || !grupo) return;
+      const fecha = grupo.querySelector('input[name="fecha_inactivo"]');
+      fecha.max = new Date(Date.now() - new Date().getTimezoneOffset() * 60000).toISOString().slice(0, 10);
+      const aplicar = () => {
+        const noActivo = selectEstado.value === 'Inactivo' || selectEstado.value === 'Licencia Vacaciones/Medica';
+        grupo.style.display = noActivo ? '' : 'none';
+        if (noActivo && !fecha.value) fecha.value = fecha.max;
+      };
+      selectEstado.addEventListener('change', aplicar);
+      aplicar();
     });
   </script>
 

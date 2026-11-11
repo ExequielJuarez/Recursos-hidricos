@@ -117,6 +117,7 @@
                             <% if (!esProg(m)) { %>
                             <div><span class="mv-dato__label">Próximo service sugerido</span><span class="mv-dato__valor"><%= m.proximo_km ? 'A los ' + fmtUso(m.proximo_km, vehiculo) : 'No especificado' %></span></div>
                             <% } %>
+                            <div><span class="mv-dato__label">Taller</span><span class="mv-dato__valor"><%= m.taller || 'No especificado' %></span></div>
                             <% if (m.nro_remito || m.nro_factura || m.proveedor || m.nro_pedido || m.nro_expediente) { %>
                             <div><span class="mv-dato__label">Casa proveedora</span><span class="mv-dato__valor"><%= m.proveedor || '—' %></span></div>
                             <div><span class="mv-dato__label">N° remito / factura</span><span class="mv-dato__valor"><%= m.nro_remito || '—' %> / <%= m.nro_factura || '—' %></span></div>

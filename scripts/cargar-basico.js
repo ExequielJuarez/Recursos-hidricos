@@ -38,6 +38,21 @@ const AÑO = 365;
 const DISTRITOS = ["Capital", "Rawson", "Pocito", "Chimbas", "Rivadavia", "Caucete"];
 
 // Ajustes de Herramientas: sectores (destino de herramientas y préstamos) y operarios (responsables de los préstamos)
+// Tipos de servicio de mantenimiento (Mantenimientos → Repuestos / Servicios): se eligen de esta lista al registrar una orden
+const TIPOS_SERVICIO = [
+  "Service (aceite y filtros)",
+  "Cambio de pastillas de freno",
+  "Cambio de discos y pastillas",
+  "Alineación y balanceo",
+  "Cambio de neumáticos",
+  "Cambio de batería",
+  "Reparación eléctrica",
+  "Cambio de embrague",
+  "Cambio de correa de distribución",
+  "Chapa y pintura",
+  "Service de maquinaria (horas)",
+];
+
 const SECTORES = ["Taller Central", "Riego", "Obras Hidráulicas", "Canales y Desagües", "Hidrometría", "Administración"];
 const OPERARIOS = ["Héctor Quiroga", "Ramón Videla", "Nicolás Castro", "Sergio Olivera", "Mariano Godoy", "Fabián Peralta", "Esteban Navarro", "Julio Aguilera"];
 
@@ -92,6 +107,14 @@ const path = require("path");
 const { DIR_DOCUMENTOS } = require("../src/utils/documentos");
 const IMG_DNI = path.join(__dirname, "../public/img/licencias/dni.jpg");
 const IMG_LICENCIA = path.join(__dirname, "../public/img/licencias/licencia.jpg");
+// Fotos de perfil de ejemplo para 3 choferes (el resto queda con la imagen "sin foto" hasta que se edite)
+const FOTOS_EJEMPLO = { 0: "chofer-ejemplo-1.webp", 2: "chofer-ejemplo-2.webp", 4: "chofer-ejemplo-3.webp" };
+const DIR_PERFILES = path.join(__dirname, "../public/img/licencias");
+const subirFotoPerfil = (archivo) => {
+  const filename = `chofer-${Date.now()}${String(++contador).padStart(6, "0")}.webp`; // mismo formato que una foto subida
+  fs.copyFileSync(path.join(__dirname, "../public/img/choferes-ejemplo", archivo), path.join(DIR_PERFILES, filename));
+  return { fieldname: "imagen", originalname: archivo, filename, path: path.join(DIR_PERFILES, filename) };
+};
 let contador = 0;
 const subir = (origen, nombreOriginal) => {
   fs.mkdirSync(DIR_DOCUMENTOS, { recursive: true });
@@ -184,6 +207,8 @@ const subir = (origen, nombreOriginal) => {
         files.carnet_dorso = [subir(IMG_LICENCIA, `Carnet oficial ${nombreCompleto} - dorso.jpg`)];
       }
 
+      if (FOTOS_EJEMPLO[i]) files.imagen = [subirFotoPerfil(FOTOS_EJEMPLO[i])];
+
       const req = { body: { ...body }, files, params: {}, session: null };
       await Promise.all(choferVAlidation().map((regla) => regla.run(req)));
       const errores = validationResult(req);
@@ -205,6 +230,8 @@ const subir = (origen, nombreOriginal) => {
     console.log(`  · Choferes cargados: ${CHOFERES.length} (cada uno con su licencia, DNI y, si corresponde, carnet oficial)`);
 
     // ── Ajustes de herramientas y herramientas (misma validación y alta que "Carga nueva")
+    for (const nombre of TIPOS_SERVICIO) await db.TipoServicio.create({ nombre });
+    console.log(`  · Tipos de servicio de mantenimiento: ${TIPOS_SERVICIO.length}`);
     for (const nombre of SECTORES) await db.Sector.create({ nombre });
     for (const nombre of OPERARIOS) await db.Operario.create({ nombre, estado: "Activo" });
     const toolService = require("../src/data/toolService");

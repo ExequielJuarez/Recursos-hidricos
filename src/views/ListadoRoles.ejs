@@ -60,7 +60,7 @@
                                     <% if (rol.permisos) { %>
                                         <% rol.permisos.split(',').forEach(p => { %>
                                             <span class="badge" style="background: #f1f5f9; color: #475569; border: 1px solid #cbd5e1; margin-bottom: 4px; margin-right: 4px; display: inline-block;">
-                                                <%= NOMBRE_PERMISO[p.trim()] || p.trim() %>
+                                                <% const _tok = p.trim(); const [_m, _c] = _tok.split(":"); const _pe = _c ? (PESTANAS[_m] || []).find(x => x.clave === _c) : null; %><%= _c ? (NOMBRE_PERMISO[_m] || _m) + " › " + (_pe ? _pe.label : _c) : (NOMBRE_PERMISO[_tok] || _tok) %>
                                             </span>
                                         <% }) %>
                                     <% } else { %>

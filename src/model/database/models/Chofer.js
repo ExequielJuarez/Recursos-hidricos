@@ -62,6 +62,11 @@ module.exports = (sequelize, DataTypes) => {
       type: DataTypes.TEXT,
       allowNull: true
     },
+    // Desde cuándo está Inactivo o de Licencia (null si está Activo)
+    fecha_inactivo: {
+      type: DataTypes.DATEONLY,
+      allowNull: true
+    },
     estado: {
       type: DataTypes.STRING(50),
       allowNull: false,

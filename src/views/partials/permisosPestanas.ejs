@@ -1,0 +1,64 @@
+<%
+  // Casillas de permisos: un bloque por módulo y, debajo, sus pestañas.
+  //   seleccionados: permisos actuales (ej: ["Vehicles", "Vehicles:alta", "Choferes"])
+  //   modulos: [[clave, etiqueta, restringido]] en el orden a mostrar
+  // Sin pestañas marcadas de un módulo = el módulo completo; el formulario envía todo con name="vistas".
+  const _PEST = PESTANAS;
+  const _sel = Array.isArray(seleccionados) ? seleccionados : [];
+%>
+<style>
+  .perm-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(230px, 1fr)); gap: 12px; margin-top: 12px; }
+  .perm-mod { background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 8px; padding: 10px 12px; }
+  .perm-mod--restringido { border-color: #fecaca; background: #fef2f2; }
+  .perm-mod__titulo { display: flex; align-items: center; gap: 10px; font-size: 14px; font-weight: 700; color: #0f172a; cursor: pointer; }
+  .perm-mod--restringido .perm-mod__titulo { color: #991b1b; }
+  .perm-mod__pestanas { margin: 8px 0 0 26px; display: flex; flex-direction: column; gap: 4px; border-left: 2px solid #e2e8f0; padding-left: 10px; }
+  .perm-mod__pestanas label { display: flex; align-items: center; gap: 8px; font-size: 12.5px; font-weight: 500; color: #475569; cursor: pointer; }
+  .perm-mod__ayuda { font-size: 11px; color: #94a3b8; margin-top: 2px; }
+</style>
+<div class="perm-grid">
+  <% modulos.forEach(([clave, etiqueta, restringido]) => {
+       const tieneModulo = _sel.includes(clave);
+       const pestanas = _PEST[clave] || [];
+       const marcadas = _sel.filter(p => p.startsWith(clave + ':'));
+  %>
+    <div class="perm-mod <%= restringido ? 'perm-mod--restringido' : '' %>" data-modulo="<%= clave %>">
+      <label class="perm-mod__titulo"><input type="checkbox" name="vistas" value="<%= clave %>" class="perm-modulo" <%= tieneModulo ? 'checked' : '' %>> <%= etiqueta %></label>
+      <% if (pestanas.length) { %>
+        <div class="perm-mod__pestanas">
+          <% pestanas.forEach(p => { const valor = clave + ':' + p.clave; %>
+            <label><input type="checkbox" name="vistas" value="<%= valor %>" class="perm-pestana" <%= tieneModulo && (!marcadas.length || marcadas.includes(valor)) ? 'checked' : '' %>> <%= p.label %></label>
+          <% }) %>
+          <span class="perm-mod__ayuda">Destildá las pestañas que no debe ver.</span>
+        </div>
+      <% } %>
+    </div>
+  <% }) %>
+</div>
+<script>
+  (function () {
+    if (window.sincronizarPestanas) return;
+    // Módulo tildado sin pestañas → todas; módulo destildado → ninguna
+    window.sincronizarPestanas = function () {
+      document.querySelectorAll('.perm-mod').forEach(function (bloque) {
+        var modulo = bloque.querySelector('.perm-modulo');
+        var pestanas = bloque.querySelectorAll('.perm-pestana');
+        if (!pestanas.length) return;
+        var alguna = Array.prototype.some.call(pestanas, function (p) { return p.checked; });
+        if (!modulo.checked) pestanas.forEach(function (p) { p.checked = false; });
+        else if (!alguna) pestanas.forEach(function (p) { p.checked = true; });
+      });
+    };
+    document.addEventListener('change', function (e) {
+      var bloque = e.target.closest && e.target.closest('.perm-mod');
+      if (!bloque) return;
+      var modulo = bloque.querySelector('.perm-modulo');
+      var pestanas = bloque.querySelectorAll('.perm-pestana');
+      if (e.target.classList.contains('perm-modulo')) {
+        pestanas.forEach(function (p) { p.checked = modulo.checked; });
+      } else if (e.target.classList.contains('perm-pestana')) {
+        modulo.checked = Array.prototype.some.call(pestanas, function (p) { return p.checked; });
+      }
+    });
+  })();
+</script>

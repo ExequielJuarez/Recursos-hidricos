@@ -109,21 +109,7 @@
                     
                     <div id="lista-permisos">
                         <p style="font-size: 13px; color: var(--color-text-muted); margin-bottom: 8px;">Seleccioná a qué secciones de la barra lateral tendrá acceso este usuario:</p>
-                        <div class="permisos-grid">
-                            <label class="permiso-label"><input type="checkbox" name="vistas" value="Vehicles" <%= permisosUser.includes('Vehicles') ? 'checked' : '' %>> Vehículos / Flota</label>
-                            <label class="permiso-label"><input type="checkbox" name="vistas" value="Choferes" <%= permisosUser.includes('Choferes') ? 'checked' : '' %>> Choferes</label>
-                            <label class="permiso-label"><input type="checkbox" name="vistas" value="Mantenimientos" <%= permisosUser.includes('Mantenimientos') ? 'checked' : '' %>> Mantenimientos</label>
-                            <label class="permiso-label"><input type="checkbox" name="vistas" value="Tools" <%= permisosUser.includes('Tools') ? 'checked' : '' %>> Herramientas</label>
-                            <label class="permiso-label"><input type="checkbox" name="vistas" value="Alertas" <%= permisosUser.includes('Alertas') ? 'checked' : '' %>> Alertas</label>
-                            <label class="permiso-label"><input type="checkbox" name="vistas" value="Reportes" <%= permisosUser.includes('Reportes') ? 'checked' : '' %>> Reportes BI</label>
-                            <label class="permiso-label"><input type="checkbox" name="vistas" value="Siniestros" <%= permisosUser.includes('Siniestros') ? 'checked' : '' %>> Siniestros</label>
-
-                            <% if (typeof usuarioLogueado !== 'undefined' && usuarioLogueado.rol === 'Administrador') { %>
-                                <label class="permiso-label" style="border-color: #fecaca; background: #fef2f2; color: #991b1b;"><input type="checkbox" name="vistas" value="Usuarios" <%= permisosUser.includes('Usuarios') ? 'checked' : '' %>> Usuarios</label>
-                                <label class="permiso-label" style="border-color: #fecaca; background: #fef2f2; color: #991b1b;"><input type="checkbox" name="vistas" value="Roles" <%= permisosUser.includes('Roles') ? 'checked' : '' %>> Roles</label>
-                                <label class="permiso-label" style="border-color: #fecaca; background: #fef2f2; color: #991b1b;"><input type="checkbox" name="vistas" value="Auditoria" <%= permisosUser.includes('Auditoria') ? 'checked' : '' %>> Auditoría</label>
-                            <% } %>
-                        </div>
+                        <%- include('./partials/permisosPestanas', { seleccionados: permisosUser, modulos: [['Vehicles', 'Vehículos / Flota'], ['Choferes', 'Choferes'], ['Mantenimientos', 'Mantenimientos'], ['Tools', 'Herramientas'], ['Alertas', 'Panel de Alertas'], ['Reportes', 'Reportes y Análisis'], ['Siniestros', 'Siniestros / Seguros']].concat((typeof usuarioLocal !== 'undefined' && usuarioLocal && usuarioLocal.rol === 'Administrador') ? [['Usuarios', 'Usuarios', true], ['Roles', 'Roles', true], ['Auditoria', 'Log de Auditoría', true]] : []) }) %>
                     </div>
                 </section>
 
@@ -177,7 +163,7 @@
             // (si se dejan así, el usuario hereda los del rol y sigue sus cambios futuros)
             rolSelect.addEventListener('change', function () {
                 const permisosRol = (rolSelect.options[rolSelect.selectedIndex].dataset.permisos || '').split(',').map(x => x.trim());
-                document.querySelectorAll('input[name="vistas"]').forEach(cb => { cb.checked = permisosRol.includes(cb.value); });
+                document.querySelectorAll('input[name="vistas"]').forEach(cb => { cb.checked = permisosRol.includes(cb.value); }); if (window.sincronizarPestanas) window.sincronizarPestanas();
             });
             rolSelect.addEventListener('change', togglePermisos);
             togglePermisos();

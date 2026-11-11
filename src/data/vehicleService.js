@@ -96,6 +96,12 @@ const vehicleService = {
     else if (anioNum && new Date(body.fecha_alta).getUTCFullYear() < anioNum) {
       errores.push("La fecha de alta no puede ser anterior al año del vehículo.");
     }
+    // Alta con estado Baja: hay que indicar cuándo se dejó de usar
+    if (body.estado_actual === "Baja") {
+      if (!body.fecha_baja || !esFechaValida(body.fecha_baja)) errores.push("Indicá la fecha de baja del vehículo.");
+      else if (body.fecha_baja > hoyISO()) errores.push("La fecha de baja no puede ser futura.");
+      else if (body.fecha_alta && body.fecha_baja < body.fecha_alta) errores.push("La fecha de baja no puede ser anterior a la fecha de alta.");
+    }
     if (body.transmision && !TRANSMISIONES.includes(body.transmision)) errores.push("La transmisión no es válida.");
     if (body.seguro_vencimiento && !esFechaValida(body.seguro_vencimiento)) errores.push("La fecha de vencimiento del seguro no es válida.");
     if (body.rto_vencimiento && !esFechaValida(body.rto_vencimiento)) errores.push("La fecha de vencimiento de la RTO no es válida.");
@@ -133,7 +139,8 @@ const vehicleService = {
         distrito: texto(body.distrito),
         observaciones: texto(body.observaciones),
         fecha_alta: body.fecha_alta,
-        fecha_baja: body.estado_actual === "Baja" ? hoyISO() : null,
+        fecha_baja: body.estado_actual === "Baja" ? texto(body.fecha_baja) || hoyISO() : null,
+        fecha_alta_sistema: hoyISO(), // se registra sola: el día en que se carga en el sistema
         cedula_numero: texto(body.cedula_numero),
         cedula_titular: texto(body.cedula_titular),
         seguro_compania: texto(body.seguro_compania),
@@ -148,7 +155,8 @@ const vehicleService = {
     }
   },
 
-  update: async function (id, body, files = {}) {
+  // `esAdmin`: sólo el administrador puede modificar la documentación (cédula, seguro, RTO y sus archivos)
+  update: async function (id, body, files = {}, { esAdmin = false } = {}) {
     normalizarTransmision(body);
     const transaction = await db.sequelize.transaction();
     try {
@@ -213,9 +221,16 @@ const vehicleService = {
         fecha_baja: estado === "Baja" ? texto(body.fecha_baja) || aISO(vehiculo.fecha_baja) || hoyISO() : null,
       };
 
-      if (files?.foto_cedula?.[0]) datos.foto_cedula = files.foto_cedula[0].filename;
-      if (files?.foto_titulo?.[0]) datos.foto_titulo = files.foto_titulo[0].filename;
-      if (files?.foto_rto?.[0]) datos.foto_rto = files.foto_rto[0].filename;
+      if (esAdmin) {
+        if (files?.foto_cedula?.[0]) datos.foto_cedula = files.foto_cedula[0].filename;
+        if (files?.foto_titulo?.[0]) datos.foto_titulo = files.foto_titulo[0].filename;
+        if (files?.foto_rto?.[0]) datos.foto_rto = files.foto_rto[0].filename;
+      } else {
+        // Sin permiso de administrador la documentación queda como estaba
+        for (const campo of ["cedula_numero", "cedula_titular", "seguro_compania", "seguro_vencimiento", "rto_vencimiento"]) {
+          datos[campo] = valorAnterior[campo] ?? null;
+        }
+      }
 
       await vehiculo.update(datos, { transaction });
 

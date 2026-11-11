@@ -22,7 +22,7 @@ const TABLAS = [
   "alerta",
   "auditoria",
 ];
-const TABLAS_CATALOGO = ["distritos", "sectores", "operarios"];
+const TABLAS_CATALOGO = ["distritos", "sectores", "operarios", "tipos_servicio"];
 
 // Archivos subidos (con marca de tiempo) de choferes, vehículos y siniestros + documentos adjuntos
 const borrarArchivosSubidos = () => {

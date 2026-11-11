@@ -57,8 +57,8 @@
       </a>
 
       <div class="page-header" style="margin-bottom: 24px;">
-        <h2 class="page-title" style="font-size: 24px; font-weight: 800; color: #0f172a; margin: 0 0 8px 0;">Catálogo de Repuestos</h2>
-        <p class="page-subtitle" style="color: #64748b; margin: 0; font-size: 14px;">Gestioná el inventario y costos de las piezas utilizadas en el taller.</p>
+        <h2 class="page-title" style="font-size: 24px; font-weight: 800; color: #0f172a; margin: 0 0 8px 0;">Repuestos / Servicios</h2>
+        <p class="page-subtitle" style="color: #64748b; margin: 0; font-size: 14px;">Gestioná el inventario y costos de las piezas utilizadas en el taller, y los tipos de servicio que se eligen al registrar una orden.</p>
       </div>
 
       <div class="settings-grid">
@@ -138,10 +138,49 @@
           </form>
 
         </div>
+
+        <div class="settings-card" id="servicios">
+          <h3>Tipos de Servicio</h3>
+          <p style="margin: -8px 0 16px; color: #64748b; font-size: 13px;">Son las opciones del campo «Tipo de Servicio» al registrar una orden. Elegirlos de una lista evita cargar el mismo servicio con nombres distintos (ej: «Reparación frenos» y «Repracion frenos»). Al renombrar uno se actualizan también las órdenes que ya lo usan.</p>
+          <div class="data-table-wrapper">
+            <table class="data-table" style="min-width: 0;">
+              <thead><tr><th>Tipo de servicio</th><th style="width: 140px;">Órdenes</th><th style="width: 190px;"></th></tr></thead>
+              <tbody>
+                <% if (typeof tiposServicio !== 'undefined' && tiposServicio.length) { %>
+                  <% tiposServicio.forEach(ts => { const usos = (usosPorTipo || {})[ts.nombre] || 0; %>
+                    <tr>
+                      <td style="font-weight: 600;"><%= ts.nombre %></td>
+                      <td style="color: #64748b;"><%= usos %></td>
+                      <td style="text-align: right; white-space: nowrap;">
+                        <button type="button" onclick="renombrarCatalogo('/Repuestos/TiposServicio/Renombrar/<%= ts.id_tipo_servicio %>', <%= JSON.stringify(ts.nombre) %>, 'Nuevo nombre del tipo de servicio (se actualizan las órdenes que lo usan)')" style="background:#eff6ff; color:#1d4ed8; border:1px solid #bfdbfe; padding:6px 12px; border-radius:6px; font-size:12px; font-weight:700; cursor:pointer;">Editar</button>
+                        <form action="/Repuestos/TiposServicio/Eliminar/<%= ts.id_tipo_servicio %>" method="POST" style="display:inline; margin:0;" onsubmit="return confirm('¿Eliminar el tipo de servicio <%= ts.nombre.replace(/'/g, '') %>?');">
+                          <button type="submit" class="btn-delete" <%= usos ? 'disabled title="Está en uso en órdenes de mantenimiento"' : '' %>>X</button>
+                        </form>
+                      </td>
+                    </tr>
+                  <% }) %>
+                <% } else { %>
+                  <tr><td colspan="3" style="text-align: center; padding: 24px; color: #64748b;">No hay tipos de servicio cargados. Agregá al menos uno para poder registrar órdenes.</td></tr>
+                <% } %>
+              </tbody>
+            </table>
+          </div>
+          <h4 style="font-size: 14px; margin-bottom: 12px; color: #0f172a;">Agregar Tipo de Servicio</h4>
+          <form action="/Repuestos/TiposServicio" method="POST" class="form-add">
+            <div class="form-group" style="flex: 3;">
+              <label>Nombre del servicio</label>
+              <input type="text" name="nombre" class="input-add" placeholder="Ej: Cambio de aceite y filtros" maxlength="100" required>
+            </div>
+            <div style="flex: 1; display: flex;">
+              <button type="submit" class="btn-add" style="width: 100%;">+ Añadir</button>
+            </div>
+          </form>
+        </div>
       </div>
     </main>
   </div>
 
   <script src="/js/sidebar.js"></script>
+  <script src="/js/renombrar.js"></script>
 </body>
 </html>

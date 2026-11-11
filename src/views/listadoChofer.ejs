@@ -200,6 +200,26 @@
       </section>
     </main>
 
+    <div id="modal-desactivar" style="display:none; position:fixed; inset:0; background:rgba(15,23,42,.55); z-index:10000; align-items:center; justify-content:center; padding:16px;">
+      <form method="POST" id="form-desactivar" style="background:#fff; border-radius:12px; padding:22px; width:100%; max-width:460px; box-shadow:0 20px 50px rgba(0,0,0,.25); font-family:'DM Sans',sans-serif;">
+        <h3 style="margin:0 0 4px; font-size:18px; color:#0f172a;">Desactivar chofer</h3>
+        <p id="desactivar-nombre" style="margin:0 0 16px; color:#64748b; font-size:14px;"></p>
+        <label style="display:block; font-size:12px; font-weight:700; color:#475569; margin-bottom:4px;">Nuevo estado *</label>
+        <select name="estado" style="width:100%; padding:9px 10px; border:1px solid #cbd5e1; border-radius:8px; margin-bottom:12px; font-family:inherit;">
+          <option value="Inactivo">Inactivo</option>
+          <option value="Licencia Vacaciones/Medica">Licencia Vacaciones/Medica</option>
+        </select>
+        <label style="display:block; font-size:12px; font-weight:700; color:#475569; margin-bottom:4px;">Desde qué fecha *</label>
+        <input type="date" name="fecha_inactivo" id="desactivar-fecha" required style="width:100%; box-sizing:border-box; padding:9px 10px; border:1px solid #cbd5e1; border-radius:8px; margin-bottom:12px; font-family:inherit;">
+        <label style="display:block; font-size:12px; font-weight:700; color:#475569; margin-bottom:4px;">Motivo *</label>
+        <textarea name="motivoBaja" required maxlength="500" rows="3" placeholder="Ej: renuncia, licencia médica, vacaciones..." style="width:100%; box-sizing:border-box; padding:9px 10px; border:1px solid #cbd5e1; border-radius:8px; margin-bottom:16px; font-family:inherit;"></textarea>
+        <div style="display:flex; gap:10px; justify-content:flex-end;">
+          <button type="button" onclick="cerrarDesactivar()" style="background:#f1f5f9; color:#334155; border:1px solid #cbd5e1; padding:9px 16px; border-radius:8px; font-weight:700; cursor:pointer;">Cancelar</button>
+          <button type="submit" style="background:#dc2626; color:#fff; border:0; padding:9px 16px; border-radius:8px; font-weight:700; cursor:pointer;">Confirmar</button>
+        </div>
+      </form>
+    </div>
+
   </div>
 
   <script src="/js/sidebar.js"></script>
@@ -249,6 +269,23 @@
     if (e.target === modalOverlay) modalOverlay.style.display = 'none';
   });
 
+  function abrirDesactivar(id, nombre, fechaIngreso) {
+    const modal = document.getElementById('modal-desactivar');
+    const form = document.getElementById('form-desactivar');
+    form.action = '/Choferes/' + id + '/desactivar';
+    form.reset();
+    document.getElementById('desactivar-nombre').textContent = nombre;
+    const fecha = document.getElementById('desactivar-fecha');
+    const hoy = new Date(Date.now() - new Date().getTimezoneOffset() * 60000).toISOString().slice(0, 10);
+    fecha.max = hoy;
+    fecha.min = fechaIngreso || '';
+    fecha.value = hoy;
+    modal.style.display = 'flex';
+    form.querySelector('textarea').focus();
+  }
+  function cerrarDesactivar() { document.getElementById('modal-desactivar').style.display = 'none'; }
+  document.addEventListener('keydown', (e) => { if (e.key === 'Escape') cerrarDesactivar(); });
+
   function abrirFoto(src) {
     if (/\.pdf$/i.test(src)) { window.open(src, '_blank', 'noopener'); return; } // PDF: se abre en otra pestaña
     document.getElementById('foto-modal-img').src = src;
@@ -271,7 +308,7 @@
     tiene_carnet_oficial: !!c.tiene_carnet_oficial,
     documentos: (c.documentos || []).map(d => ({ id: d.id_documento, categoria: d.categoria, nombre: d.nombre_original || d.archivo })),
     imagen: c.imagen || null,
-    motivoBaja: c.motivoBaja || '',
+    motivoBaja: c.motivoBaja || '', fecha_inactivo: c.fecha_inactivo || '', fechaIngreso: c.fechaIngreso ? String(c.fechaIngreso).slice(0, 10) : '',
     licencia: c.licencias && c.licencias.length > 0 ? {
       numero: c.licencias[0].numero,
       categoria: c.licencias[0].categoria,
@@ -364,22 +401,47 @@
   }
 
   /* ── RENDER DETALLE ── */
+  // Últimas asignaciones del chofer (el historial completo está en /Choferes/:id/asignaciones)
+  async function cargarHistorialAsignaciones(id) {
+    const cuerpo = document.getElementById('hist-asig-cuerpo');
+    if (!cuerpo) return;
+    const fmt = (f) => f ? new Date(f).toLocaleDateString('es-AR') : '—';
+    try {
+      const r = await fetch('/Choferes/' + id + '/asignaciones?formato=json');
+      const d = await r.json();
+      const ver = document.getElementById('hist-asig-ver');
+      if (ver) ver.textContent = 'Ver todas (' + d.total + ') →';
+      cuerpo.innerHTML = d.asignaciones.length
+        ? d.asignaciones.map(a => '<tr class="data-table__row">' +
+            '<td class="data-table__td" data-label="Salida">' + fmt(a.fecha_salida) + '</td>' +
+            '<td class="data-table__td" data-label="Vehículo"><strong>' + esc(a.patente) + '</strong> <span style="color:#64748b;">' + esc(a.vehiculo) + '</span></td>' +
+            '<td class="data-table__td" data-label="Destino">' + esc(a.destino || '—') + '</td>' +
+            '<td class="data-table__td" data-label="Devolución">' + (a.estado === 'Activo' ? '<span class="badge badge--info">En curso</span>' : fmt(a.fecha_devolucion)) + '</td></tr>').join('')
+        : '<tr><td class="data-table__td" colspan="4" style="text-align:center; color:#64748b;">Sin asignaciones registradas</td></tr>';
+    } catch (e) {
+      cuerpo.innerHTML = '<tr><td class="data-table__td" colspan="4" style="text-align:center; color:#991b1b;">No se pudo cargar el historial.</td></tr>';
+    }
+  }
+
   function renderDetalle(c) {
     const v = checkVencimiento(c.licencia?.fecha_vencimiento);
     const emptyState = document.getElementById('empty-state');
     if (emptyState) emptyState.style.display = 'none';
 
     const avatarHTML = true
-      ? `<img src="/img/licencias/${esc(c.imagen || 'chofer.jpg')}" alt="Foto" style="width:60px;height:60px;border-radius:50%;object-fit:cover;border:2px solid #e2e8f0;">`
+      ? `<img src="/img/licencias/${esc(c.imagen || 'sin-foto.webp')}" alt="Foto" style="width:60px;height:60px;border-radius:50%;object-fit:cover;border:2px solid #e2e8f0;">`
       : `<div style="width:60px;height:60px;border-radius:50%;background:#e2e8f0;display:flex;align-items:center;justify-content:center;font-size:24px;font-weight:800;color:#94a3b8;">${esc(c.nombre.charAt(0))}${esc(c.apellido.charAt(0))}</div>`;
 
     const estadoBtn = c.estado === 'Activo'
-      ? `<form method="POST" action="/Choferes/${c.id_chofer}/desactivar" style="margin:0;" onsubmit="return confirm('¿Desactivar a este chofer?');">
-           <button type="submit" style="background-color:#fef2f2;color:#dc2626;border:1px solid #fecaca;padding:8px 14px;font-size:12px;font-weight:700;border-radius:6px;">Desactivar</button>
-         </form>`
+      ? `<button type="button" onclick="abrirDesactivar(${c.id_chofer}, '${esc(c.nombre + ' ' + c.apellido).replace(/'/g, '')}', '${esc(c.fechaIngreso || '')}')" style="background-color:#fef2f2;color:#dc2626;border:1px solid #fecaca;padding:8px 14px;font-size:12px;font-weight:700;border-radius:6px;cursor:pointer;">Desactivar</button>`
       : `<form method="POST" action="/Choferes/${c.id_chofer}/activar" style="margin:0;" onsubmit="return confirm('¿Activar a este chofer?');">
            <button type="submit" style="background-color:#ecfdf5;color:#059669;border:1px solid #a7f3d0;padding:8px 14px;font-size:12px;font-weight:700;border-radius:6px;">Activar</button>
          </form>`;
+
+    const fmtF = (f) => f ? String(f).slice(0, 10).split('-').reverse().join('/') : '';
+    const avisoInactivo = c.estado !== 'Activo'
+      ? `<div style="margin-top:12px; background:#fef2f2; border:1px solid #fecaca; color:#991b1b; border-radius:8px; padding:10px 12px; font-size:13px;"><strong>${esc(c.estado)}${c.fecha_inactivo ? ' desde el ' + fmtF(c.fecha_inactivo) : ''}.</strong>${c.motivoBaja ? ' Motivo: ' + esc(c.motivoBaja) : ''}</div>`
+      : '';
 
     const fotoDNIBtn = c.foto_documento
       ? `<button onclick="abrirFoto('/img/licencias/${esc(c.foto_documento)}')" style="margin-top:6px;background:#f1f5f9;border:1px solid #cbd5e1;border-radius:6px;padding:5px 10px;font-size:11px;font-weight:700;color:#2563eb;cursor:pointer;">📄 Ver DNI</button>`
@@ -420,6 +482,7 @@
             <a href="/Choferes/${c.id_chofer}/editar" style="background-color:#eff6ff;color:#2563eb;border:1px solid #bfdbfe;padding:8px 14px;font-size:12px;font-weight:700;border-radius:6px;text-decoration:none;">Editar</a>
             ${estadoBtn}
           </div>
+          ${avisoInactivo ? `<div style="flex:1 0 100%;">${avisoInactivo}</div>` : ''}
         </div>
 
         <div class="vehicle-profile__specs" style="grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:20px;">
@@ -474,6 +537,19 @@
             </header>
             <div style="padding:20px;">${asigHTML}</div>
           </section>
+          <section class="data-card">
+            <header class="data-card__header">
+              <svg class="data-card__icon" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm1-12a1 1 0 10-2 0v4a1 1 0 00.293.707l2.828 2.829a1 1 0 101.415-1.415L11 9.586V6z" clip-rule="evenodd"/></svg>
+              <h3 class="data-card__title">Historial de Asignaciones</h3>
+              <a href="/Choferes/${c.id_chofer}/asignaciones" id="hist-asig-ver" class="no-print" style="margin-left:auto; background-color:#eff6ff; color:#2563eb; border:1px solid #bfdbfe; padding:6px 12px; font-size:12px; font-weight:700; border-radius:6px; text-decoration:none; white-space:nowrap;">Ver todas →</a>
+            </header>
+            <div class="data-table-wrapper">
+              <table class="data-table">
+                <thead class="data-table__head"><tr><th class="data-table__th">Salida</th><th class="data-table__th">Vehículo</th><th class="data-table__th">Destino</th><th class="data-table__th">Devolución</th></tr></thead>
+                <tbody class="data-table__body" id="hist-asig-cuerpo"><tr><td class="data-table__td" colspan="4" style="text-align:center; color:#64748b;">Cargando...</td></tr></tbody>
+              </table>
+            </div>
+          </section>
         </div>
         <aside class="detail-side-column">
           <section class="alerts-card">
@@ -493,6 +569,7 @@
         </aside>
       </div>
     `;
+    cargarHistorialAsignaciones(c.id_chofer);
   }
 
   /* ── BÚSQUEDA EN TIEMPO REAL (todos los choferes vía API) ── */
@@ -518,7 +595,7 @@
         tiene_carnet_oficial: !!c.tiene_carnet_oficial,
         documentos: (c.documentos || []).map(d => ({ id: d.id_documento, categoria: d.categoria, nombre: d.nombre_original || d.archivo })),
         imagen: c.imagen || null,
-        motivoBaja: c.motivoBaja || '',
+        motivoBaja: c.motivoBaja || '', fecha_inactivo: c.fecha_inactivo || '', fechaIngreso: c.fechaIngreso ? String(c.fechaIngreso).slice(0, 10) : '',
         licencia: c.licencias && c.licencias.length > 0 ? {
           numero: c.licencias[0].numero,
           categoria: c.licencias[0].categoria,

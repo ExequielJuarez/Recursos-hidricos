@@ -58,7 +58,7 @@ const prestamoService = {
         {
           id_herramienta: herramienta.id_herramienta,
           nombre_operario: operario.nombre,
-          fecha_salida: mediodiaLocal(salida),
+          fecha_salida: salida === hoyISO() ? new Date() : mediodiaLocal(salida), // si sale hoy, con la hora real
           fecha_devolucion_estimada: mediodiaLocal(data.fecha_devolucion_estimada),
           sector_destino: sectorNombre,
           observaciones,

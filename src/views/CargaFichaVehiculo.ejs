@@ -241,6 +241,19 @@
               <span class="field-error" id="err-fecha-alta"></span>
             </div>
           </div>
+          <div class="form-row">
+            <div class="form-group">
+              <label style="margin-bottom: 6px; display: block;">Fecha de alta (sistema)</label>
+              <input type="text" value="<%= new Date().toLocaleDateString('es-AR') %>" readonly style="background:#f8fafc; color:#475569;" title="Se registra automáticamente: es el día en que el vehículo se carga en el sistema">
+              <small style="color:#64748b; font-size:12px;">Se registra sola al guardar.</small>
+            </div>
+            <div class="form-group" id="grupo-fecha-baja" style="display:none;">
+              <label style="margin-bottom: 6px; display: block;">Fecha de Baja <span class="req">*</span></label>
+              <input name="fecha_baja" type="date" id="fecha_baja">
+              <small style="color:#64748b; font-size:12px;">Día en que el vehículo se dejó de usar en el establecimiento.</small>
+              <span class="field-error" id="err-fecha-baja"></span>
+            </div>
+          </div>
           <div class="form-group">
             <label>Observaciones</label>
             <textarea name="observaciones" placeholder="Añade notas adicionales..."></textarea>
@@ -360,6 +373,15 @@
       }
     }
 
+    // Fecha de baja: obligatoria si el estado inicial es Baja, no futura y no anterior a la fecha de alta
+    if (document.getElementById('estado_actual').value === 'Baja') {
+      const fb = document.getElementById('fecha_baja').value;
+      const hoy = new Date(Date.now() - new Date().getTimezoneOffset() * 60000).toISOString().slice(0, 10);
+      if (!fb) { setError('fecha_baja', 'err-fecha-baja', 'Indicá la fecha de baja.'); valido = false; }
+      else if (fb > hoy) { setError('fecha_baja', 'err-fecha-baja', 'La fecha de baja no puede ser futura.'); valido = false; }
+      else if (fechaAlta && fb < fechaAlta) { setError('fecha_baja', 'err-fecha-baja', 'La fecha de baja no puede ser anterior a la fecha de alta.'); valido = false; }
+    }
+
     if (valido) this.submit();
   });
 
@@ -376,6 +398,12 @@
       if (er) er.textContent = '';
     });
   });
+
+  // La fecha de baja sólo se pide si el estado inicial es Baja
+  const selEstadoAlta = document.getElementById('estado_actual');
+  const mostrarBaja = () => { document.getElementById('grupo-fecha-baja').style.display = selEstadoAlta.value === 'Baja' ? '' : 'none'; };
+  selEstadoAlta.addEventListener('change', mostrarBaja); mostrarBaja();
+  document.getElementById('fecha_baja').max = new Date(Date.now() - new Date().getTimezoneOffset() * 60000).toISOString().slice(0, 10);
 
   // Previews de fotos
   ['cedula', 'titulo', 'rto'].forEach(nombre => {

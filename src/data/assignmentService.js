@@ -3,7 +3,7 @@ const { Op } = require("sequelize");
 const { hoyISO, aISO, mediodiaLocal } = require("../utils/fechas");
 
 const { ErrorNegocio } = require("../utils/errores");
-const { categoriasPermitidas, mapaPorTipo } = require("../utils/licencias");
+const { licenciasDeTipo, mapaPorTipo } = require("../utils/licencias");
 
 // Motivo por el que un vehículo no puede salir a la calle por su documentación (o null)
 const motivoDocumentacion = (vehiculo, hasta = hoyISO()) => {
@@ -58,8 +58,23 @@ const assignmentService = {
       c.setDataValue("categorias", vigentes.join(", "));
     });
 
-    const tipos = [...new Set(vehiculos.map((v) => v.getDataValue("tipoDescripcion")).filter(Boolean))];
+    const tipos = [...new Map(vehiculos.filter((v) => v.TipoVehiculo).map((v) => [v.TipoVehiculo.id_tipo, v.TipoVehiculo])).values()];
     return { vehiculos, choferes, categoriasPorTipo: mapaPorTipo(tipos) };
+  },
+
+  // Historial de asignaciones de un vehículo o de un chofer, de la más reciente a la más vieja
+  historial: async function ({ id_vehiculo, id_chofer }) {
+    const where = {};
+    if (id_vehiculo) where.id_vehiculo = id_vehiculo;
+    if (id_chofer) where.id_chofer = id_chofer;
+    return db.AsignacionVehiculo.findAll({
+      where,
+      include: [{ association: "Chofer" }, { association: "vehiculo" }],
+      order: [
+        ["fecha_salida", "DESC"],
+        ["id_asignacion", "DESC"],
+      ],
+    });
   },
 
   getActiveAssignments: async function () {
@@ -105,7 +120,7 @@ const assignmentService = {
       }
       // La categoría de la licencia debe habilitar para ese tipo de vehículo
       const tipo = await db.TipoVehiculo.findByPk(vehiculo.id_tipo, { transaction });
-      const permitidas = categoriasPermitidas(tipo ? tipo.descripcion : null);
+      const permitidas = licenciasDeTipo(tipo);
       if (permitidas && !licenciasVigentes.some((l) => permitidas.includes(l.categoria))) {
         throw new ErrorNegocio(
           `${chofer.nombre} ${chofer.apellido} tiene licencia ${licenciasVigentes.map((l) => l.categoria).join("/")} y un vehículo tipo "${tipo.descripcion}" requiere categoría ${permitidas.join(" o ")}.`,
@@ -125,6 +140,12 @@ const assignmentService = {
       });
       if (vehiculoOcupado) throw new ErrorNegocio("El vehículo ya tiene una asignación activa.");
 
+      // El destino se elige de los distritos / ubicaciones cargados en Vehículos → Ajustes
+      const destino = String(data.destino || "").trim();
+      if (destino && !(await db.Distrito.findOne({ where: { nombre: destino }, transaction }))) {
+        throw new ErrorNegocio(`El destino "${destino}" no está en la lista de ubicaciones. Cargalo primero en Vehículos → Ajustes.`);
+      }
+
       const kmSalida = data.km_salida === undefined || data.km_salida === "" ? null : Number(data.km_salida);
       if (kmSalida !== null && (!Number.isInteger(kmSalida) || kmSalida < vehiculo.km_actual)) {
         throw new ErrorNegocio(
@@ -136,7 +157,7 @@ const assignmentService = {
         {
           id_vehiculo: data.id_vehiculo,
           id_chofer: data.id_chofer,
-          fecha_salida: mediodiaLocal(data.fecha_desde),
+          fecha_salida: data.fecha_desde === hoyISO() ? new Date() : mediodiaLocal(data.fecha_desde), // si sale hoy, con la hora real
           destino_area: data.destino || null,
           observaciones: data.observaciones || null,
           estado: "Activo",

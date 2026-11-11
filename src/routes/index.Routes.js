@@ -100,12 +100,14 @@ router.post("/Vehicles/Ajustes/Distritos/Renombrar/:id", authMiddleware, vehicle
 router.post("/Vehicles/Ajustes/Tipos", authMiddleware, vehicleController.createTipo);
 router.post("/Vehicles/Ajustes/Tipos/Editar/:id", authMiddleware, vehicleController.editarTipo);
 router.post("/Vehicles/Ajustes/Tipos/Eliminar/:id", authMiddleware, vehicleController.deleteTipo);
+router.post("/Vehicles/Ajustes/Tipos/Licencias/:id", authMiddleware, vehicleController.licenciasTipo);
 
 router.get("/Vehicles/Editar/:id", authMiddleware, vehicleController.EditVehiculo);
 router.post("/Vehicles/Editar/:id", authMiddleware, uploadVehiculo.fields([{ name: "foto_cedula", maxCount: 1 },{ name: "foto_titulo", maxCount: 1 },{ name: "foto_rto",    maxCount: 1 }]), vehicleController.processEditVehiculo);
 router.get("/Vehicles", authMiddleware, vehicleController.ListVehicles);
 router.get("/Vehicles/:id/mantenimientos", authMiddleware, vehicleController.MantenimientosDeVehiculo);
 router.get("/Vehicles/:id/siniestros", authMiddleware, vehicleController.SiniestrosDeVehiculo);
+router.get("/Vehicles/:id/asignaciones", authMiddleware, assignmentController.historialVehiculo);
 router.get("/Vehicles/Carga", authMiddleware, (req, res) => res.redirect("/CargaVehiculo"));
 router.get("/Vehicles/:id", authMiddleware, vehicleController.getVehicleById);
 router.post("/Vehicles/:id/documentos", authMiddleware, uploadSoloDocumentos, documentoController.agregar("vehiculo"));
@@ -121,6 +123,9 @@ router.get("/Repuestos/Gestionar", authMiddleware, vehicleController.GestionarRe
 router.post("/Repuestos/Agregar", authMiddleware, vehicleController.createRepuesto);
 router.post("/Repuestos/Ajustar/:id", authMiddleware, vehicleController.ajustarRepuesto);
 router.post("/Repuestos/Eliminar/:id", authMiddleware, vehicleController.deleteRepuesto);
+router.post("/Repuestos/TiposServicio", authMiddleware, vehicleController.createTipoServicio);
+router.post("/Repuestos/TiposServicio/Renombrar/:id", authMiddleware, vehicleController.renombrarTipoServicio);
+router.post("/Repuestos/TiposServicio/Eliminar/:id", authMiddleware, vehicleController.deleteTipoServicio);
 // =========================================================
 
 router.get("/Mantenimientos", authMiddleware, vehicleController.Mantenimientos);
@@ -143,6 +148,7 @@ router.post("/Choferes/:id/documentos", authMiddleware, uploadSoloDocumentos, do
 router.post("/Choferes/:id/desactivar", authMiddleware, choferController.desactivarChofer);
 router.post("/Choferes/:id/activar", authMiddleware, choferController.activarChofer);
 router.get("/Choferes/api/todos", authMiddleware, choferController.getTodosJSON);
+router.get("/Choferes/:id/asignaciones", authMiddleware, assignmentController.historialChofer);
 router.get("/Choferes/:id", authMiddleware, choferController.verChofer);
 
 router.get("/asignaciones", authMiddleware, assignmentController.showForm);

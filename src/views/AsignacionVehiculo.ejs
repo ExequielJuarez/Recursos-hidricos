@@ -162,8 +162,16 @@
           <h3>3. Información Adicional</h3>
           <div class="form-row">
             <div class="form-group">
-              <label for="destino">Destino / Área</label>
-              <input type="text" id="destino" name="destino" placeholder="Ej: Distrito Norte, Obras..." />
+              <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px;">
+                <label for="destino" style="margin: 0;">Destino / Área</label>
+                <a href="/Vehicles/Ajustes" style="font-size: 11px; color: #2563eb; text-decoration: none; font-weight: 700;" title="Las ubicaciones se cargan en Vehículos → Ajustes (distritos)">⚙ Gestionar</a>
+              </div>
+              <select id="destino" name="destino">
+                <option value="">Seleccione un destino</option>
+                <% (typeof distritos !== 'undefined' ? distritos : []).forEach(d => { %>
+                  <option value="<%= d.nombre %>"><%= d.nombre %></option>
+                <% }) %>
+              </select>
             </div>
             <div class="form-group">
               <label for="km-salida">Km de salida (Automático)</label>

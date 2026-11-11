@@ -282,6 +282,16 @@
                 <dd class="vehicle-profile__spec-value"><%= vehiculoSeleccionado.fecha_alta ? fmtFecha(vehiculoSeleccionado.fecha_alta) : '—' %></dd>
               </div>
               <div class="vehicle-profile__spec-row">
+                <dt class="vehicle-profile__spec-label">Fecha de alta (sistema)</dt>
+                <dd class="vehicle-profile__spec-value"><%= vehiculoSeleccionado.fecha_alta_sistema ? fmtFecha(vehiculoSeleccionado.fecha_alta_sistema) : '—' %></dd>
+              </div>
+              <% if (vehiculoSeleccionado.estado_actual === 'Baja') { %>
+              <div class="vehicle-profile__spec-row">
+                <dt class="vehicle-profile__spec-label">Fecha de Baja</dt>
+                <dd class="vehicle-profile__spec-value" style="color: #dc2626;"><%= vehiculoSeleccionado.fecha_baja ? fmtFecha(vehiculoSeleccionado.fecha_baja) : '—' %></dd>
+              </div>
+              <% } %>
+              <div class="vehicle-profile__spec-row">
                 <dt class="vehicle-profile__spec-label">Chofer Asignado</dt>
                 <dd class="vehicle-profile__spec-value" style="color: #2563eb; font-weight: 700;">
                   <% if (typeof asignacionActiva !== 'undefined' && asignacionActiva && asignacionActiva.Chofer) { %>
@@ -356,6 +366,39 @@
               </div>
             </section>
             
+            <section class="data-card">
+              <header class="data-card__header">
+                <svg class="data-card__icon" viewBox="0 0 20 20" fill="currentColor"><path d="M9 6a3 3 0 11-6 0 3 3 0 016 0zM17 6a3 3 0 11-6 0 3 3 0 016 0zM12.93 17c.046-.327.07-.66.07-1a6.97 6.97 0 00-1.5-4.33A5 5 0 0119 16v1h-6.07zM6 11a5 5 0 015 5v1H1v-1a5 5 0 015-5z"/></svg>
+                <h3 class="data-card__title">Asignaciones</h3>
+                <% if (typeof vehiculoSeleccionado !== 'undefined' && vehiculoSeleccionado) { %>
+                <a href="/Vehicles/<%= vehiculoSeleccionado.id_vehiculo %>/asignaciones" style="margin-left: auto; background-color: #eff6ff; color: #2563eb; border: 1px solid #bfdbfe; padding: 6px 12px; font-size: 12px; font-weight: 700; border-radius: 6px; text-decoration: none; white-space: nowrap;">
+                  Ver todas<%= typeof asignacionesVehiculo !== 'undefined' && asignacionesVehiculo ? ' (' + asignacionesVehiculo.length + ')' : '' %> →
+                </a>
+                <% } %>
+              </header>
+              <div class="data-table-wrapper">
+                <table class="data-table">
+                  <thead class="data-table__head">
+                    <tr><th class="data-table__th">Salida</th><th class="data-table__th">Chofer</th><th class="data-table__th">Destino</th><th class="data-table__th">Devolución</th></tr>
+                  </thead>
+                  <tbody class="data-table__body">
+                    <% if (typeof asignacionesVehiculo !== 'undefined' && asignacionesVehiculo && asignacionesVehiculo.length > 0) { %>
+                      <% asignacionesVehiculo.slice(0, 3).forEach(a => { %>
+                      <tr class="data-table__row">
+                        <td class="data-table__td" data-label="Salida"><%= fmtFecha(a.fecha_salida) %></td>
+                        <td class="data-table__td" data-label="Chofer"><%= a.Chofer ? a.Chofer.apellido + ', ' + a.Chofer.nombre : '—' %></td>
+                        <td class="data-table__td" data-label="Destino"><%= a.destino_area || '—' %></td>
+                        <td class="data-table__td" data-label="Devolución"><% if (a.estado === 'Activo') { %><span class="badge badge--info">En curso</span><% } else { %><%= fmtFecha(a.fecha_devolucion) %><% } %></td>
+                      </tr>
+                      <% }) %>
+                    <% } else { %>
+                      <tr class="data-table__row"><td class="data-table__td" colspan="4" style="text-align:center; color: #64748b;">Sin asignaciones registradas</td></tr>
+                    <% } %>
+                  </tbody>
+                </table>
+              </div>
+            </section>
+
             <section class="data-card">
               <header class="data-card__header">
                 <svg class="data-card__icon" viewBox="0 0 20 20" fill="currentColor" style="color: #dc2626;"><path fill-rule="evenodd" d="M10 1.944A11.954 11.954 0 012.166 5C2.056 5.649 2 6.319 2 7c0 5.225 3.34 9.67 8 11.317C14.66 16.67 18 12.225 18 7c0-.682-.057-1.35-.166-2.001A11.954 11.954 0 0110 1.944zM11 14a1 1 0 11-2 0 1 1 0 012 0zm0-7a1 1 0 10-2 0v3a1 1 0 102 0V7z" clip-rule="evenodd"/></svg>

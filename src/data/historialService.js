@@ -94,6 +94,7 @@ const historialService = {
         vehiculo: m.vehiculo ? `${m.vehiculo.marca} ${m.vehiculo.modelo}` : "",
         fecha: aISO(m.fecha_inicio),
         tipo_servicio: m.tipo_servicio,
+        taller: m.taller || "",
         estado: m.estado,
         cantidad,
         descripcion: m.descripcion || "",

@@ -136,7 +136,7 @@
                             <td class="data-table__td" data-label="<%= k %>"><% if (f[k]) { %><%= f[k] %><% } else { %><span class="hs-falta">por completar</span><% } %></td>
                             <% }) %>
                             <td class="data-table__td" data-label="Cant."><%= f.cantidad %></td>
-                            <td class="data-table__td hs-desc" data-label="Descripción"><strong><%= f.tipo_servicio %></strong><% if (f.estado === 'En proceso') { %> <span class="badge badge--info">En proceso</span><% } %><br><span style="color:#475569;"><%= f.descripcion %></span></td>
+                            <td class="data-table__td hs-desc" data-label="Descripción"><strong><%= f.tipo_servicio %></strong><% if (f.taller) { %> <span style="color:#64748b; font-size:12px;">· Taller: <%= f.taller %></span><% } %><% if (f.estado === 'En proceso') { %> <span class="badge badge--info">En proceso</span><% } %><br><span style="color:#475569;"><%= f.descripcion %></span></td>
                             <td class="data-table__td" data-label="Precio" style="text-align:right; font-weight:800;"><%= moneda(f.precio) %></td>
                             <td class="data-table__td">
                                 <button type="button" class="hs-btn btn-editar-fila"

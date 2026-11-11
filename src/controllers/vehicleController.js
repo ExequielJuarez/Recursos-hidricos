@@ -12,6 +12,7 @@ const { CATEGORIAS } = require("../utils/documentos");
 const { ErrorNegocio } = require("../utils/errores");
 const { escapeHtml } = require("../utils/html");
 const { hoyISO } = require("../utils/fechas");
+const { CATEGORIAS: CATEGORIAS_LICENCIA, normalizarLicencias } = require("../utils/licencias");
 
 const DIR_VEHICULOS = path.join(__dirname, "../../public/img/vehiculos");
 
@@ -46,11 +47,77 @@ const vehicleController = {
   GestionarRepuestos: async (req, res) => {
     try {
       const repuestos = await db.Repuesto.findAll({ order: [["nombre", "ASC"]] });
-      res.render("GestionRepuestos", { repuestos });
+      const tiposServicio = await db.TipoServicio.findAll({ order: [["nombre", "ASC"]] });
+      // Cuántas órdenes usan cada tipo (para avisar antes de borrarlo)
+      const usos = await db.Mantenimiento.findAll({
+        attributes: ["tipo_servicio", [db.sequelize.fn("COUNT", db.sequelize.col("id_mantenimiento")), "n"]],
+        group: ["tipo_servicio"],
+        raw: true,
+      });
+      const usosPorTipo = Object.fromEntries(usos.map((u) => [u.tipo_servicio, Number(u.n)]));
+      res.render("GestionRepuestos", { repuestos, tiposServicio, usosPorTipo });
     } catch (error) {
       console.log("Error cargando repuestos:", error);
-      res.render("GestionRepuestos", { repuestos: [] });
+      res.render("GestionRepuestos", { repuestos: [], tiposServicio: [], usosPorTipo: {} });
     }
+  },
+
+  // ── Tipos de servicio de mantenimiento (catálogo) ──
+  createTipoServicio: async (req, res) => {
+    try {
+      const nombre = String(req.body.nombre || "").trim().replace(/\s+/g, " ");
+      if (!nombre || nombre.length > 100) throw new ErrorNegocio("Ingresá el nombre del tipo de servicio (hasta 100 caracteres).");
+      if (await db.TipoServicio.findOne({ where: { nombre } })) throw new ErrorNegocio(`El tipo de servicio "${nombre}" ya existe.`);
+      const tipo = await db.TipoServicio.create({ nombre });
+      await auditoriaService.desdeRequest(req, "tipo_servicio", tipo.id_tipo_servicio, "CREAR", null, { nombre }, `Alta de tipo de servicio: ${nombre}`);
+      req.flash("ok", `Tipo de servicio "${nombre}" agregado.`);
+    } catch (error) {
+      if (!(error instanceof ErrorNegocio)) console.log("Error creando tipo de servicio:", error);
+      req.flash("error", error instanceof ErrorNegocio ? error.message : "No se pudo agregar el tipo de servicio.");
+    }
+    res.redirect("/Repuestos/Gestionar#servicios");
+  },
+
+  // Renombrar actualiza también las órdenes que ya lo usan (así no quedan dos nombres para el mismo servicio)
+  renombrarTipoServicio: async (req, res) => {
+    const transaction = await db.sequelize.transaction();
+    try {
+      const nuevo = String(req.body.nombre || "").trim().replace(/\s+/g, " ");
+      if (!nuevo || nuevo.length > 100) throw new ErrorNegocio("Ingresá el nuevo nombre (hasta 100 caracteres).");
+      const tipo = await db.TipoServicio.findByPk(req.params.id, { transaction, lock: transaction.LOCK.UPDATE });
+      if (!tipo) throw new ErrorNegocio("El tipo de servicio no existe.");
+      if (nuevo === tipo.nombre) throw new ErrorNegocio("El nombre es el mismo que el actual.");
+      if (await db.TipoServicio.findOne({ where: { nombre: nuevo, id_tipo_servicio: { [Op.ne]: tipo.id_tipo_servicio } }, transaction })) {
+        throw new ErrorNegocio(`El tipo de servicio "${nuevo}" ya existe.`);
+      }
+      const anterior = tipo.nombre;
+      const [ordenes] = await db.Mantenimiento.update({ tipo_servicio: nuevo }, { where: { tipo_servicio: anterior }, transaction });
+      await tipo.update({ nombre: nuevo }, { transaction });
+      await transaction.commit();
+      await auditoriaService.desdeRequest(req, "tipo_servicio", tipo.id_tipo_servicio, "EDITAR", { nombre: anterior }, { nombre: nuevo }, `Tipo de servicio renombrado: "${anterior}" → "${nuevo}" (${ordenes} orden(es) actualizadas)`);
+      req.flash("ok", `Tipo de servicio renombrado. Se actualizaron ${ordenes} orden(es).`);
+    } catch (error) {
+      await transaction.rollback().catch(() => {});
+      if (!(error instanceof ErrorNegocio)) console.log("Error renombrando tipo de servicio:", error);
+      req.flash("error", error instanceof ErrorNegocio ? error.message : "No se pudo renombrar el tipo de servicio.");
+    }
+    res.redirect("/Repuestos/Gestionar#servicios");
+  },
+
+  deleteTipoServicio: async (req, res) => {
+    try {
+      const tipo = await db.TipoServicio.findByPk(req.params.id);
+      if (!tipo) throw new ErrorNegocio("El tipo de servicio no existe.");
+      const usos = await db.Mantenimiento.count({ where: { tipo_servicio: tipo.nombre } });
+      if (usos > 0) throw new ErrorNegocio(`No se puede eliminar "${tipo.nombre}": figura en ${usos} orden(es) de mantenimiento.`);
+      await tipo.destroy();
+      await auditoriaService.desdeRequest(req, "tipo_servicio", tipo.id_tipo_servicio, "ELIMINAR", { nombre: tipo.nombre }, null, `Baja de tipo de servicio: ${tipo.nombre}`);
+      req.flash("ok", `Tipo de servicio "${tipo.nombre}" eliminado.`);
+    } catch (error) {
+      if (!(error instanceof ErrorNegocio)) console.log("Error eliminando tipo de servicio:", error);
+      req.flash("error", error instanceof ErrorNegocio ? error.message : "No se pudo eliminar el tipo de servicio.");
+    }
+    res.redirect("/Repuestos/Gestionar#servicios");
   },
 
   createRepuesto: async (req, res) => {
@@ -150,9 +217,12 @@ const vehicleController = {
       const abiertas = await db.Mantenimiento.findAll({ where: { estado: "En proceso" }, attributes: ["id_vehiculo", "tipo_servicio"], raw: true });
       const ordenesAbiertas = Object.fromEntries(abiertas.map((m) => [m.id_vehiculo, m.tipo_servicio]));
 
+      const tiposServicio = await db.TipoServicio.findAll({ order: [["nombre", "ASC"]] });
+
       res.render("cargaMantenimiento", {
         vehiculos,
         repuestos,
+        tiposServicio,
         ordenesAbiertas,
         id_vehiculo_preseleccionado: req.params.id_vehiculo || null,
       });
@@ -244,6 +314,7 @@ const vehicleController = {
       const totalMantenimientos = await db.Mantenimiento.count({ where: { id_vehiculo: id } });
       const ultimasAsignaciones = await vehicleService.getLastAsignaciones(id);
       const asignacionActiva = await vehicleService.getAsignacionActiva(id);
+      const asignacionesVehiculo = await require("../data/assignmentService").historial({ id_vehiculo: id });
 
       const siniestrosVehiculo = await db.Siniestro.findAll({
         where: { id_vehiculo: id },
@@ -270,6 +341,7 @@ const vehicleController = {
         totalMantenimientos,
         ultimasAsignaciones,
         asignacionActiva: asignacionActiva || null,
+        asignacionesVehiculo,
         siniestrosVehiculo,
       });
     } catch (error) {
@@ -324,10 +396,10 @@ const vehicleController = {
     try {
       const distritos = await db.Distrito.findAll({ order: [["nombre", "ASC"]] });
       const tiposVehiculo = await db.TipoVehiculo.findAll({ order: [["descripcion", "ASC"]] });
-      res.render("AjustesVehiculos", { distritos, tiposVehiculo });
+      res.render("AjustesVehiculos", { distritos, tiposVehiculo, categoriasLicencia: CATEGORIAS_LICENCIA });
     } catch (error) {
       console.log(error);
-      res.render("AjustesVehiculos", { distritos: [], tiposVehiculo: [] });
+      res.render("AjustesVehiculos", { distritos: [], tiposVehiculo: [], categoriasLicencia: CATEGORIAS_LICENCIA });
     }
   },
 
@@ -394,7 +466,8 @@ const vehicleController = {
       if (!descripcion || descripcion.length > 100) throw new ErrorNegocio("Ingresá la descripción del tipo (hasta 100 caracteres).");
       if (await db.TipoVehiculo.findOne({ where: { descripcion } })) throw new ErrorNegocio(`El tipo "${descripcion}" ya existe.`);
       const unidad = req.body.unidad === "hs" ? "hs" : "km";
-      const tipo = await db.TipoVehiculo.create({ descripcion, unidad });
+      const licencias = normalizarLicencias(req.body.licencias);
+      const tipo = await db.TipoVehiculo.create({ descripcion, unidad, licencias });
       await auditoriaService.desdeRequest(req, "tipo_vehiculo", tipo.id_tipo, "CREAR", null, { descripcion }, `Alta de tipo de vehículo: ${descripcion}`);
       req.flash("ok", "Tipo de vehículo agregado.");
     } catch (error) {
@@ -423,6 +496,24 @@ const vehicleController = {
     } catch (error) {
       if (!(error instanceof ErrorNegocio)) console.log(error);
       req.flash("error", error instanceof ErrorNegocio ? error.message : "No se pudo actualizar el tipo de vehículo.");
+    }
+    res.redirect("/Vehicles/Ajustes");
+  },
+
+  // Licencias que habilitan a manejar un tipo de vehículo (se controlan al asignar un chofer)
+  licenciasTipo: async (req, res) => {
+    try {
+      const tipo = await db.TipoVehiculo.findByPk(req.params.id);
+      if (!tipo) throw new ErrorNegocio("El tipo de vehículo no existe.");
+      const licencias = normalizarLicencias(req.body.licencias);
+      const anterior = tipo.licencias || "";
+      if (licencias === anterior) throw new ErrorNegocio("No hay cambios para guardar.");
+      await tipo.update({ licencias });
+      await auditoriaService.desdeRequest(req, "tipo_vehiculo", tipo.id_tipo, "EDITAR", { licencias: anterior }, { licencias }, `Licencias del tipo "${tipo.descripcion}": ${anterior || "cualquiera"} → ${licencias || "cualquiera"}`);
+      req.flash("ok", licencias ? `"${tipo.descripcion}" ahora requiere licencia ${licencias.split(",").join(", ")}.` : `"${tipo.descripcion}" ya no exige una categoría de licencia en particular.`);
+    } catch (error) {
+      if (!(error instanceof ErrorNegocio)) console.log(error);
+      req.flash("error", error instanceof ErrorNegocio ? error.message : "No se pudieron guardar las licencias.");
     }
     res.redirect("/Vehicles/Ajustes");
   },
@@ -526,7 +617,10 @@ const vehicleController = {
 
   processEditVehiculo: async (req, res) => {
     try {
-      const resultado = await vehicleService.update(req.params.id, req.body, req.files || {});
+      const esAdmin = !!(req.session.usuarioLogueado && req.session.usuarioLogueado.rol === "Administrador");
+      // Un usuario sin rol de administrador no puede cambiar los archivos de documentación: se descartan
+      if (!esAdmin) descartarArchivos(req);
+      const resultado = await vehicleService.update(req.params.id, req.body, esAdmin ? req.files || {} : {}, { esAdmin });
 
       await auditoriaService.desdeRequest(
         req,
