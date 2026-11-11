@@ -315,7 +315,7 @@ CREATE TABLE `documento_adjunto` (
 
 CREATE TABLE `alerta` (
   `id_alerta` int(11) NOT NULL AUTO_INCREMENT,
-  `tipo` enum('licencia_vencida','licencia_proxima','mantenimiento_pendiente','mantenimiento_finalizado','mantenimiento_proximo','mantenimiento_vencido','documentacion_vencida','vehiculo_fuera_servicio','vehiculo_en_mantenimiento','herramienta_devuelta','prestamo_vencido','asignacion_vencida','stock_bajo','siniestro_activo','critica','informativa') NOT NULL,
+  `tipo` enum('licencia_vencida','licencia_proxima','mantenimiento_pendiente','mantenimiento_finalizado','mantenimiento_proximo','mantenimiento_vencido','documentacion_vencida','vehiculo_fuera_servicio','vehiculo_en_mantenimiento','herramienta_devuelta','prestamo_proximo','prestamo_vencido','asignacion_vencida','stock_bajo','siniestro_activo','critica','informativa') NOT NULL,
   `prioridad` enum('alta','media','baja') NOT NULL DEFAULT 'media',
   `mensaje` varchar(255) NOT NULL,
   `entidad_tipo` varchar(50) DEFAULT NULL,

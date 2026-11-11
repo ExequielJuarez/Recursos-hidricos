@@ -170,6 +170,7 @@
                         <option value="mantenimiento_vencido">Mantenimiento vencido</option>
                         <option value="mantenimiento_pendiente">Mantenimiento pendiente</option>
                         <option value="siniestro_activo">Siniestro Activo</option>
+                        <option value="prestamo_proximo">Préstamo por vencer</option>
                         <option value="prestamo_vencido">Préstamo vencido</option>
                         <option value="asignacion_vencida">Asignación vencida</option>
                         <option value="stock_bajo">Stock bajo de repuestos</option>
@@ -229,8 +230,8 @@
                                     
                                     <td class="data-table__td" data-label="Tipo">
                                         <%
-                                        const ICONOS = { licencia_vencida: '⚠️', licencia_proxima: '🕐', mantenimiento_pendiente: '🔧', mantenimiento_finalizado: '✅', vehiculo_en_mantenimiento: '🛠️', mantenimiento_proximo: '⏳', mantenimiento_vencido: '🛠️', documentacion_vencida: '📄', vehiculo_fuera_servicio: '🚫', herramienta_devuelta: '🔙', prestamo_vencido: '📋', asignacion_vencida: '⏰', stock_bajo: '📦', siniestro_activo: '💥', critica: '🚨', informativa: 'ℹ️' };
-                                        const LABELS = { licencia_vencida: 'Licencia vencida', licencia_proxima: 'Licencia próxima', mantenimiento_pendiente: 'Mant. pendiente', mantenimiento_finalizado: 'Mant. finalizado', vehiculo_en_mantenimiento: 'En mantenimiento', mantenimiento_proximo: 'Mant. próximo', mantenimiento_vencido: 'Mant. vencido', documentacion_vencida: 'Doc. vencida', vehiculo_fuera_servicio: 'Fuera de servicio', herramienta_devuelta: 'Devolución', prestamo_vencido: 'Préstamo vencido', asignacion_vencida: 'Asignación vencida', stock_bajo: 'Stock bajo', siniestro_activo: 'Siniestro Activo', critica: 'Crítica', informativa: 'Informativa' };
+                                        const ICONOS = { licencia_vencida: '⚠️', licencia_proxima: '🕐', mantenimiento_pendiente: '🔧', mantenimiento_finalizado: '✅', vehiculo_en_mantenimiento: '🛠️', mantenimiento_proximo: '⏳', mantenimiento_vencido: '🛠️', documentacion_vencida: '📄', vehiculo_fuera_servicio: '🚫', herramienta_devuelta: '🔙', prestamo_proximo: '⏳', prestamo_vencido: '📋', asignacion_vencida: '⏰', stock_bajo: '📦', siniestro_activo: '💥', critica: '🚨', informativa: 'ℹ️' };
+                                        const LABELS = { licencia_vencida: 'Licencia vencida', licencia_proxima: 'Licencia próxima', mantenimiento_pendiente: 'Mant. pendiente', mantenimiento_finalizado: 'Mant. finalizado', vehiculo_en_mantenimiento: 'En mantenimiento', mantenimiento_proximo: 'Mant. próximo', mantenimiento_vencido: 'Mant. vencido', documentacion_vencida: 'Doc. vencida', vehiculo_fuera_servicio: 'Fuera de servicio', herramienta_devuelta: 'Devolución', prestamo_proximo: 'Préstamo por vencer', prestamo_vencido: 'Préstamo vencido', asignacion_vencida: 'Asignación vencida', stock_bajo: 'Stock bajo', siniestro_activo: 'Siniestro Activo', critica: 'Crítica', informativa: 'Informativa' };
                                         %>
                                         <span style="font-size: 16px; margin-right: 6px;"><%= ICONOS[alerta.tipo] || 'ℹ️' %></span>
                                         <strong style="color: var(--color-text-primary);"><%= LABELS[alerta.tipo] || alerta.tipo %></strong>

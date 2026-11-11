@@ -1,6 +1,6 @@
 const db = require("../model/database/models");
 const { Op } = require("sequelize");
-const { hoyISO, aISO } = require("../utils/fechas");
+const { hoyISO, aISO, mediodiaLocal } = require("../utils/fechas");
 
 const { ErrorNegocio } = require("../utils/errores");
 const { categoriasPermitidas, mapaPorTipo } = require("../utils/licencias");
@@ -136,7 +136,7 @@ const assignmentService = {
         {
           id_vehiculo: data.id_vehiculo,
           id_chofer: data.id_chofer,
-          fecha_salida: data.fecha_desde,
+          fecha_salida: mediodiaLocal(data.fecha_desde),
           destino_area: data.destino || null,
           observaciones: data.observaciones || null,
           estado: "Activo",

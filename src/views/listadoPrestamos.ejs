@@ -194,7 +194,7 @@
                     <td class="data-table__td" data-label="Estado">
                       <%
                         // En la base: Activo (prestado) o Finalizado (devuelto). Un activo con la fecha estimada pasada está vencido.
-                        const vencido = p.estado_prestamo === 'Activo' && p.fecha_devolucion_estimada && new Date(p.fecha_devolucion_estimada) < new Date();
+                        const vencido = p.estado_prestamo === 'Activo' && p.fecha_devolucion_estimada && diasHasta(p.fecha_devolucion_estimada) < 0; // vencido recién al día siguiente de la fecha estimada
                         const textoEstado = p.estado_prestamo === 'Activo' ? (vencido ? 'Vencido' : 'Activo') : 'Devuelto';
                         let badgeClass = 'badge--success';
                         if (p.estado_prestamo === 'Activo') badgeClass = vencido ? 'badge--danger' : 'badge--warning';

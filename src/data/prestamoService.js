@@ -1,5 +1,5 @@
 const db = require("../model/database/models");
-const { hoyISO, esFechaValida } = require("../utils/fechas");
+const { hoyISO, esFechaValida, mediodiaLocal } = require("../utils/fechas");
 const { ErrorNegocio } = require("../utils/errores");
 
 const prestamoService = {
@@ -58,8 +58,8 @@ const prestamoService = {
         {
           id_herramienta: herramienta.id_herramienta,
           nombre_operario: operario.nombre,
-          fecha_salida: salida,
-          fecha_devolucion_estimada: data.fecha_devolucion_estimada,
+          fecha_salida: mediodiaLocal(salida),
+          fecha_devolucion_estimada: mediodiaLocal(data.fecha_devolucion_estimada),
           sector_destino: sectorNombre,
           observaciones,
           estado_prestamo: "Activo",

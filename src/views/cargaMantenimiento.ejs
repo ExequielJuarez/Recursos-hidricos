@@ -84,14 +84,16 @@
                 <option value="">Seleccione un vehículo</option>
                 <% if (typeof vehiculos !== 'undefined' && vehiculos.length > 0) { %>
                   <% vehiculos.forEach(v => { %>
-                    <option value="<%= v.id_vehiculo %>" data-km="<%= v.km_actual %>" data-unidad="<%= unidadDe(v) %>" 
+                    <% const _abierta = (typeof ordenesAbiertas !== 'undefined' && ordenesAbiertas) ? ordenesAbiertas[v.id_vehiculo] : null; %>
+                    <option value="<%= v.id_vehiculo %>" data-km="<%= v.km_actual %>" data-unidad="<%= unidadDe(v) %>" data-orden-abierta="<%= _abierta || '' %>" 
                       <%= (typeof id_vehiculo_preseleccionado !== 'undefined' && String(id_vehiculo_preseleccionado) === String(v.id_vehiculo)) ? 'selected' : '' %>>
-                      <%= v.patente %> - <%= v.marca %> <%= v.modelo %> (<%= fmtUso(v.km_actual, v) %>)
+                      <%= v.patente %> - <%= v.marca %> <%= v.modelo %> (<%= fmtUso(v.km_actual, v) %>)<%= _abierta ? ' · en taller' : '' %>
                     </option>
                   <% }) %>
                 <% } %>
               </select>
               <span id="km-actual-hint" style="font-size:13px; font-weight:700; color:#1d4ed8; margin-top:6px; display:block;"></span>
+              <span id="aviso-orden-abierta" style="display:none; margin-top:8px; font-size:13px; font-weight:600; color:#991b1b; background:#fef2f2; border:1px solid #fecaca; border-radius:8px; padding:10px 12px;"></span>
             </div>
             <div class="form-group">
               <label>Tipo de Servicio <span class="req">*</span></label>
@@ -288,6 +290,19 @@
       }
     }
 
+    // Un vehículo con una orden En proceso no puede abrir otra (sí cargar Realizados viejos o Programados)
+    const avisoAbierta = document.getElementById('aviso-orden-abierta');
+    const botonGuardar = document.querySelector('form button[type="submit"]');
+    function revisarOrdenAbierta() {
+      const opt = selectVehiculo.options[selectVehiculo.selectedIndex];
+      const abierta = opt && opt.value ? opt.dataset.ordenAbierta : '';
+      const bloquear = selectEstado.value === 'En proceso' && !!abierta;
+      avisoAbierta.style.display = bloquear ? 'block' : 'none';
+      avisoAbierta.textContent = bloquear ? 'Este vehículo ya está en el taller con la orden «' + abierta + '». Agregá los repuestos y costos en esa orden desde «Finalizar orden», o finalizala antes de abrir otra. Sí podés cargar un service Realizado o Programado.' : '';
+      if (botonGuardar) { botonGuardar.disabled = bloquear; botonGuardar.title = bloquear ? 'El vehículo ya tiene una orden en proceso' : ''; }
+    }
+    selectEstado.addEventListener('change', revisarOrdenAbierta);
+    selectVehiculo.addEventListener('change', revisarOrdenAbierta);
     selectEstado.addEventListener('change', aplicarEstado);
     selectVehiculo.addEventListener('change', () => { kmServicioInput.value = ''; actualizarKmHint(); });
     kmProgramadoInput.addEventListener('input', actualizarFalta);
@@ -297,6 +312,7 @@
       document.getElementById('aviso-historico').style.display = historico ? 'block' : 'none';
     });
     aplicarEstado();
+    revisarOrdenAbierta();
 
     // ── LÓGICA DE REPUESTOS DINÁMICOS Y SEGURA ──
     document.getElementById('btn-add-repuesto').addEventListener('click', () => {

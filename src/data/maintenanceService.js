@@ -1,6 +1,6 @@
 const db = require("../model/database/models");
 const { Op } = require("sequelize");
-const { hoyISO, esFechaValida } = require("../utils/fechas");
+const { hoyISO, esFechaValida, aISO } = require("../utils/fechas");
 const { ErrorNegocio } = require("../utils/errores");
 
 // Programado: próximo service por kilometraje (aún no se hizo). En proceso: el vehículo está en el taller.
@@ -81,6 +81,20 @@ const maintenanceService = {
   ESTADOS_MANTENIMIENTO,
   CAMPOS_ADMIN,
   datosAdministrativos,
+
+  // Un vehículo sólo puede tener UNA orden "En proceso" (está en el taller una sola vez).
+  // Lo que se agregue a esa visita (más repuestos, otro arreglo) se carga en esa orden desde "Finalizar orden".
+  verificarSinOrdenAbierta: async function (vehiculo, transaction, excluirId = null) {
+    const where = { id_vehiculo: vehiculo.id_vehiculo, estado: "En proceso" };
+    if (excluirId) where.id_mantenimiento = { [Op.ne]: excluirId };
+    const abierta = await db.Mantenimiento.findOne({ where, transaction });
+    if (abierta) {
+      throw new ErrorNegocio(
+        `El vehículo ${vehiculo.patente} ya tiene una orden en proceso («${abierta.tipo_servicio}», desde el ${aISO(abierta.fecha_inicio).split("-").reverse().join("/")}). ` +
+          "Agregá los repuestos y costos en esa orden desde «Finalizar orden», o finalizala antes de abrir otra. Sí podés cargar services Realizados o Programados.",
+      );
+    }
+  },
 
   // Un service programado a X km deja de tener sentido cuando ya se realizó otro a X km o más:
   // se cancela solo (queda registrado en sus observaciones).
@@ -193,6 +207,9 @@ const maintenanceService = {
       if (abierta && vehiculo.estado_actual === "En uso") {
         throw new ErrorNegocio("El vehículo está en uso (asignado a un chofer): finalizá la asignación antes de enviarlo a mantenimiento.");
       }
+      // Un vehículo entra al taller una sola vez: si ya tiene una orden En proceso no se abre otra
+      // (los services Realizados viejos y los Programados se pueden cargar igual)
+      if (abierta) await maintenanceService.verificarSinOrdenAbierta(vehiculo, transaction);
 
       // ── Detalle de repuestos ──
       const detalle = await leerRepuestos(body, transaction);
@@ -295,6 +312,8 @@ const maintenanceService = {
               "El vehículo está asignado a un chofer. Para enviarlo al taller, primero registrá la devolución en Vehículos → Asignar a chofer. Si el service ya se hizo, usá «Finalizar orden».",
             );
           }
+          // Iniciar un service programado también abre una visita al taller: no puede haber otra en proceso
+          await maintenanceService.verificarSinOrdenAbierta(vehiculo, transaction, mantenimiento.id_mantenimiento);
           if (vehiculo.estado_actual === "Disponible") cambiosVehiculo.estado_actual = "En mantenimiento";
           cambiosOrden.km_servicio = vehiculo.km_actual; // entra al taller con el km actual
         }

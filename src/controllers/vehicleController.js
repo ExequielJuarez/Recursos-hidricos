@@ -146,10 +146,14 @@ const vehicleController = {
         order: [["patente", "ASC"]],
       });
       const repuestos = await db.Repuesto.findAll({ order: [["nombre", "ASC"]] });
+      // Vehículos que ya tienen una orden En proceso: no se les puede abrir otra (sí cargar Realizados o Programados)
+      const abiertas = await db.Mantenimiento.findAll({ where: { estado: "En proceso" }, attributes: ["id_vehiculo", "tipo_servicio"], raw: true });
+      const ordenesAbiertas = Object.fromEntries(abiertas.map((m) => [m.id_vehiculo, m.tipo_servicio]));
 
       res.render("cargaMantenimiento", {
         vehiculos,
         repuestos,
+        ordenesAbiertas,
         id_vehiculo_preseleccionado: req.params.id_vehiculo || null,
       });
     } catch (error) {

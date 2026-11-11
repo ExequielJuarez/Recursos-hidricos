@@ -1,6 +1,7 @@
 const db = require("../model/database/models");
 const { Op } = require("sequelize");
 const { ErrorNegocio } = require("../utils/errores");
+const { mediodiaLocal } = require("../utils/fechas");
 
 const ESTADOS_HERRAMIENTA = ["Disponible", "En uso", "En Reparación", "Baja"];
 
@@ -115,7 +116,7 @@ const toolService = {
       combustible_energia: texto(data.combustible_energia),
       observaciones: texto(data.observaciones),
       imagen_url: null,
-      fecha_alta: data.fecha_alta && !Number.isNaN(Date.parse(data.fecha_alta)) ? data.fecha_alta : new Date(),
+      fecha_alta: data.fecha_alta && !Number.isNaN(Date.parse(data.fecha_alta)) ? mediodiaLocal(data.fecha_alta) : new Date(),
     });
   },
 
@@ -149,7 +150,7 @@ const toolService = {
       combustible_energia: texto(data.combustible_energia),
       observaciones: texto(data.observaciones),
     };
-    if (data.fecha_alta && !Number.isNaN(Date.parse(data.fecha_alta))) cambios.fecha_alta = data.fecha_alta;
+    if (data.fecha_alta && !Number.isNaN(Date.parse(data.fecha_alta))) cambios.fecha_alta = mediodiaLocal(data.fecha_alta);
 
     const anterior = herramienta.toJSON();
     await herramienta.update(cambios);
@@ -171,7 +172,7 @@ const toolService = {
       const snapshot = herramienta.toJSON();
 
       await db.Prestamo.destroy({ where: { id_herramienta: id }, transaction });
-      await db.Alerta.destroy({ where: { tipo: "prestamo_vencido", entidad_tipo: "Herramienta", entidad_id: id }, transaction });
+      await db.Alerta.destroy({ where: { tipo: { [Op.in]: ["prestamo_vencido", "prestamo_proximo"] }, entidad_tipo: "Herramienta", entidad_id: id }, transaction });
       await herramienta.destroy({ transaction });
 
       await transaction.commit();

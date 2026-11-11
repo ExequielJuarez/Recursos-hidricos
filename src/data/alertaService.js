@@ -428,21 +428,29 @@ const alertaService = {
           include: [{ association: "herramienta" }],
         });
 
+        // Una alerta por herramienta, por su préstamo más urgente:
+        //   · vencido (ya pasó la fecha de devolución estimada) → "prestamo_vencido", prioridad alta
+        //   · vence hoy, mañana o en 2 días                       → "prestamo_proximo", prioridad media
+        const DIAS_AVISO = 2;
         const porHerramienta = new Map();
         for (const p of prestamos) {
           const dias = diasHasta(p.fecha_devolucion_estimada);
-          if (dias === null || dias >= 0 || !p.herramienta) continue;
+          if (dias === null || dias > DIAS_AVISO || !p.herramienta) continue;
           const actual = porHerramienta.get(p.id_herramienta);
           if (!actual || dias < actual.dias) porHerramienta.set(p.id_herramienta, { p, dias });
         }
 
         const deseadas = [];
         for (const [idHerramienta, { p, dias }] of porHerramienta) {
+          const vencido = dias < 0;
+          const herramienta = `${p.herramienta.nombre} (${p.nombre_operario})`;
+          const cuando = dias === 0 ? "vence hoy" : dias === 1 ? "vence mañana" : `vence en ${dias} días`;
+          const atraso = Math.abs(dias) === 1 ? "1 día" : `${Math.abs(dias)} días`;
           deseadas.push({
             clave: String(idHerramienta),
-            tipo: "prestamo_vencido",
-            prioridad: "alta",
-            mensaje: `Préstamo vencido hace ${Math.abs(dias)} días: ${p.herramienta.nombre} (${p.nombre_operario})`,
+            tipo: vencido ? "prestamo_vencido" : "prestamo_proximo",
+            prioridad: vencido ? "alta" : "media",
+            mensaje: vencido ? `Préstamo vencido hace ${atraso}: ${herramienta}` : `Préstamo ${cuando}: ${herramienta}`,
             entidad_tipo: "Herramienta",
             entidad_id: idHerramienta,
             entidad_nombre: `${p.herramienta.nombre} (${p.herramienta.codigo_activo})`,
@@ -450,7 +458,7 @@ const alertaService = {
         }
 
         const existentes = await db.Alerta.findAll({
-          where: { tipo: "prestamo_vencido", entidad_tipo: "Herramienta" },
+          where: { tipo: { [Op.in]: ["prestamo_vencido", "prestamo_proximo"] }, entidad_tipo: "Herramienta" },
         });
         await sincronizarGrupo(deseadas, existentes, (a) => String(a.entidad_id));
       } catch (error) {

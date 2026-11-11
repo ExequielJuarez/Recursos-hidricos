@@ -32,11 +32,11 @@ async function migrar(conexion) {
     return r.length ? String(r[0].Type) : "";
   };
 
-  // Alertas: nuevos tipos (asignaciones vencidas y stock bajo de repuestos)
+  // Alertas: nuevos tipos (asignaciones vencidas, stock bajo de repuestos y préstamos por vencer)
   const tiposAlerta = await tipoColumna("alerta", "tipo");
-  if (tiposAlerta && (!tiposAlerta.includes("asignacion_vencida") || !tiposAlerta.includes("stock_bajo"))) {
+  if (tiposAlerta && (!tiposAlerta.includes("asignacion_vencida") || !tiposAlerta.includes("stock_bajo") || !tiposAlerta.includes("prestamo_proximo"))) {
     await conexion.query(
-      "ALTER TABLE alerta MODIFY tipo ENUM('licencia_vencida','licencia_proxima','mantenimiento_pendiente','mantenimiento_finalizado','mantenimiento_proximo','mantenimiento_vencido','documentacion_vencida','vehiculo_fuera_servicio','vehiculo_en_mantenimiento','herramienta_devuelta','prestamo_vencido','asignacion_vencida','stock_bajo','siniestro_activo','critica','informativa') NOT NULL",
+      "ALTER TABLE alerta MODIFY tipo ENUM('licencia_vencida','licencia_proxima','mantenimiento_pendiente','mantenimiento_finalizado','mantenimiento_proximo','mantenimiento_vencido','documentacion_vencida','vehiculo_fuera_servicio','vehiculo_en_mantenimiento','herramienta_devuelta','prestamo_proximo','prestamo_vencido','asignacion_vencida','stock_bajo','siniestro_activo','critica','informativa') NOT NULL",
     );
   }
 
@@ -102,6 +102,17 @@ async function migrar(conexion) {
 
   // Transmisión: el formulario de alta guardaba "Automatica" sin tilde, valor que después no pasaba la edición
   await conexion.query("UPDATE vehiculo SET transmision = 'Automática' WHERE transmision = 'Automatica'");
+
+  // Fechas elegidas en formularios que se guardaban a las 00:00 UTC (= día anterior en Argentina): se pasan al
+  // mediodía de Argentina (15:00 UTC) para que se muestren y calculen en el día correcto.
+  for (const [tabla, columna] of [
+    ["prestamo", "fecha_salida"],
+    ["prestamo", "fecha_devolucion_estimada"],
+    ["asignacion_vehiculo", "fecha_salida"],
+    ["herramienta", "fecha_alta"],
+  ]) {
+    await conexion.query(`UPDATE \`${tabla}\` SET \`${columna}\` = \`${columna}\` + INTERVAL 15 HOUR WHERE \`${columna}\` IS NOT NULL AND TIME(\`${columna}\`) = '00:00:00'`);
+  }
 
   // Rol "Principal" pasó a llamarse "Supervisor" (mismo rol y permisos: supervisión general y reportes)
   const [[rolSupervisor]] = await conexion.query("SELECT COUNT(*) n FROM rol WHERE nombre = 'Supervisor'");
