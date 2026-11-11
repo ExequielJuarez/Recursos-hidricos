@@ -13,7 +13,8 @@
     "compartir": "node scripts/compartir.js",
     "db:instalacion": "node scripts/armar-instalacion-limpia.js",
     "db:instalar": "node scripts/cargar-ejemplos.js",
-    "db:basico": "node scripts/cargar-basico.js"
+    "db:basico": "node scripts/cargar-basico.js",
+    "db:prueba": "node scripts/cargar-prueba.js"
   },
   "keywords": [],
   "author": "",
