@@ -12,6 +12,7 @@ const { CATEGORIAS } = require("../utils/documentos");
 const { ErrorNegocio } = require("../utils/errores");
 const { escapeHtml } = require("../utils/html");
 const { hoyISO } = require("../utils/fechas");
+const { generarListado, enviarExcel } = require("../utils/excelListado");
 const { CATEGORIAS: CATEGORIAS_LICENCIA, normalizarLicencias } = require("../utils/licencias");
 
 const DIR_VEHICULOS = path.join(__dirname, "../../public/img/vehiculos");
@@ -40,6 +41,43 @@ const vehicleController = {
     } catch (error) {
       console.log(error);
       res.status(500).send("Error al cargar lista de vehículos");
+    }
+  },
+
+  // Exporta el listado completo de vehículos a Excel (.xlsx)
+  ExportarListado: async (req, res) => {
+    try {
+      const vehiculos = await vehicleService.getAll();
+      const buffer = await generarListado({
+        hoja: "Vehículos",
+        titulo: "Listado de vehículos",
+        columnas: [
+          { titulo: "Patente", clave: "patente", ancho: 12 },
+          { titulo: "Marca", clave: "marca", ancho: 16 },
+          { titulo: "Modelo", clave: "modelo", ancho: 24 },
+          { titulo: "Año", clave: "anio", ancho: 8, tipo: "numero" },
+          { titulo: "Tipo", clave: "tipo", ancho: 18 },
+          { titulo: "Km actual", clave: "km_actual", ancho: 12, tipo: "numero" },
+          { titulo: "Estado", clave: "estado_actual", ancho: 16 },
+          { titulo: "Chasis", clave: "num_chasis", ancho: 20 },
+          { titulo: "Motor", clave: "num_motor", ancho: 14 },
+          { titulo: "Transmisión", clave: "transmision", ancho: 13 },
+          { titulo: "Distrito", clave: "distrito", ancho: 14 },
+          { titulo: "Fecha de alta", clave: "fecha_alta", ancho: 13, tipo: "fecha" },
+          { titulo: "Fecha de baja", clave: "fecha_baja", ancho: 13, tipo: "fecha" },
+          { titulo: "Cédula número", clave: "cedula_numero", ancho: 16 },
+          { titulo: "Cédula titular", clave: "cedula_titular", ancho: 34 },
+          { titulo: "Seguro compañía", clave: "seguro_compania", ancho: 22 },
+          { titulo: "Vencimiento seguro", clave: "seguro_vencimiento", ancho: 14, tipo: "fecha" },
+          { titulo: "Vencimiento RTO", clave: "rto_vencimiento", ancho: 14, tipo: "fecha" },
+        ],
+        filas: vehiculos.map((v) => ({ ...v.get({ plain: true }), tipo: v.TipoVehiculo ? v.TipoVehiculo.descripcion : "" })),
+      });
+      enviarExcel(res, "listado-vehiculos", buffer);
+    } catch (error) {
+      console.log(error);
+      req.flash("error", "No se pudo generar el Excel del listado de vehículos.");
+      res.redirect("/Vehicles");
     }
   },
 

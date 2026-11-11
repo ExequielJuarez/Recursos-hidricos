@@ -4,6 +4,7 @@ const prestamoService = require("../data/prestamoService");
 const auditoriaService = require("../data/auditoriaService");
 const alertaService = require("../data/alertaService");
 const { ErrorNegocio } = require("../utils/errores");
+const { generarListado, enviarExcel } = require("../utils/excelListado");
 
 // Ejecuta una acción, muestra el resultado con un aviso y vuelve a `destino`
 const conAviso = (destino, accion, mensajeError) => async (req, res) => {
@@ -30,6 +31,35 @@ const toolController = {
       console.log(error);
       req.flash("error", "Error al obtener herramientas.");
       res.redirect("/Vehicles");
+    }
+  },
+
+  // Exporta el inventario de herramientas a Excel (.xlsx)
+  ExportarListado: async (req, res) => {
+    try {
+      const herramientas = await toolService.getAll();
+      const buffer = await generarListado({
+        hoja: "Herramientas",
+        titulo: "Inventario de herramientas",
+        columnas: [
+          { titulo: "Código", clave: "codigo_activo", ancho: 14 },
+          { titulo: "Herramienta", clave: "nombre", ancho: 30 },
+          { titulo: "Sector", clave: "sector", ancho: 18 },
+          { titulo: "Estado", clave: "estado", ancho: 15 },
+          { titulo: "Stock total", clave: "stock", ancho: 11, tipo: "numero" },
+          { titulo: "Prestadas", clave: "prestadas", ancho: 11, tipo: "numero" },
+          { titulo: "Disponibles", clave: "disponibles", ancho: 12, tipo: "numero" },
+          { titulo: "Combustible / energía", clave: "combustible_energia", ancho: 20 },
+          { titulo: "Fecha de alta", clave: "fecha_alta", ancho: 13, tipo: "fecha" },
+          { titulo: "Observaciones", clave: "observaciones", ancho: 40 },
+        ],
+        filas: herramientas.map((h) => h.get({ plain: true })),
+      });
+      enviarExcel(res, "inventario-herramientas", buffer);
+    } catch (error) {
+      console.log(error);
+      req.flash("error", "No se pudo generar el Excel de herramientas.");
+      res.redirect("/Tools");
     }
   },
 

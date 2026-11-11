@@ -105,6 +105,7 @@ router.post("/Vehicles/Ajustes/Tipos/Licencias/:id", authMiddleware, vehicleCont
 router.get("/Vehicles/Editar/:id", authMiddleware, vehicleController.EditVehiculo);
 router.post("/Vehicles/Editar/:id", authMiddleware, uploadVehiculo.fields([{ name: "foto_cedula", maxCount: 1 },{ name: "foto_titulo", maxCount: 1 },{ name: "foto_rto",    maxCount: 1 }]), vehicleController.processEditVehiculo);
 router.get("/Vehicles", authMiddleware, vehicleController.ListVehicles);
+router.get("/Vehicles/Exportar", authMiddleware, vehicleController.ExportarListado);
 router.get("/Vehicles/:id/mantenimientos", authMiddleware, vehicleController.MantenimientosDeVehiculo);
 router.get("/Vehicles/:id/siniestros", authMiddleware, vehicleController.SiniestrosDeVehiculo);
 router.get("/Vehicles/:id/asignaciones", authMiddleware, assignmentController.historialVehiculo);
@@ -156,6 +157,7 @@ router.post("/asignaciones", authMiddleware, assignmentController.create);
 router.post("/asignaciones/:id/finalizar", authMiddleware, assignmentController.finalize);
 
 router.get("/Tools", authMiddleware, toolController.ListTools);
+router.get("/Tools/Exportar", authMiddleware, toolController.ExportarListado);
 router.get("/Tools/Carga", authMiddleware, toolController.CargaHerramienta);
 router.post("/Tools/Carga", authMiddleware, toolController.processTool);
 router.post("/Tools/ProcessCarga", authMiddleware, toolController.processTool);

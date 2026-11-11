@@ -115,10 +115,10 @@
       <section class="vehicle-list-panel" id="vehicle-list-panel">
         <div class="vehicle-list-panel__top">
           <h2 class="vehicle-list-panel__title">Listado de Vehículos</h2>
-          <button id="btn-export-csv-listado" class="vehicle-list-panel__export-btn">
+          <a href="/Vehicles/Exportar" id="btn-export-listado" class="vehicle-list-panel__export-btn" style="text-decoration:none;" download>
             <svg viewBox="0 0 20 20" fill="currentColor"><path d="M10.75 2.75a.75.75 0 00-1.5 0v8.614L6.295 8.235a.75.75 0 10-1.09 1.03l4.25 4.5a.75.75 0 001.09 0l4.25-4.5a.75.75 0 00-1.09-1.03l-2.955 3.129V2.75z"/><path d="M3.5 12.75a.75.75 0 00-1.5 0v2.5A2.75 2.75 0 004.75 18h10.5A2.75 2.75 0 0018 15.25v-2.5a.75.75 0 00-1.5 0v2.5c0 .69-.56 1.25-1.25 1.25H4.75c-.69 0-1.25-.56-1.25-1.25v-2.5z"/></svg>
-            Exportar Listado CSV
-          </button>
+            Exportar Listado Excel
+          </a>
         </div>
 
         <div class="vehicle-list-panel__search-bar">
@@ -508,52 +508,6 @@
         searchInput.value = buscarInicial;
         searchInput.dispatchEvent(new Event('input'));
       }
-    }
-
-    // ── EXPORTAR LISTADO CSV (con todos los datos, sin chofer asignado) ──
-    const btnExportListado = document.getElementById('btn-export-csv-listado');
-    if (btnExportListado) {
-      btnExportListado.addEventListener('click', function() {
-        const headers = ['Patente','Marca','Modelo','Año','Tipo','Km Actual','Estado','Chasis','Motor','Transmisión','Distrito','Fecha Alta','Cédula Número','Cédula Titular','Seguro Compañía','Vencimiento Seguro','Vencimiento RTO'];
-
-        const escapeCsv = (value) => `"${(value || '').toString().replace(/"/g, '""')}"`;
-
-        const rows = [headers.map(escapeCsv).join(',')];
-
-        toolCards.forEach(card => {
-          const fila = [
-            card.dataset.patente,
-            card.dataset.marca,
-            card.dataset.modelo,
-            card.dataset.anio,
-            card.dataset.tipo,
-            card.dataset.km,
-            card.dataset.estado,
-            card.dataset.chasis,
-            card.dataset.motor,
-            card.dataset.transmision,
-            card.dataset.distrito,
-            card.dataset.fechaAlta,
-            card.dataset.cedulaNumero,
-            card.dataset.cedulaTitular,
-            card.dataset.seguroCompania,
-            card.dataset.seguroVencimiento,
-            card.dataset.rtoVencimiento
-          ].map(escapeCsv).join(',');
-          rows.push(fila);
-        });
-
-        const csvContent = rows.join('\r\n');
-        const blob = new Blob(["\uFEFF" + csvContent], { type: 'text/csv;charset=utf-8;' });
-        const url = URL.createObjectURL(blob);
-        const link = document.createElement('a');
-        link.href = url;
-        link.setAttribute('download', 'Listado_Vehiculos.csv');
-        document.body.appendChild(link);
-        link.click();
-        document.body.removeChild(link);
-        URL.revokeObjectURL(url);
-      });
     }
 
     // ── MODAL FOTOS VEHÍCULO (AGREGADO) ──

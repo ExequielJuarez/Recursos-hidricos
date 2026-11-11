@@ -29,7 +29,9 @@
     .btn-add:hover { background: #1d4ed8; }
     .input-add { flex: 1; padding: 10px 14px; border: 1px solid #cbd5e1; border-radius: 8px; font-size: 13px; outline: none; transition: 0.2s; font-family: 'DM Sans', sans-serif; color: #0f172a; }
     .input-add:focus { border-color: #2563eb; box-shadow: 0 0 0 3px rgba(37,99,235,0.1); }
-    .form-add { display: flex; gap: 10px; margin-top: 20px; }
+    .form-add { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 20px; }
+    .form-add .input-add { min-width: 0; flex: 1 1 160px; }
+    .form-add .btn-add { white-space: nowrap; }
     .btn-delete { background: #fef2f2; color: #dc2626; border: 1px solid #fecaca; padding: 6px 12px; border-radius: 6px; font-size: 12px; font-weight: 800; cursor: pointer; transition: 0.2s; }
     .btn-delete:hover { background: #fee2e2; }
     .btn-edit { background: #eff6ff; color: #1d4ed8; border: 1px solid #bfdbfe; padding: 6px 12px; border-radius: 6px; font-size: 12px; font-weight: 800; cursor: pointer; transition: 0.2s; }
